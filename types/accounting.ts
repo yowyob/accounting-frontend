@@ -1,6 +1,6 @@
 export interface Account {
   id: UUID; // Unique identifier for the account 
-  classe?:number;
+  classe?: number;
   noCompte: string; // Account code (e.g., 101100, 411xxxx)
   libelle: string; // Account name (e.g., "Capital social", "Vente à un client au comptant")
   type: string; // Account type (e.g., "Capitaux propres", "Comptes de tiers")
@@ -70,22 +70,22 @@ export interface EcritureComptable {
 }
 
 export interface JournalComptable {
-  id?:UUID;
-  codeJournal :string;
-  libelle :string;
-  typeJournal :string;
-  notes?:string;
-  actif:boolean;
+  id?: UUID;
+  codeJournal: string;
+  libelle: string;
+  typeJournal: string;
+  notes?: string;
+  actif: boolean;
   createdAt?: Date;
   createdBy?: string;
   updatedAt?: Date;
   updatedBy?: string;
-ecritureComptable?: EcritureComptable[];
+  ecritureComptable?: EcritureComptable[];
 
 }
 
 
- export interface PeriodeComptable {
+export interface PeriodeComptable {
   id?: UUID;
   code?: string; // Format YYYY-MM
   dateDebut?: Date;
@@ -122,6 +122,53 @@ export interface GeneralSettings {
   defaultCurrency: string;
   defaultFiscalYear: string; // Format YYYY
 
-  entryMode?: 'AUTOMATIC' |'SEMI_AUTOMATIC' | 'MANUAL';
+  entryMode?: 'AUTOMATIC' | 'SEMI_AUTOMATIC' | 'MANUAL';
 }
-export type UUID = string; 
+export type UUID = string;
+
+export type TaxType = 'collectee' | 'deductible' | 'autre';
+export type TaxMode = 'ajoute' | 'inclus' | 'non-applicable';
+
+export interface Taxe {
+  id: string;
+  name: string;
+  rate: number;
+  taxAccount: string;
+  type: TaxType; // <-- AJOUTÉ
+  mode: TaxMode; // <-- AJOUTÉ
+  description: string;
+  status: 'Actif' | 'Passif' | 'Exonérée';
+}
+// dans /types/accounting.ts
+export interface Devise {
+  id: string;
+  name: string;      // ex: "Euro"
+  code: string;      // ex: "EUR"
+  symbol: string;    // ex: "€"
+  rate: number;      // Taux de change par rapport à votre devise principale
+}
+
+// Nouveau type pour le menu déroulant "Type d'Opération"
+export type OperationType = 'vente' | 'achat' | 'importation' | 'exportation' | 'exonere';
+
+// Interface PositionFiscale SIMPLIFIÉE
+export interface PositionFiscale {
+  id: string;
+  name: string;
+  typeOperation: OperationType;
+  taxeLieeId: string; // ID de la taxe unique
+  description?: string;
+}
+
+
+// Type pour le menu déroulant
+export type ModePaiementType = 'banque' | 'especes' | 'mobile_money' | 'autre';
+
+export interface ModePaiement {
+  id: string;
+  name: string;              // ex: "Compte UBA", "Caisse Principale"
+  type: ModePaiementType;  // Le type de journal
+  journalId?: string;       // Le compte comptable associé (ex: 571100)
+}
+
+// ... (Gardez vos autres interfaces Taxe, Devise, PositionFiscale...)

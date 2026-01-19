@@ -12,7 +12,7 @@ import {
   LedgerSettings, GeneralSettings
 } from "@/types/accounting";
 
-const API_BASE_URL = "http://localhost:8082";
+const API_BASE_URL = "http://10.132.16.11:8081";
 
 const apiRequest = async <T>(endpoint: string, method: string = 'GET', body?: unknown): Promise<T> => {
   const config: RequestInit = {
@@ -86,12 +86,12 @@ export const loginUser = async (data: LoginData): Promise<User> => {
 
 export const getClients = (query?: string): Promise<Client[]> => apiRequest<Client[]>(`/clients${query ? `?q=${query}` : ''}`);
 export const createClient = (data: Omit<Client, 'id'>): Promise<Client> => apiRequest<Client>("/clients", 'POST', data);
-export const updateClient = (id: UUID, data: Partial<Client>): Promise<Client> => apiRequest<Client>(`/clients/${id}`, 'PATCH', data);
+export const updateClient = (id: UUID, data: Partial<Client>): Promise<Client> => apiRequest<Client>(`/clients/${id}`, 'PUT', data);
 export const deleteClient = (id: UUID): Promise<void> => apiRequest<void>(`/clients/${id}`, 'DELETE');
 
 export const getProducts = (query?: string): Promise<Product[]> => apiRequest<Product[]>(`/products${query ? `?q=${query}` : ''}`);
 export const createProduct = (data: Omit<Product, 'id'>): Promise<Product> => apiRequest<Product>("/products", 'POST', data);
-export const updateProduct = (id: UUID, data: Partial<Product>): Promise<Product> => apiRequest<Product>(`/products/${id}`, 'PATCH', data);
+export const updateProduct = (id: UUID, data: Partial<Product>): Promise<Product> => apiRequest<Product>(`/products/${id}`, 'PUT', data);
 export const deleteProduct = (id: UUID): Promise<void> => apiRequest<void>(`/products/${id}`, 'DELETE');
 
 export const getInvoices = async (): Promise<Invoice[]> => {
@@ -103,7 +103,7 @@ export const getOrderJournal = async (): Promise<OrderJournalEntry[]> => {
   const journal = await apiRequest<OrderJournalEntry[]>("/orderJournal");
   return journal.map(entry => ({ ...entry, orderDate: new Date(entry.orderDate) }));
 };
-export const updateOrderJournalEntry = (id: UUID, data: Partial<OrderJournalEntry>): Promise<OrderJournalEntry> => apiRequest<OrderJournalEntry>(`/orderJournal/${id}`, 'PATCH', data);
+export const updateOrderJournalEntry = (id: UUID, data: Partial<OrderJournalEntry>): Promise<OrderJournalEntry> => apiRequest<OrderJournalEntry>(`/orderJournal/${id}`, 'PUT', data);
 export const deleteOrderJournalEntry = (id: UUID): Promise<void> => apiRequest<void>(`/orderJournal/${id}`, 'DELETE');
 
 export const getOrders = async (): Promise<Order[]> => {
@@ -111,7 +111,7 @@ export const getOrders = async (): Promise<Order[]> => {
   return orders.map(order => ({ ...order, orderDate: new Date(order.orderDate) }));
 };
 export const createOrder = (data: Omit<Order, 'id'>): Promise<Order> => apiRequest<Order>("/orders", 'POST', data);
-export const updateOrder = (id: UUID, data: Partial<Order>): Promise<Order> => apiRequest<Order>(`/orders/${id}`, 'PATCH', data);
+export const updateOrder = (id: UUID, data: Partial<Order>): Promise<Order> => apiRequest<Order>(`/orders/${id}`, 'PUT', data);
 
 export const getWarehouses = (): Promise<Warehouse[]> => apiRequest<Warehouse[]>('/warehouses');
 export const getStockMovements = (): Promise<StockMovement[]> => apiRequest<StockMovement[]>('/stockMovements');
@@ -125,23 +125,23 @@ export const createProductTransformation = (data: Omit<ProductTransformation, 'i
 
 export const getInventories = (): Promise<Inventory[]> => apiRequest<Inventory[]>('/inventories');
 export const createInventory = (data: Omit<Inventory, 'id'>): Promise<Inventory> => apiRequest<Inventory>('/inventories', 'POST', data);
-export const updateInventory = (id: UUID, data: Partial<Inventory>): Promise<Inventory> => apiRequest<Inventory>(`/inventories/${id}`, 'PATCH', data);
+export const updateInventory = (id: UUID, data: Partial<Inventory>): Promise<Inventory> => apiRequest<Inventory>(`/inventories/${id}`, 'PUT', data);
 export const deleteInventory = (id: UUID): Promise<void> => apiRequest<void>(`/inventories/${id}`, 'DELETE');
 
 export const getUsers = (): Promise<User[]> => apiRequest<User[]>('/users');
 export const createUser = (data: Omit<User, 'id' | 'creationDate'>): Promise<User> => apiRequest<User>('/users', 'POST', { ...data, creationDate: new Date().toISOString() });
-export const updateUser = (id: UUID, data: Partial<User>): Promise<User> => apiRequest<User>(`/users/${id}`, 'PATCH', data);
+export const updateUser = (id: UUID, data: Partial<User>): Promise<User> => apiRequest<User>(`/users/${id}`, 'PUT', data);
 
 export const getProfiles = (): Promise<Profile[]> => apiRequest<Profile[]>('/profiles');
 export const createProfile = (data: Omit<Profile, 'id'>): Promise<Profile> => apiRequest<Profile>('/profiles', 'POST', data);
-export const updateProfile = (id: UUID, data: Partial<Profile>): Promise<Profile> => apiRequest<Profile>(`/profiles/${id}`, 'PATCH', data);
+export const updateProfile = (id: UUID, data: Partial<Profile>): Promise<Profile> => apiRequest<Profile>(`/profiles/${id}`, 'PUT', data);
 export const deleteProfile = (id: UUID): Promise<void> => apiRequest<void>(`/profiles/${id}`, 'DELETE');
 
 export const getSystemAudits = (): Promise<SystemAudit[]> => apiRequest<SystemAudit[]>('/systemAudits');
 
 export const getSuppliers = (query?: string): Promise<Supplier[]> => apiRequest<Supplier[]>(`/suppliers${query ? `?q=${query}` : ''}`);
 export const createSupplier = (data: Omit<Supplier, 'id'>): Promise<Supplier> => apiRequest<Supplier>("/suppliers", 'POST', data);
-export const updateSupplier = (id: UUID, data: Partial<Supplier>): Promise<Supplier> => apiRequest<Supplier>(`/suppliers/${id}`, 'PATCH', data);
+export const updateSupplier = (id: UUID, data: Partial<Supplier>): Promise<Supplier> => apiRequest<Supplier>(`/suppliers/${id}`, 'PUT', data);
 export const deleteSupplier = (id: UUID): Promise<void> => apiRequest<void>(`/suppliers/${id}`, 'DELETE');
 
 export const getGeneralOptions = async (): Promise<GeneralOptions> => {
@@ -152,10 +152,10 @@ export const updateGeneralOptions = (data: GeneralOptions): Promise<GeneralOptio
 
 //export const getFiscalYears = (): Promise<FiscalYear[]> => apiRequest<FiscalYear[]>('/fiscalYears');
 export const createFiscalYear = (data: Omit<FiscalYear, 'id'>): Promise<FiscalYear> => apiRequest<FiscalYear>('/fiscalYears', 'POST', data);
-export const updateFiscalYear = (id: UUID, data: Partial<FiscalYear>): Promise<FiscalYear> => apiRequest<FiscalYear>(`/fiscalYears/${id}`, 'PATCH', data);
+export const updateFiscalYear = (id: UUID, data: Partial<FiscalYear>): Promise<FiscalYear> => apiRequest<FiscalYear>(`/fiscalYears/${id}`, 'PUT', data);
 
 //ACCOUNTING
-const API_ACCOUNTING_URL = "http://localhost:8081";
+const API_ACCOUNTING_URL = "http://10.132.16.11:8081";
 
 const apiAccountingRequest = async <T>(endpoint: string, method: string = 'GET', body?: unknown): Promise<T> => {
   const config: RequestInit = {
@@ -191,7 +191,7 @@ const apiAccountingRequest = async <T>(endpoint: string, method: string = 'GET',
 // PLAN COMPTABLE 
 export const getAccounts = (): Promise<Account[]> => apiAccountingRequest<Account[]>('/api/accounting/plan-comptable');
 export const createAccount = (data: Omit<Account, 'id'>): Promise<Account> => apiAccountingRequest<Account>('/api/accounting/plan-comptable', 'POST', data);
-export const updateAccount = (id: UUID, data: Partial<Account>): Promise<Account> => apiAccountingRequest<Account>(`/api/accounting/plan-comptable/${id}`, 'PATCH', data);
+export const updateAccount = (id: UUID, data: Partial<Account>): Promise<Account> => apiAccountingRequest<Account>(`/api/accounting/plan-comptable/${id}`, 'PUT', data);
 export const deleteAccount = (id: UUID): Promise<void> => apiAccountingRequest<void>(`/api/accounting/plan-comptable/${id}`, 'DELETE');
 
 //OPERATIONS COMPTABLES

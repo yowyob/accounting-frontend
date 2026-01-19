@@ -116,11 +116,11 @@ export const modules: Record<ModuleKey, Module> = {
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
       { title: "Opérations Comptables", icon: FileClock, href: "/accounting/operations" },
-      { title: "Taxes", icon: Coins, href: "#" },
+      { title: "Taxes", icon: Coins, href: "/accounting/taxes" },
       { title: "Journaux", icon: Notebook, href: "/accounting/journals" },
-      { title: "Devises", icon: Globe, href: "#" },
-      { title: "Positions Fiscales", icon: Scale, href: "#" },
-      { title: "Modes de Paiement", icon: CreditCard, href: "#" },
+      { title: "Devises", icon: Globe, href: "/accounting/devises" },
+      { title: "Positions Fiscales", icon: Scale, href: "/accounting/positionsfiscales" },
+      { title: "Modes de Paiement", icon: CreditCard, href: "/accounting/modes-paiement" },
     ],
   },
 };
