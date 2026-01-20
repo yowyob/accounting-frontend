@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import React, { Suspense } from "react";
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
+import { NavigationLoader } from "@/components/navigation-loader";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -18,6 +21,10 @@ export default function RootLayout({
     <html lang="fr">
 
       <body className={inter.className}>
+        <LoadingOverlay />
+        <Suspense fallback={null}>
+          <NavigationLoader />
+        </Suspense>
         {children}
       </body>
     </html>

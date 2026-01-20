@@ -11,7 +11,7 @@ export class AccountingPointageBancaireService {
      * @returns string OK
      * @throws ApiError
      */
-    public static importerReleve(
+    public static importerReleve1(
         file: Blob,
     ): CancelablePromise<string> {
         return __request(OpenAPI, {
