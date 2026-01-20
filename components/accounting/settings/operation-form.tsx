@@ -7,7 +7,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Save, PlusCircle, Trash2, ChevronDown } from 'lucide-react';
+import { Save, PlusCircle, Trash2, ChevronDown, Loader2 } from 'lucide-react';
+import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
+import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import {
   Select,
   SelectContent,
@@ -26,47 +28,98 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { OperationComptable } from '@/types/accounting';
+import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
+import { ContrepartieDto } from '@/src/lib2/models/ContrepartieDto';
 
 interface OperationFormProps {
-  initialData: Partial<OperationComptable> | null;
-  onSave: (data: OperationComptable) => void;
+  initialData: Partial<OperationComptableDto> | null;
+  onSave: (data: OperationComptableDto) => void;
   onCancel: () => void;
 }
 
 export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
-  const form = useForm<OperationComptable>({
+  const [journals, setJournals] = React.useState<JournalComptableDto[]>([]);
+  const [isLoadingJournals, setIsLoadingJournals] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchJournals = async () => {
+      try {
+        const response = await AccountingJournalsService.getActiveJournalComptables();
+        setJournals(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Failed to fetch journals:", error);
+      } finally {
+        setIsLoadingJournals(false);
+      }
+    };
+    fetchJournals();
+  }, []);
+
+  const form = useForm<OperationComptableDto>({
     defaultValues: initialData || {
       typeOperation: 'VENTE',
-      modeReglement: 'CCE',
+      modeReglement: 'ESPECE',
       sensPrincipal: 'DEBIT',
       comptePrincipal: '',
       estCompteStatique: true,
       typeMontant: 'TTC',
-      journalComptableId: 'VENTES',
-      counterpartyDetails: [{ account: '', isTiers: false, amountType: 'TTC', journalType: 'VENTES', debitOrCredit: 'DEBIT' }],
+      journalComptableId: '',
+      actif: true,
+      contreparties: [{
+        compte: '',
+        estCompteTiers: false,
+        typeMontant: 'TTC',
+        journalComptableId: '',
+        sens: 'DEBIT',
+        operationComptableId: undefined as any
+      } as ContrepartieDto],
     },
   });
 
-  const onSubmit = (data: OperationComptable) => {
-    onSave(data);
+  const onSubmit = (data: OperationComptableDto) => {
+    // Filter out contreparties with empty compte (invalid)
+    const validContreparties = data.contreparties?.filter(cp => cp.compte && cp.compte.trim() !== '');
+
+    // On nettoie les données pour éviter d'envoyer des chaînes vides pour les IDs
+    const cleanData = {
+      ...data,
+      id: data.id || undefined,
+      journalComptableId: data.journalComptableId || undefined,
+      contreparties: validContreparties?.map(cp => ({
+        ...cp,
+        id: cp.id || undefined,
+        // Ensure journalComptableId is present, fallback to main operation's journal
+        journalComptableId: cp.journalComptableId || data.journalComptableId || undefined,
+        operationComptableId: cp.operationComptableId || undefined,
+      }))
+    } as any;
+
+    console.log("Form Data submitted (cleaned):", cleanData);
+    onSave(cleanData);
   };
 
   const addCounterparty = () => {
-    const currentCounterparties = form.getValues('counterpartyDetails') || [];
-    form.setValue('counterpartyDetails', [
+    const currentCounterparties = form.getValues('contreparties') || [];
+    form.setValue('contreparties', [
       ...(currentCounterparties || []),
-      { account: '', isTiers: false, amountType: 'TTC', journalType: 'VENTES', debitOrCredit: 'DEBIT' },
+      {
+        compte: '',
+        estCompteTiers: false,
+        typeMontant: 'TTC',
+        journalComptableId: '',
+        sens: 'DEBIT',
+        operationComptableId: initialData?.id as any
+      } as ContrepartieDto,
     ]);
   };
 
   const removeCounterparty = (index: number) => {
-    const newCounterparties = [...(form.getValues('counterpartyDetails') || [])];
-    newCounterparties.splice(index, 1);
-    form.setValue('counterpartyDetails', newCounterparties);
+    const newCounterparties = [...(form.getValues('contreparties') || [])];
+    newCounterparties.splice(index);
+    form.setValue('contreparties', newCounterparties);
   };
 
-  const counterpartyDetails = form.watch('counterpartyDetails');
+  const contreparties = form.watch('contreparties');
 
   return (
     <Form {...form}>
@@ -94,6 +147,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="typeOperation"
+                  rules={{ required: "Requis" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Quand on : <span className="text-red-500">*</span></FormLabel>
@@ -125,10 +179,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="CCE">au comptant par espèces</SelectItem>
-                          <SelectItem value="CCB">au comptant par chèque bancaire</SelectItem>
-                          <SelectItem value="CCP">au comptant par chèque postal</SelectItem>
-                          <SelectItem value="CREDIT">par crédit</SelectItem>
+                          <SelectItem value="ESPECE">ESPECE</SelectItem>
+                          <SelectItem value="CHEQUE">CHEQUE</SelectItem>
+                          <SelectItem value="VIREMENT">VIREMENT</SelectItem>
+                          <SelectItem value="MOBILE">MOBILE</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -162,20 +216,22 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="journalComptableId"
+                  rules={{ required: "Requis" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Dans le journal <span className="text-red-500">*</span></FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner" />
+                            <SelectValue placeholder={isLoadingJournals ? "Chargement..." : "Sélectionner"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="VENTES">Journal des ventes</SelectItem>
-                          <SelectItem value="ACHATS">Journal des achats</SelectItem>
-                          <SelectItem value="DIVERS">Journal des opérations diverses</SelectItem>
-                          <SelectItem value="TRESORERIE">Journal de trésorerie</SelectItem>
+                          {journals.map((journal) => (
+                            <SelectItem key={journal.id} value={journal.id!}>
+                              {journal.codeJournal} - {journal.libelle}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -188,6 +244,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="comptePrincipal"
+                  rules={{ required: "Requis" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Compte principal <span className="text-red-500">*</span></FormLabel>
@@ -249,12 +306,12 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
               </div>
 
               <div className="space-y-4">
-                {counterpartyDetails?.map((counterparty, index) => (
+                {contreparties?.map((counterparty, index) => (
                   <Collapsible key={index} defaultOpen className="rounded-lg border bg-white shadow-sm overflow-hidden">
                     <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">#{index + 1}</div>
-                        <span className="text-sm font-medium">{counterparty.account || "Nouveau compte..."}</span>
+                        <span className="text-sm font-medium">{counterparty.compte || "Nouveau compte..."}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -273,7 +330,8 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
                           control={form.control}
-                          name={`counterpartyDetails.${index}.account`}
+                          name={`contreparties.${index}.compte`}
+                          rules={{ required: "Requis" }}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Compte contrepartie <span className="text-red-500">*</span></FormLabel>
@@ -286,7 +344,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         />
                         <FormField
                           control={form.control}
-                          name={`counterpartyDetails.${index}.isTiers`}
+                          name={`contreparties.${index}.estCompteTiers`}
                           render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-white">
                               <FormLabel className="text-xs">Compte tiers</FormLabel>
@@ -300,7 +358,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <FormField
                           control={form.control}
-                          name={`counterpartyDetails.${index}.debitOrCredit`}
+                          name={`contreparties.${index}.sens`}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Action</FormLabel>
@@ -316,7 +374,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         />
                         <FormField
                           control={form.control}
-                          name={`counterpartyDetails.${index}.amountType`}
+                          name={`contreparties.${index}.typeMontant`}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Montant</FormLabel>
@@ -333,16 +391,22 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         />
                         <FormField
                           control={form.control}
-                          name={`counterpartyDetails.${index}.journalType`}
+                          name={`contreparties.${index}.journalComptableId`}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Journal</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder={isLoadingJournals ? "..." : ""} />
+                                  </SelectTrigger>
+                                </FormControl>
                                 <SelectContent>
-                                  <SelectItem value="VENTES">Ventes</SelectItem>
-                                  <SelectItem value="ACHATS">Achats</SelectItem>
-                                  <SelectItem value="TRESORERIE">Trésorerie</SelectItem>
+                                  {journals.map((journal) => (
+                                    <SelectItem key={journal.id} value={journal.id!}>
+                                      {journal.codeJournal}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </FormItem>
@@ -359,7 +423,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
         </div>
 
         {/* Footer harmonisé */}
-        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg">
+        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            ANNULER
+          </Button>
           <Button
             type="submit"
             className="bg-[#007bff] hover:bg-[#0069d9]"

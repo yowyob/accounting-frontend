@@ -42,7 +42,11 @@ export const PositionFiscaleForm: React.FC<PositionFiscaleFormProps> = ({
   });
 
   const onSubmit = (data: PositionFiscale) => {
-    onSave(data);
+    const cleanData = {
+      ...data,
+      id: data.id || undefined,
+    } as PositionFiscale;
+    onSave(cleanData);
   };
 
   return (
@@ -138,16 +142,13 @@ export const PositionFiscaleForm: React.FC<PositionFiscaleFormProps> = ({
         </div>
 
         {/* Footer avec structure et bouton identiques */}
-        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg">
-          <Button
-            type="submit"
-            className="bg-[#007bff] hover:bg-[#0069d9]"
-            disabled={form.formState.isSubmitting}
-          >
-            <Save size={16} className="mr-2" />
-            <span>
-              {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
-            </span>
+        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            ANNULER
+          </Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            <Save className="mr-2 h-4 w-4" />
+            {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
           </Button>
         </div>
       </form>

@@ -10,26 +10,26 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { PeriodeComptable } from '@/types/accounting';
-import { Edit, Trash2, Plus, Lock,RefreshCw } from 'lucide-react';
+import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
+import { Edit, Trash2, Plus, Lock, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 
 interface PeriodeComptableListViewProps {
-  periodes: PeriodeComptable[];
+  periodes: PeriodeComptableDto[];
   isLoading: boolean;
   onSelectPeriode: (id: string) => void;
   onEditPeriode: (id: string) => void;
-  onDeletePeriode: (periode: PeriodeComptable) => void;
+  onDeletePeriode: (periode: PeriodeComptableDto) => void;
   onClosePeriode: (id: string) => void;
   onAddNew: () => void;
   onRefresh: () => void;
 }
 
-const RowActions = ({ periode, onEdit, onDelete, onClose }: { 
-  periode: PeriodeComptable; 
-  onEdit: (id: string) => void; 
-  onDelete: (periode: PeriodeComptable) => void; 
+const RowActions = ({ periode, onEdit, onDelete, onClose }: {
+  periode: PeriodeComptableDto;
+  onEdit: (id: string) => void;
+  onDelete: (periode: PeriodeComptableDto) => void;
   onClose: (id: string) => void;
 }) => {
   return (
@@ -38,16 +38,16 @@ const RowActions = ({ periode, onEdit, onDelete, onClose }: {
         {!periode.cloturee && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onClose(periode.id!)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); onClose(periode.id || ''); }}>
                 <Lock className="h-4 w-4 text-blue-600" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent><p>Clôturer</p></TooltipContent>
+            <TooltipContent><p>Clôturer la période</p></TooltipContent>
           </Tooltip>
         )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(periode.id!)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(periode.id || ''); }}>
               <Edit className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -56,7 +56,7 @@ const RowActions = ({ periode, onEdit, onDelete, onClose }: {
         {!periode.cloturee && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(periode)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(periode); }}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </TooltipTrigger>
@@ -80,14 +80,15 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
 }) => {
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <Button onClick={onAddNew}>
+      <div className="flex justify-between items-center">
+        <Button onClick={onAddNew} className="bg-indigo-600 hover:bg-indigo-700">
           <Plus className="mr-2 h-4 w-4" />
           Nouvelle Période
         </Button>
-    <Button onClick={onRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4" />
-          </Button>      </div>
+        <Button onClick={onRefresh} variant="outline" size="icon">
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -95,30 +96,34 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
             <TableHead>Date Début</TableHead>
             <TableHead>Date Fin</TableHead>
             <TableHead>Statut</TableHead>
-            <TableHead>Actions</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={5}>Chargement...</TableCell>
+              <TableCell colSpan={5} className="text-center py-10 text-gray-400 font-medium italic">Chargement des périodes...</TableCell>
             </TableRow>
           ) : periodes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5}>Aucune période trouvée.</TableCell>
+              <TableCell colSpan={5} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">Aucune période trouvée.</TableCell>
             </TableRow>
           ) : (
             periodes.map((periode) => (
-              <TableRow key={periode.id} className="group">
-                <TableCell>{periode.code}</TableCell>
-                <TableCell>{periode.dateDebut?.toLocaleDateString()}</TableCell>
-                <TableCell>{periode.dateFin?.toLocaleDateString()}</TableCell>
+              <TableRow
+                key={periode.id}
+                className="group hover:bg-gray-50/50 cursor-pointer"
+                onClick={() => onSelectPeriode(periode.id || '')}
+              >
+                <TableCell className="font-medium text-gray-900">{periode.code}</TableCell>
+                <TableCell>{periode.dateDebut ? new Date(periode.dateDebut).toLocaleDateString('fr-FR') : '-'}</TableCell>
+                <TableCell>{periode.dateFin ? new Date(periode.dateFin).toLocaleDateString('fr-FR') : '-'}</TableCell>
                 <TableCell>
-                  <Badge variant={periode.cloturee ? 'secondary' : 'default'}>
+                  <Badge variant={periode.cloturee ? 'secondary' : 'default'} className={periode.cloturee ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200 border-none'}>
                     {periode.cloturee ? 'Clôturée' : 'Ouverte'}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-right">
                   <RowActions
                     periode={periode}
                     onEdit={onEditPeriode}

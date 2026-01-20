@@ -1,19 +1,20 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Account } from '@/types/accounting';
-import { getAccounts, createAccount, updateAccount, deleteAccount } from '@/lib/api';
+import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
+import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { AccountListView } from '@/components/accounting/account-list-view';
 import { AccountDetailView } from '@/components/accounting/account-detail-view';
 import { useCompose } from '@/hooks/use-compose-store';
 import { AccountingForm } from '@/components/accounting/account-form';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { toast } from 'sonner';
 
 export default function ChartOfAccountsPage() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [accounts, setAccounts] = useState<PlanComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<PlanComptableDto | null>(null);
   const [filters, setFilters] = useState({ class: '', nom: '' });
 
   const { onOpen, onClose: closeCompose } = useCompose();
@@ -21,8 +22,8 @@ export default function ChartOfAccountsPage() {
   const fetchAndSetAccounts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getAccounts();
-      setAccounts(Array.isArray(data.data) ? data.data : []);
+      const response = await AccountingPlanComptableService.getAllPlanComptables();
+      setAccounts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch accounts:", error);
       setAccounts([]);
@@ -35,27 +36,28 @@ export default function ChartOfAccountsPage() {
     fetchAndSetAccounts();
   }, [fetchAndSetAccounts]);
 
-  const handleSave = async (data: Account) => {
+  const handleSave = async (data: PlanComptableDto) => {
     const isNew = !data.id;
     try {
       if (isNew) {
-        // Set default creation date to current date (September 09, 2025, 04:05 PM WAT)
-        const defaultDate = new Date('2025-09-09T16:05:00+01:00');
-        await createAccount({ ...data, createdAt: data.createdAt || defaultDate });
+        await AccountingPlanComptableService.createPlanComptable(data);
         closeCompose();
       } else {
-        await updateAccount(data.id, data);
+        await AccountingPlanComptableService.updatePlanComptable(data.id!, data);
+        closeCompose(); // Make sure to close on update too
       }
+      toast.success(isNew ? "Compte créé avec succès" : "Compte mis à jour avec succès");
       await fetchAndSetAccounts();
     } catch (error) {
       console.error("Failed to save account", error);
+      toast.error("Erreur lors de l'enregistrement du compte");
     }
   };
 
   const confirmDelete = async () => {
-    if (!accountToDelete) return;
+    if (!accountToDelete?.id) return;
     try {
-      await deleteAccount(accountToDelete.id);
+      await AccountingPlanComptableService.deactivatePlanComptable(accountToDelete.id);
       await fetchAndSetAccounts();
       if (selectedAccountId === accountToDelete.id) {
         setSelectedAccountId(null);
@@ -67,10 +69,16 @@ export default function ChartOfAccountsPage() {
     }
   };
 
-  const handleOpenCompose = () => {
+  const handleOpenCompose = (account?: PlanComptableDto) => {
     onOpen({
-      title: "Nouveau Compte",
-      content: <AccountingForm onSave={handleSave} initialData={null} />
+      title: account ? "Modifier le Compte" : "Nouveau Compte",
+      content: (
+        <AccountingForm
+          onSave={handleSave}
+          onCancel={closeCompose}
+          initialData={account || null}
+        />
+      )
     });
   };
 
@@ -78,32 +86,20 @@ export default function ChartOfAccountsPage() {
     setSelectedAccountId(null);
   };
 
-// Apply sorting by noCompte and filtering with null checks
-const filteredAndSortedAccounts = [...accounts]
-  .sort((a, b) => a.noCompte.localeCompare(b.noCompte))
-  .filter(account => {
-    return (
-      String(account.classe || '').includes(String(filters.class)) &&
-      (account.libelle || '').toLowerCase().includes(filters.nom.toLowerCase())
-    );
-  });
+  // Apply sorting by noCompte and filtering with null checks
+  const filteredAndSortedAccounts = [...accounts]
+    .sort((a, b) => a.noCompte.localeCompare(b.noCompte))
+    .filter(account => {
+      return (
+        String(account.classe || '').includes(String(filters.class)) &&
+        (account.libelle || '').toLowerCase().includes(filters.nom.toLowerCase())
+      );
+    });
 
   // Safely determine selectedAccount only if accounts is an array
   const selectedAccount = selectedAccountId && Array.isArray(accounts)
     ? accounts.find(a => a.id === selectedAccountId) || null
     : null;
-
-  if (selectedAccountId && selectedAccount) {
-    console.log("Selected account:", selectedAccount);
-    return (
-      <AccountDetailView
-        account={selectedAccount}
-        onSave={handleSave}
-        onDelete={() => setAccountToDelete(selectedAccount)}
-        onBack={handleBackToList}
-      />
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">
@@ -138,10 +134,10 @@ const filteredAndSortedAccounts = [...accounts]
         <AccountListView
           accounts={filteredAndSortedAccounts}
           isLoading={isLoading}
-          onSelectAccount={setSelectedAccountId}
-          onEditAccount={setSelectedAccountId}
+          onSelectAccount={(id) => handleOpenCompose(accounts.find(a => a.id === id))}
+          onEditAccount={(id) => handleOpenCompose(accounts.find(a => a.id === id))}
           onDeleteAccount={setAccountToDelete}
-          onAddNew={handleOpenCompose}
+          onAddNew={() => handleOpenCompose()}
           onRefresh={fetchAndSetAccounts}
         />
       </div>

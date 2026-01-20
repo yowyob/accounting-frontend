@@ -10,13 +10,11 @@ export const ComposeModal: React.FC = () => {
 
   if (!isOpen || isMinimized) return null;
 
-  const modalClasses = `fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-all duration-300 ${
-    isMaximized ? 'h-screen w-screen' : 'max-w-2xl w-full mx-auto'
-  }`;
+  const modalClasses = `fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 backdrop-blur-sm transition-all duration-300 ${isMaximized ? 'h-screen w-screen' : 'max-w-4xl w-full mx-auto p-4'
+    }`;
 
-  const contentClasses = `bg-white rounded-lg shadow-2xl p-6 transform transition-all duration-300 ${
-    isMaximized ? 'h-full w-full' : 'max-h-[90vh] overflow-y-auto'
-  }`;
+  const contentClasses = `bg-white rounded-lg shadow-2xl p-6 transform transition-all duration-300 ${isMaximized ? 'h-full w-full' : 'max-h-[90vh] overflow-y-auto'
+    }`;
 
   return (
     <div className={modalClasses}>
@@ -35,10 +33,10 @@ export const ComposeModal: React.FC = () => {
             </Button>
           </div>
         </div>
-        <div className="space-y-6">
+        <div className="mt-2">
           {content && (
-            <div className="flex flex-col items-center w-full">
-              {React.isValidElement(content) && React.cloneElement(content as React.ReactElement, { className: 'w-full max-w-md' })}
+            <div className="w-full">
+              {content}
             </div>
           )}
         </div>

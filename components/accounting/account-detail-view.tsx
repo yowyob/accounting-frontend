@@ -6,31 +6,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import { Save, Trash2, ArrowLeft } from 'lucide-react';
-import { Account ,UUID} from '@/types/accounting';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { UUID } from '@/types/accounting';
 
-// Define form-specific defaults that align with Account type
-const defaultAccountValues: Partial<Account> = {
+// Define form-specific defaults that align with PlanComptableDto type
+const defaultAccountValues: Partial<PlanComptableDto> = {
   noCompte: '',
   libelle: '',
-  type: '',
-  allowEntry: false,
-  view: 'Vue',
-  isStatic: false,
-  journalType: 'Journal des ventes',
-  amountType: 'Montant TTC',
+  notes: '',
+  actif: true,
 };
 
 interface AccountDetailViewProps {
-  account: Account | null;
-  onSave: (data: Account) => void;
+  account: PlanComptableDto | null;
+  onSave: (data: PlanComptableDto) => void;
   onDelete: () => void;
   onBack: () => void;
 }
@@ -41,20 +31,16 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
   onDelete,
   onBack,
 }) => {
-  // Explicitly type the useForm with Account and provide a resolver if needed
-  const form = useForm<Account>({
-    defaultValues: account || defaultAccountValues as Account,
-    // Optionally add a resolver like yup if validation is complex
-    // resolver: yupResolver(schema), // Uncomment and define schema if needed
+  const form = useForm<PlanComptableDto>({
+    defaultValues: account || defaultAccountValues as PlanComptableDto,
   });
 
-  const onSubmit = (data: Account) => {
-    // Ensure all required fields are present before saving
-    const validatedData: Account = {
+  const onSubmit = (data: PlanComptableDto) => {
+    const validatedData: PlanComptableDto = {
       ...data,
-      id: data.id || crypto.randomUUID() as UUID, // Generate ID if not present
-      noCompte: data.noCompte || '', // Ensure noCompte is set
-      libelle: data.libelle || '', // Ensure libelle is set
+      id: data.id || crypto.randomUUID() as UUID,
+      noCompte: data.noCompte || '',
+      libelle: data.libelle || '',
     };
     onSave(validatedData);
   };
@@ -105,12 +91,12 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
           />
           <FormField
             control={form.control}
-            name="type"
+            name="notes"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type <span className="text-red-500">*</span></FormLabel>
+                <FormLabel>Notes</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -118,79 +104,25 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
           />
           <FormField
             control={form.control}
-            name="allowEntry"
+            name="actif"
+            render={({ field }) => (
+              <FormItem className="flex items-center gap-2 space-y-0">
+                <FormControl>
+                  <Switch checked={field.value} onCheckedChange={field.onChange} />
+                </FormControl>
+                <FormLabel>Actif</FormLabel>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={"allowEntry" as any}
             render={({ field }) => (
               <FormItem className="flex items-center gap-2 space-y-0">
                 <FormControl>
                   <Switch checked={field.value} onCheckedChange={field.onChange} />
                 </FormControl>
                 <FormLabel>Autoriser l&#39;écriture</FormLabel>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="isStatic"
-            render={({ field }) => (
-              <FormItem className="flex items-center gap-2 space-y-0">
-                <FormControl>
-                  <Switch checked={field.value} onCheckedChange={field.onChange} />
-                </FormControl>
-                <FormLabel>Compte statique</FormLabel>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="journalType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type de journal</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un type de journal" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {journalTypeOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="amountType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type de montant</FormLabel>
-                <FormControl>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un type de montant" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {amountTypeOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />

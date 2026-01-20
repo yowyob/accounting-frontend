@@ -30,7 +30,11 @@ export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCance
 
   const onSubmit = (data: Taxe) => {
     data.rate = parseFloat(data.rate as any);
-    onSave(data);
+    const cleanData = {
+      ...data,
+      id: data.id || undefined,
+    } as Taxe;
+    onSave(cleanData);
   };
 
   return (
@@ -151,7 +155,10 @@ export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCance
         </div>
 
         {/* Footer harmonisé avec le Plan Comptable */}
-        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg">
+        <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            ANNULER
+          </Button>
           <Button
             type="submit"
             className="bg-[#007bff] hover:bg-[#0069d9]"

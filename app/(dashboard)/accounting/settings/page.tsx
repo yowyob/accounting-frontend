@@ -1,29 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
+import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
+import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
+import { AccountingFiscalYearsService } from '@/src/lib2/services/AccountingFiscalYearsService';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
+import { LedgerSettings, GeneralSettings } from '@/types/accounting';
 import {
-  PeriodeComptable,
-  OperationComptable,
-  LedgerSettings,
-  GeneralSettings,
-} from '@/types/accounting';
-import {
-  getPeriodeComptables,
-  createPeriodeComptable,
-  updatePeriodeComptable,
-  closePeriodeComptable,
-  deletePeriodeComptable,
-  getOperationsComptables,
-  createOperationComptable,
-  updateOperationComptable,
-  deleteOperationComptable,
   getLedgerSettings,
   updateLedgerSettings,
   getGeneralSettings,
   updateGeneralSettings,
 } from '@/lib/api';
+import { ExerciceComptableListView } from '@/components/accounting/exercice-comptable-list-view';
 import { PeriodeComptableListView } from '@/components/accounting/periode-comptable-list-view';
 import { OperationComptableListView } from '@/components/accounting/operation-comptable-list-view';
+import { ExerciceComptableDetailView } from '@/components/accounting/exercice-comptable-detail-view';
 import { PeriodeComptableDetailView } from '@/components/accounting/periode-comptable-detail-view';
 import { OperationForm } from '@/components/accounting/settings/operation-form';
 import { useCompose } from '@/hooks/use-compose-store';
@@ -31,32 +25,38 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 export default function AccountingSettingsPage() {
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
-  const [operations, setOperations] = useState<OperationComptable[]>([]);
+  const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
+  const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
+  const [operations, setOperations] = useState<OperationComptableDto[]>([]);
   const [ledgerSettings, setLedgerSettings] = useState<LedgerSettings | null>(null);
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [periodeToDelete, setPeriodeToDelete] = useState<PeriodeComptable | null>(null);
-  const [operationToDelete, setOperationToDelete] = useState<OperationComptable | null>(null);
+  const [exerciceToDelete, setExerciceToDelete] = useState<ExerciceComptableDto | null>(null);
+  const [periodeToDelete, setPeriodeToDelete] = useState<PeriodeComptableDto | null>(null);
+  const [operationToDelete, setOperationToDelete] = useState<OperationComptableDto | null>(null);
   const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [periodeResponse, operationResponse, ledgerResponse, generalResponse] = await Promise.all([
-        getPeriodeComptables(),
-        getOperationsComptables(),
+      const [exerciceResponse, periodeResponse, operationResponse, ledgerResponse, generalResponse] = await Promise.all([
+        AccountingFiscalYearsService.getAllExercices(),
+        AccountingPeriodsService.getAllPeriodeComptables(),
+        AccountingOperationsService.getAllOperationsComptables(),
         getLedgerSettings(),
         getGeneralSettings(),
       ]);
-      setPeriodes(Array.isArray(periodeResponse.data) ? periodeResponse.data : []);
-      setOperations(Array.isArray(operationResponse.data) ? operationResponse.data : []);
-      setLedgerSettings(ledgerResponse.data || null);
-      setGeneralSettings(generalResponse.data || null);
+      setExercices(exerciceResponse.data || []);
+      setPeriodes(periodeResponse.data || []);
+      setOperations(operationResponse.data || []);
+      setLedgerSettings(ledgerResponse || null);
+      setGeneralSettings(generalResponse || null);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
+      toast.error("Erreur lors du chargement des paramètres");
     } finally {
       setIsLoading(false);
     }
@@ -68,25 +68,34 @@ export default function AccountingSettingsPage() {
 
   const handleSave = async <T extends { id?: string }>(
     data: T,
-    createFn: (data: Omit<T, 'id'>) => Promise<{ data: T }>,
-    updateFn: (id: string, data: T) => Promise<{ data: T }>,
+    createFn: (data: T) => Promise<any>,
+    updateFn: (id: string, data: T) => Promise<any>,
     setState: React.Dispatch<React.SetStateAction<T[]>>,
     refresh = true
   ) => {
+    const isNew = !data.id;
     try {
-      const isNew = !data.id;
-      const response = await (isNew ? createFn(data as Omit<T, 'id'>) : updateFn(data.id!, data));
-      setState((prev) => (isNew ? [...prev, response.data] : prev.map((item) => (item.id === response.data.id ? response.data : item))));
+      const response = await (isNew ? createFn(data) : updateFn(data.id!, data));
+      // Extract data from response which can be { data: ... } or just ...
+      const savedItem = response?.data !== undefined ? response.data : response;
+
+      setState((prev) => {
+        if (isNew) return [...prev, savedItem];
+        return prev.map((item) => (item.id === savedItem.id ? savedItem : item));
+      });
+
       if (refresh) await fetchData();
+      toast.success(isNew ? "Création réussie" : "Modification enregistrée");
       closeCompose();
     } catch (error) {
       console.error(`Failed to save ${isNew ? 'new' : 'updated'} item:`, error);
+      toast.error("Erreur lors de l'enregistrement");
     }
   };
 
-  const handleDelete = async <T extends { id: string }>(
+  const handleDelete = async <T extends { id?: string }>(
     item: T | null,
-    deleteFn: (id: string) => Promise<void>,
+    deleteFn: (id: string) => Promise<any>,
     setState: React.Dispatch<React.SetStateAction<T[]>>,
     setItemToDelete: React.Dispatch<React.SetStateAction<T | null>>
   ) => {
@@ -100,14 +109,6 @@ export default function AccountingSettingsPage() {
     }
   };
 
-  const handleClosePeriode = async (id: string) => {
-    try {
-      const response = await closePeriodeComptable(id);
-      setPeriodes((prev) => prev.map((p) => (p.id === response.id ? response : p)));
-    } catch (error) {
-      console.error("Failed to close period:", error);
-    }
-  };
 
   const handleSaveLedgerSettings = async (data: Partial<LedgerSettings>) => {
     try {
@@ -127,44 +128,95 @@ export default function AccountingSettingsPage() {
     }
   };
 
-  const handleOpenPeriodeCompose = (periode?: PeriodeComptable) =>
+  const handleOpenExerciceCompose = (exercice?: ExerciceComptableDto) =>
     onOpen({
-      title: periode ? "Modifier la Période Comptable" : "Nouvelle Période Comptable",
-      content: <PeriodeComptableDetailView
-        periode={periode || null}
-        onSave={(data) => handleSave(data, createPeriodeComptable, updatePeriodeComptable, setPeriodes)}
-        onClose={() => {}}
-        onDelete={() => {}}
+      title: exercice ? "Modifier l'Exercice" : "Nouvel Exercice",
+      content: <ExerciceComptableDetailView
+        exercice={exercice || null}
+        onSave={(data) => handleSave(data, AccountingFiscalYearsService.createExercice, AccountingFiscalYearsService.updateExercice, setExercices)}
+        onClose={() => handleCloseExercice(exercice?.id || '')}
+        onDelete={() => setExerciceToDelete(exercice || null)}
         onBack={closeCompose}
       />,
     });
 
-  const handleOpenOperationCompose = (operation?: OperationComptable) =>
+  const handleOpenPeriodeCompose = (periode?: PeriodeComptableDto) =>
     onOpen({
-      title: operation ? "Modifier l'Opération Comptable" : "Nouvelle Opération Comptable",
+      title: periode ? "Modifier la Période" : "Nouvelle Période",
+      content: <PeriodeComptableDetailView
+        periode={periode || null}
+        onSave={(data) => handleSave(data, AccountingPeriodsService.createPeriodeComptable, AccountingPeriodsService.updatePeriodeComptable, setPeriodes)}
+        onClose={() => handleClosePeriode(periode?.id || '')}
+        onDelete={() => setPeriodeToDelete(periode || null)}
+        onBack={closeCompose}
+      />,
+    });
+
+  const handleOpenOperationCompose = (operation?: OperationComptableDto) =>
+    onOpen({
+      title: operation ? "Modifier l'Opération" : "Nouvelle Opération",
       content: <OperationForm
         initialData={operation || null}
-        onSave={(data) => handleSave(data, createOperationComptable, updateOperationComptable, setOperations)}
+        onSave={(data) => handleSave(data, AccountingOperationsService.createOperationComptable, AccountingOperationsService.updateOperationComptable, setOperations)}
         onCancel={closeCompose}
       />,
     });
 
-  const handleDeletePeriode = () => handleDelete(periodeToDelete, deletePeriodeComptable, setPeriodes, setPeriodeToDelete);
-  const handleDeleteOperation = () => handleDelete(operationToDelete, deleteOperationComptable, setOperations, setOperationToDelete);
+  const handleCloseExercice = async (id: string) => {
+    try {
+      await AccountingFiscalYearsService.closeExercice(id);
+      toast.success("Exercice clôturé");
+      fetchData();
+    } catch (error) {
+      toast.error("Erreur lors de la clôture de l'exercice");
+    }
+  };
+
+  const handleClosePeriode = async (id: string) => {
+    try {
+      await AccountingPeriodsService.closePeriodeComptable(id);
+      toast.success("Période clôturée");
+      fetchData();
+    } catch (error) {
+      toast.error("Erreur lors de la clôture de la période");
+    }
+  };
+
+  const handleDeleteExercice = () => handleDelete(exerciceToDelete, AccountingFiscalYearsService.deleteExercice, setExercices, setExerciceToDelete);
+  const handleDeletePeriode = () => handleDelete(periodeToDelete, AccountingPeriodsService.deletePeriodeComptable, setPeriodes, setPeriodeToDelete);
+  const handleDeleteOperation = () => handleDelete(operationToDelete, AccountingOperationsService.deleteOperationComptable, setOperations, setOperationToDelete);
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <Tabs defaultValue="periodes" className="w-full max-w-5xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3 bg-white rounded-t-lg shadow">
-          <TabsTrigger value="periodes" className="data-[state=active]:bg-blue-100">Périodes Comptables</TabsTrigger>
-          <TabsTrigger value="operations" className="data-[state=active]:bg-blue-100">Opérations Comptables</TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-blue-100">Paramètres Généraux</TabsTrigger>
+    <div className="min-h-screen p-6 bg-gray-100">
+      <div className="mb-6 max-w-5xl mx-auto">
+        <h1 className="text-2xl font-bold text-indigo-900">Paramètres Comptables</h1>
+        <p className="text-gray-500">Gérez vos exercices, périodes et opérations systèmes.</p>
+      </div>
+
+      <Tabs defaultValue="exercices" className="w-full max-w-5xl mx-auto">
+        <TabsList className="grid w-full grid-cols-4 bg-white rounded-t-lg shadow-sm border">
+          <TabsTrigger value="exercices" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700">Exercices</TabsTrigger>
+          <TabsTrigger value="periodes" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700">Périodes</TabsTrigger>
+          <TabsTrigger value="operations" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700">Opérations</TabsTrigger>
+          <TabsTrigger value="settings" className="data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-700">Général</TabsTrigger>
         </TabsList>
-        <TabsContent value="periodes" className="bg-white rounded-b-lg shadow p-6">
+        <TabsContent value="exercices" className="bg-white rounded-b-lg shadow-sm border border-t-0 p-6">
+          <ExerciceComptableListView
+            exercices={exercices}
+            isLoading={isLoading}
+            onSelectExercice={(id) => handleOpenExerciceCompose(exercices.find((e) => e.id === id))}
+            onEditExercice={(id) => handleOpenExerciceCompose(exercices.find((e) => e.id === id))}
+            onDeleteExercice={setExerciceToDelete}
+            onCloseExercice={handleCloseExercice}
+            onAddNew={() => handleOpenExerciceCompose()}
+            onRefresh={fetchData}
+          />
+        </TabsContent>
+        <TabsContent value="periodes" className="bg-white rounded-b-lg shadow-sm border border-t-0 p-6">
           <PeriodeComptableListView
             periodes={periodes}
             isLoading={isLoading}
-            onselectPeriode={(id) => handleOpenPeriodeCompose(periodes.find((p) => p.id === id))}
+            onSelectPeriode={(id) => handleOpenPeriodeCompose(periodes.find((p) => p.id === id))}
             onEditPeriode={(id) => handleOpenPeriodeCompose(periodes.find((p) => p.id === id))}
             onDeletePeriode={setPeriodeToDelete}
             onClosePeriode={handleClosePeriode}
@@ -172,7 +224,7 @@ export default function AccountingSettingsPage() {
             onRefresh={fetchData}
           />
         </TabsContent>
-        <TabsContent value="operations" className="bg-white rounded-b-lg shadow p-6">
+        <TabsContent value="operations" className="bg-white rounded-b-lg shadow-sm border border-t-0 p-6">
           <OperationComptableListView
             operations={operations}
             isLoading={isLoading}
@@ -261,6 +313,15 @@ export default function AccountingSettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
+      {exerciceToDelete && (
+        <ConfirmationDialog
+          isOpen={!!exerciceToDelete}
+          onClose={() => setExerciceToDelete(null)}
+          onConfirm={handleDeleteExercice}
+          title={`Supprimer ${exerciceToDelete.code} ?`}
+          description="Cette action est irréversible. L'exercice sera supprimé s'il n'est pas clôturé."
+        />
+      )}
       {periodeToDelete && (
         <ConfirmationDialog
           isOpen={!!periodeToDelete}

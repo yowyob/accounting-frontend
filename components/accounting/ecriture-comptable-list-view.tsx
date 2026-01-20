@@ -11,29 +11,29 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { EcritureComptable } from '@/types/accounting';
-import { Edit, Trash2, Plus, Check,RefreshCw } from 'lucide-react';
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { Edit, Trash2, Plus, Check, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface EcritureComptableListViewProps {
-  ecritures: EcritureComptable[];
+  ecritures: EcritureComptableDto[];
   isLoading: boolean;
   onSelectEcriture: (id: string) => void;
   onEditEcriture: (id: string) => void;
-  onDeleteEcriture: (ecriture: EcritureComptable) => void;
+  onDeleteEcriture: (ecriture: EcritureComptableDto) => void;
   onValidateEcriture: (id: string) => void;
   onAddNew: () => void;
   onRefresh: () => void;
 }
 
-const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: EcritureComptable, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptable) => void, onValidate: (id: string) => void }) => {
+const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onValidate: (id: string) => void }) => {
   return (
     <div className="w-12 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
       <TooltipProvider>
         {!ecriture.validee && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onValidate(ecriture.id!)}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onValidate(ecriture.id || '')}>
                 <Check className="h-4 w-4 text-green-600" />
               </Button>
             </TooltipTrigger>
@@ -42,7 +42,7 @@ const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: Ecri
         )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ecriture.id!)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ecriture.id || '')}>
               <Edit className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -80,9 +80,9 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
           <Plus className="mr-2 h-4 w-4" />
           Nouvelle Écriture
         </Button>
-<Button onClick={onRefresh} variant="outline">
-            <RefreshCw className="h-4 w-4" />
-          </Button>      </div>
+        <Button onClick={onRefresh} variant="outline">
+          <RefreshCw className="h-4 w-4" />
+        </Button>      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -108,10 +108,10 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
             ecritures.map((ecriture) => (
               <TableRow key={ecriture.id} className="group">
                 <TableCell>{ecriture.libelle}</TableCell>
-                <TableCell>{ecriture.dateEcriture.toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(ecriture.dateEcriture).toLocaleDateString()}</TableCell>
                 <TableCell>{ecriture.journalComptableLibelle || ecriture.journalComptableId}</TableCell>
-                <TableCell>{ecriture.montantTotalDebit.toLocaleString('fr-FR')}</TableCell>
-                <TableCell>{ecriture.montantTotalCredit.toLocaleString('fr-FR')}</TableCell>
+                <TableCell>{(ecriture.montantTotalDebit || 0).toLocaleString('fr-FR')}</TableCell>
+                <TableCell>{(ecriture.montantTotalCredit || 0).toLocaleString('fr-FR')}</TableCell>
                 <TableCell>{ecriture.validee ? 'Oui' : 'Non'}</TableCell>
                 <TableCell>
                   <RowActions

@@ -38,7 +38,11 @@ export const ModePaiementForm: React.FC<ModePaiementFormProps> = ({
   });
 
   const onSubmit = (data: ModePaiement) => {
-    onSave(data);
+    const cleanData = {
+      ...data,
+      id: data.id || undefined,
+    } as ModePaiement;
+    onSave(cleanData);
   };
 
   return (

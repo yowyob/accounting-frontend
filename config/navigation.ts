@@ -2,7 +2,7 @@ import {
   Users,
   Truck,
   FileText,
-   BarChart3,
+  BarChart3,
   Settings,
   LayoutDashboard,
   BookOpen,
@@ -84,7 +84,7 @@ export const modules: Record<ModuleKey, Module> = {
   },
   analyse: {
     name: "Analyse",
-    icon:  BarChart3,
+    icon: BarChart3,
     composeActionLabel: "Bilan",
     sidebarLinks: [
       { title: "Bilan", icon: Scale, href: "/analyse/balance-sheet" },
@@ -116,6 +116,8 @@ export const modules: Record<ModuleKey, Module> = {
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
       { title: "Opérations Comptables", icon: FileClock, href: "/accounting/operations" },
+      { title: "Exercices Comptables", icon: FileClock, href: "/accounting/fiscal-years" },
+      { title: "Périodes Comptables", icon: ListChecks, href: "/accounting/periods" },
       { title: "Taxes", icon: Coins, href: "/accounting/taxes" },
       { title: "Journaux", icon: Notebook, href: "/accounting/journals" },
       { title: "Devises", icon: Globe, href: "/accounting/devises" },

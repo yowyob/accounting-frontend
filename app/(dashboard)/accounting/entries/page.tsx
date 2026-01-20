@@ -2,30 +2,25 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { EcritureComptable } from '@/types/accounting';
-import {
-  getEcrituresComptables,
-  createEcritureComptable,
-  validateEcritureComptable,
-  deleteEcritureComptable,
-} from '@/lib/api';
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
 import { EcritureComptableListView } from '@/components/accounting/ecriture-comptable-list-view';
 import { EcritureComptableDetailView } from '@/components/accounting/ecriture-comptable-detail-view';
 import { useCompose } from '@/hooks/use-compose-store';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 
 export default function EcritureComptablePage() {
-  const [ecritures, setEcritures] = useState<EcritureComptable[]>([]);
+  const [ecritures, setEcritures] = useState<EcritureComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEcritureId, setSelectedEcritureId] = useState<string | null>(null);
-  const [ecritureToDelete, setEcritureToDelete] = useState<EcritureComptable | null>(null);
-  
+  const [ecritureToDelete, setEcritureToDelete] = useState<EcritureComptableDto | null>(null);
+
   const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchAndSetEcritures = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await getEcrituresComptables();
+      const response = await AccountingEntriesService.getAllEcritures();
       setEcritures(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Failed to fetch ecritures:", error);
@@ -39,16 +34,14 @@ export default function EcritureComptablePage() {
     fetchAndSetEcritures();
   }, [fetchAndSetEcritures]);
 
-  const handleSave = async (data: EcritureComptable) => {
+  const handleSave = async (data: EcritureComptableDto) => {
     const isNew = !data.id;
     try {
       if (isNew) {
-        const created = await createEcritureComptable(data);
-        setEcritures((prev) => [...prev, created]);
+        await AccountingEntriesService.createEcriture(data);
         closeCompose();
       } else {
-        const updated = await createEcritureComptable(data); // Use POST for update as per controller
-        setEcritures((prev) => prev.map(ec => ec.id === updated.id ? updated : ec));
+        await AccountingEntriesService.createEcriture(data); // Assuming create handles update or POST is used for both
       }
       await fetchAndSetEcritures();
     } catch (error) {
@@ -58,8 +51,8 @@ export default function EcritureComptablePage() {
 
   const handleValidate = async (id: string) => {
     try {
-      const validated = await validateEcritureComptable(id);
-      setEcritures((prev) => prev.map(ec => ec.id === validated.id ? validated : ec));
+      await AccountingEntriesService.validateEcriture(id);
+      await fetchAndSetEcritures();
     } catch (error) {
       console.error("Failed to validate ecriture:", error);
     }
@@ -68,8 +61,8 @@ export default function EcritureComptablePage() {
   const confirmDelete = async () => {
     if (!ecritureToDelete?.id) return;
     try {
-      await deleteEcritureComptable(ecritureToDelete.id);
-      setEcritures((prev) => prev.filter(ec => ec.id !== ecritureToDelete.id));
+      await AccountingEntriesService.deleteEcriture(ecritureToDelete.id);
+      await fetchAndSetEcritures();
       if (selectedEcritureId === ecritureToDelete.id) {
         setSelectedEcritureId(null);
       }
@@ -83,7 +76,7 @@ export default function EcritureComptablePage() {
   const handleOpenCompose = () => {
     onOpen({
       title: "Nouvelle Écriture Comptable",
-      content: <EcritureComptableDetailView onSave={handleSave} onDelete={() => {}} onValidate={() => {}} onBack={() => {}} ecriture={null} />,
+      content: <EcritureComptableDetailView onSave={handleSave} onDelete={() => { }} onValidate={() => { }} onBack={() => { }} ecriture={null} />,
     });
   };
 

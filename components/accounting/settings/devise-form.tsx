@@ -27,7 +27,11 @@ export const DeviseForm: React.FC<DeviseFormProps> = ({ initialData, onSave, onC
 
   const onSubmit = (data: Devise) => {
     data.rate = parseFloat(data.rate as any);
-    onSave(data);
+    const cleanData = {
+      ...data,
+      id: data.id || undefined,
+    } as Devise;
+    onSave(cleanData);
   };
 
   return (
@@ -99,18 +103,12 @@ export const DeviseForm: React.FC<DeviseFormProps> = ({ initialData, onSave, onC
 
         {/* Footer avec structure harmonisée et bouton ANNULER conservé */}
         <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
-          <Button type="button" variant="outline" onClick={onCancel} className="uppercase font-semibold">
+          <Button type="button" variant="outline" onClick={onCancel}>
             ANNULER
           </Button>
-          <Button
-            type="submit"
-            className="bg-[#007bff] hover:bg-[#0069d9]"
-            disabled={form.formState.isSubmitting}
-          >
-            <Save size={16} className="mr-2" />
-            <span className="uppercase font-semibold">
-              {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
-            </span>
+          <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
+            <Save className="mr-2 h-4 w-4" />
+            {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
           </Button>
         </div>
       </form>

@@ -380,7 +380,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, Trash2, ArrowLeft, Check, Plus, Trash } from 'lucide-react';
-import { EcritureComptable, DetailEcritureDto, UUID, JournalComptable, PeriodeComptable } from '@/types/accounting';
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
+import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
+import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
 import {
   Select,
   SelectContent,
@@ -388,34 +391,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getJounalComptables, getPeriodeComptables } from '@/lib/api';
+import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 
 interface EcritureComptableDetailViewProps {
-  ecriture: EcritureComptable | null;
-  onSave: (data: EcritureComptable) => void;
+  ecriture: EcritureComptableDto | null;
+  onSave: (data: EcritureComptableDto) => void;
   onDelete: () => void;
   onValidate: () => void;
   onBack: () => void;
 }
 
 // Fonction pour générer un UUID simple en local
-const generateUUID = (): UUID => {
-  return `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}` as UUID;
+const generateUUID = (): string => {
+  return `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Créer un type pour le formulaire avec dateEcriture en string
-type EcritureComptableForm = Omit<EcritureComptable, 'dateEcriture'> & {
-  dateEcriture: string;
-};
+// Créer un type pour le formulaire avec dateEcriture en string (déjà string dans le DTO)
+type EcritureComptableForm = EcritureComptableDto;
 
 // Convertir Date en string pour l'input
 const formatDateForInput = (date: Date): string => {
   return date.toISOString().split('T')[0];
-};
-
-// Convertir string en Date pour l'envoi
-const parseDateFromInput = (dateString: string): Date => {
-  return new Date(dateString);
 };
 
 export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewProps> = ({
@@ -435,21 +432,34 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     if (ecriture) {
       return {
         ...ecriture,
-        dateEcriture: formatDateForInput(ecriture.dateEcriture)
+        detailsEcriture: ecriture.detailsEcriture?.map(d => ({
+          ...d,
+          // Handle legacy mapping if necessary, but lib2 expects compteComptableId
+          compteComptableId: d.compteComptableId || (d as any).compteId
+        })) || []
       };
     }
 
     return {
       libelle: '',
       dateEcriture: formatDateForInput(new Date()),
-      journalComptableId: '' as UUID,
-      periodeComptableId: '' as UUID,
+      journalComptableId: '',
+      periodeComptableId: '',
       montantTotalDebit: 0,
       montantTotalCredit: 0,
       validee: false,
       referenceExterne: '',
       notes: '',
-      detailsEcriture: [{ compteId: generateUUID(), libelle: '', montantDebit: 0, montantCredit: 0 }],
+      detailsEcriture: [
+        {
+          compteComptableId: '',
+          libelle: '',
+          montantDebit: 0,
+          montantCredit: 0,
+          sens: 'DEBIT', // Required field in DetailEcritureDto
+          ecritureComptableId: '' // Required field in DetailEcritureDto
+        } as DetailEcritureDto
+      ],
     } as EcritureComptableForm;
   };
 
@@ -463,15 +473,15 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 
   const fetchJournals = async () => {
     try {
-      const response: JournalComptable[] = await getJounalComptables();
-      setJournals(response.map((j) => ({ id: j.id!, libelle: j.libelle })));
+      const response = await AccountingJournalsService.getAllJournalComptables();
+      if (response.success && response.data) {
+        setJournals(response.data.map((j) => ({ id: j.id!, libelle: j.libelle })));
+      }
     } catch (error) {
       console.error("Failed to fetch journals:", error);
-      // Données mockées pour le développement local
       setJournals([
         { id: 'journal-1', libelle: 'Journal Général' },
         { id: 'journal-2', libelle: 'Journal de Ventes' },
-        { id: 'journal-3', libelle: 'Journal d\'Achats' },
       ]);
     } finally {
       setIsLoadingJournals(false);
@@ -480,15 +490,14 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 
   const fetchPeriodes = async () => {
     try {
-      const response: PeriodeComptable[] = await getPeriodeComptables();
-      setPeriodes(response.map((p) => ({ id: p.id!, code: p.code || p.id!.slice(0, 8) })));
+      const response = await AccountingPeriodsService.getAllPeriodeComptables();
+      if (response.success && response.data) {
+        setPeriodes(response.data.map((p) => ({ id: p.id!, code: p.code || p.id!.slice(0, 8) })));
+      }
     } catch (error) {
       console.error("Failed to fetch periods:", error);
-      // Données mockées pour le développement local
       setPeriodes([
         { id: 'periode-1', code: '2024-01' },
-        { id: 'periode-2', code: '2024-02' },
-        { id: 'periode-3', code: '2024-03' },
       ]);
     } finally {
       setIsLoadingPeriodes(false);
@@ -501,16 +510,8 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   }, []);
 
   const onSubmit = (data: EcritureComptableForm) => {
-    // Convertir la date string en Date pour l'envoi
-    const ecritureData: EcritureComptable = {
-      ...data,
-      dateEcriture: parseDateFromInput(data.dateEcriture),
-      montantTotalDebit: data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0,
-      montantTotalCredit: data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0,
-    };
-
-    const totalDebit = ecritureData.montantTotalDebit;
-    const totalCredit = ecritureData.montantTotalCredit;
+    const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
+    const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
 
     if (totalDebit !== totalCredit) {
       form.setError('detailsEcriture', {
@@ -520,14 +521,25 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
       return;
     }
 
-    onSave(ecritureData);
+    onSave({
+      ...data,
+      montantTotalDebit: totalDebit,
+      montantTotalCredit: totalCredit
+    });
   };
 
   const addDetailLine = () => {
     const currentDetails = form.getValues('detailsEcriture') || [];
     form.setValue('detailsEcriture', [
       ...currentDetails,
-      { compteId: generateUUID(), libelle: '', montantDebit: 0, montantCredit: 0 },
+      {
+        compteComptableId: '',
+        libelle: '',
+        montantDebit: 0,
+        montantCredit: 0,
+        sens: 'DEBIT',
+        ecritureComptableId: ecriture?.id || ''
+      } as DetailEcritureDto,
     ]);
   };
 
@@ -710,10 +722,10 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                 )}
               </div>
               {form.watch('detailsEcriture')?.map((detail, index) => (
-                <div key={detail.compteId} className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-4 p-4 bg-white rounded-lg shadow-sm">
+                <div key={detail.compteComptableId || index} className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-4 p-4 bg-white rounded-lg shadow-sm">
                   <FormField
                     control={form.control}
-                    name={`detailsEcriture.${index}.compteId`}
+                    name={`detailsEcriture.${index}.compteComptableId`}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Compte</FormLabel>
