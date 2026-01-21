@@ -407,6 +407,7 @@ import {
 import { cn } from '@/lib/utils';
 import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 
 interface EcritureComptableDetailViewProps {
   ecriture: EcritureComptableDto | null;
@@ -438,6 +439,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 }) => {
   const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
   const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
+  const [accounts, setAccounts] = useState<string[]>([]); // Store only noCompte for validation
   const [openPeriodePopover, setOpenPeriodePopover] = useState(false);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
@@ -449,8 +451,10 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
         ...ecriture,
         detailsEcriture: ecriture.detailsEcriture?.map(d => ({
           ...d,
-          // Handle legacy mapping if necessary, but lib2 expects compteComptableId
-          compteComptableId: d.compteComptableId || (d as any).compteId
+          // Handle legacy mapping - ensure consistent field names
+          compteComptableId: d.compteComptableId || (d as any).compteId,
+          montantDebit: d.montantDebit || 0,
+          montantCredit: d.montantCredit || 0
         })) || []
       };
     }
@@ -471,8 +475,8 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
           libelle: '',
           montantDebit: 0,
           montantCredit: 0,
-          sens: 'DEBIT', // Required field in DetailEcritureDto
-          ecritureComptableId: '' // Required field in DetailEcritureDto
+          sens: 'DEBIT',
+          ecritureComptableId: ''
         } as DetailEcritureDto
       ],
     } as EcritureComptableForm;
@@ -480,7 +484,21 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 
   const form = useForm<EcritureComptableForm>({
     defaultValues: getDefaultValues(),
+    mode: "onChange" // Validate on change
   });
+
+  // Watch detailsEcriture for auto-calculation
+  const detailsEcriture = form.watch('detailsEcriture');
+
+  useEffect(() => {
+    if (detailsEcriture) {
+      const totalDebit = detailsEcriture.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
+      const totalCredit = detailsEcriture.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
+
+      form.setValue('montantTotalDebit', totalDebit);
+      form.setValue('montantTotalCredit', totalCredit);
+    }
+  }, [detailsEcriture, form]);
 
   useEffect(() => {
     form.reset(getDefaultValues());
@@ -494,10 +512,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
       }
     } catch (error) {
       console.error("Failed to fetch journals:", error);
-      setJournals([
-        { id: 'journal-1', libelle: 'Journal Général' },
-        { id: 'journal-2', libelle: 'Journal de Ventes' },
-      ]);
+      // Fallback data removed for production readiness
     } finally {
       setIsLoadingJournals(false);
     }
@@ -519,20 +534,42 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     }
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const response = await AccountingPlanComptableService.getAllPlanComptables();
+      if (response.success && response.data) {
+        // Extract and store noCompte for validation
+        const accountNumbers = response.data.map(acc => acc.noCompte);
+        setAccounts(accountNumbers);
+      }
+    } catch (error) {
+      console.error("Failed to fetch accounts:", error);
+    }
+  };
+
   useEffect(() => {
     fetchJournals();
     fetchPeriodes();
+    fetchAccounts();
   }, []);
 
+  const validateAccount = (value: string) => {
+    if (!value) return true; // Let required validator handle empty fields if needed
+    if (accounts.length === 0) return true; // Skip validation if accounts haven't loaded
+    return accounts.includes(value) || "Ce numéro de compte n'existe pas.";
+  };
+
   const onSubmit = (data: EcritureComptableForm) => {
+    // Totals are already calculated by watcher, but ensure they are consistent
     const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
     const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
 
     if (totalDebit !== totalCredit) {
-      form.setError('detailsEcriture', {
+      form.setError('root', { // Use root error
         type: 'manual',
         message: 'Les montants de débit et de crédit doivent être égaux.'
       });
+      // Also display toast or alert if needed
       return;
     }
 
@@ -780,11 +817,22 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                       <FormItem>
                         <FormLabel>Compte</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Numéro du compte" />
+                          <Input
+                            {...field}
+                            placeholder="Numéro du compte"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              // Trigger validation immediately if desired, or let mode: 'onChange' handle it
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
+                    rules={{
+                      required: "Numéro de compte requis",
+                      validate: validateAccount
+                    }}
                   />
                   <FormField
                     control={form.control}
@@ -809,7 +857,22 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              field.onChange(val);
+                              // Force recalculate totals
+                              const currentDetails = form.getValues('detailsEcriture') || [];
+                              // We need to use the new value for the current index, as getValues might have old value for this field during render cycle depending on RHF version behavior
+                              // but since we just called onChange, let's calculate manually to be safe and instant
+                              const updatedDetails = [...currentDetails];
+                              updatedDetails[index] = { ...updatedDetails[index], montantDebit: val };
+
+                              const totalDebit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
+                              const totalCredit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
+
+                              form.setValue('montantTotalDebit', totalDebit);
+                              form.setValue('montantTotalCredit', totalCredit);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -826,7 +889,20 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              field.onChange(val);
+                              // Force recalculate totals
+                              const currentDetails = form.getValues('detailsEcriture') || [];
+                              const updatedDetails = [...currentDetails];
+                              updatedDetails[index] = { ...updatedDetails[index], montantCredit: val };
+
+                              const totalDebit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
+                              const totalCredit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
+
+                              form.setValue('montantTotalDebit', totalDebit);
+                              form.setValue('montantTotalCredit', totalCredit);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
