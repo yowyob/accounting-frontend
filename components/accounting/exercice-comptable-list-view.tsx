@@ -33,7 +33,7 @@ const RowActions = ({ exercice, onEdit, onDelete, onClose }: {
     onClose: (id: string) => void;
 }) => {
     return (
-        <div className="w-12 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             <TooltipProvider>
                 {!exercice.cloture && (
                     <Tooltip>
