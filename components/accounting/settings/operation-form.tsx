@@ -9,7 +9,9 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Save, PlusCircle, Trash2, ChevronDown, Loader2 } from 'lucide-react';
 import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
+import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
+import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import {
   Select,
   SelectContent,
@@ -40,12 +42,18 @@ interface OperationFormProps {
 export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
   const [journals, setJournals] = React.useState<JournalComptableDto[]>([]);
   const [isLoadingJournals, setIsLoadingJournals] = React.useState(true);
+  const [accounts, setAccounts] = React.useState<PlanComptableDto[]>([]);
+  const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(true);
 
   React.useEffect(() => {
     const fetchJournals = async () => {
       try {
+        console.log("Fetching journals...");
         const response = await AccountingJournalsService.getActiveJournalComptables();
-        setJournals(Array.isArray(response.data) ? response.data : []);
+        console.log("Journals response:", response);
+        const journalData = Array.isArray(response.data) ? response.data : [];
+        console.log("Journals data:", journalData);
+        setJournals(journalData);
       } catch (error) {
         console.error("Failed to fetch journals:", error);
       } finally {
@@ -53,6 +61,20 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       }
     };
     fetchJournals();
+  }, []);
+
+  React.useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const response = await AccountingPlanComptableService.getAllPlanComptables();
+        setAccounts(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Failed to fetch accounts:", error);
+      } finally {
+        setIsLoadingAccounts(false);
+      }
+    };
+    fetchAccounts();
   }, []);
 
   const form = useForm<OperationComptableDto>({
@@ -75,6 +97,13 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       } as ContrepartieDto],
     },
   });
+
+  // Validation function to check if account exists
+  const validateAccountExists = (accountNumber: string) => {
+    if (!accountNumber || accountNumber.trim() === '') return true; // Let required validation handle empty
+    const exists = accounts.some(acc => acc.noCompte === accountNumber.trim());
+    return exists || "Ce compte n'existe pas dans le plan comptable. Veuillez saisir un compte valide.";
+  };
 
   const onSubmit = (data: OperationComptableDto) => {
     // Filter out contreparties with empty compte (invalid)
@@ -247,7 +276,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="comptePrincipal"
-                  rules={{ required: "Requis" }}
+                  rules={{
+                    required: "Requis",
+                    validate: validateAccountExists
+                  }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Compte principal <span className="text-red-500">*</span></FormLabel>
@@ -334,7 +366,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         <FormField
                           control={form.control}
                           name={`contreparties.${index}.compte`}
-                          rules={{ required: "Requis" }}
+                          rules={{
+                            required: "Requis",
+                            validate: validateAccountExists
+                          }}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Compte contrepartie <span className="text-red-500">*</span></FormLabel>
