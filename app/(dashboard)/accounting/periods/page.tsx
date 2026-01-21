@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { AccountingFiscalYearsService } from '@/src/lib2/services/AccountingFiscalYearsService';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
+import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
 import { PeriodeComptableListView } from '@/components/accounting/periode-comptable-list-view';
 import { PeriodeComptableDetailView } from '@/components/accounting/periode-comptable-detail-view';
 import { toast } from 'sonner';
@@ -12,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function PeriodsPage() {
     const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
+    const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedPeriode, setSelectedPeriode] = useState<PeriodeComptableDto | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -36,9 +39,21 @@ export default function PeriodsPage() {
         }
     }, []);
 
+    const fetchExercices = useCallback(async () => {
+        try {
+            const response = await AccountingFiscalYearsService.getAllExercices();
+            if (response && response.data) {
+                setExercices(response.data);
+            }
+        } catch (err) {
+            console.error('Error fetching fiscal years:', err);
+        }
+    }, []);
+
     useEffect(() => {
         fetchPeriodes();
-    }, [fetchPeriodes]);
+        fetchExercices();
+    }, [fetchPeriodes, fetchExercices]);
 
     const handleOpenCompose = (periode?: PeriodeComptableDto) =>
         onOpen({
@@ -117,6 +132,7 @@ export default function PeriodsPage() {
 
                 <PeriodeComptableListView
                     periodes={periodes}
+                    exercices={exercices}
                     isLoading={isLoading}
                     onSelectPeriode={(id) => handleOpenCompose(periodes.find(p => p.id === id))}
                     onEditPeriode={(id) => handleOpenCompose(periodes.find(p => p.id === id))}

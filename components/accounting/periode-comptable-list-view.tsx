@@ -14,6 +14,7 @@ import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
 import { Edit, Trash2, Plus, Lock, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
 
 interface PeriodeComptableListViewProps {
   periodes: PeriodeComptableDto[];
@@ -24,6 +25,7 @@ interface PeriodeComptableListViewProps {
   onClosePeriode: (id: string) => void;
   onAddNew: () => void;
   onRefresh: () => void;
+  exercices?: ExerciceComptableDto[];
 }
 
 const RowActions = ({ periode, onEdit, onDelete, onClose }: {
@@ -77,7 +79,14 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
   onClosePeriode,
   onAddNew,
   onRefresh,
+  exercices = [],
 }) => {
+  const getExerciceCode = (exerciceId?: string) => {
+    if (!exerciceId) return '-';
+    const ex = exercices.find(e => e.id === exerciceId);
+    return ex ? ex.code : '-';
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -93,6 +102,7 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
         <TableHeader>
           <TableRow>
             <TableHead>Code</TableHead>
+            <TableHead>Exercice</TableHead>
             <TableHead>Date Début</TableHead>
             <TableHead>Date Fin</TableHead>
             <TableHead>Statut</TableHead>
@@ -116,6 +126,11 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
                 onClick={() => onSelectPeriode(periode.id || '')}
               >
                 <TableCell className="font-medium text-gray-900">{periode.code}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
+                    {getExerciceCode(periode.exercice_id)}
+                  </Badge>
+                </TableCell>
                 <TableCell>{periode.dateDebut ? new Date(periode.dateDebut).toLocaleDateString('fr-FR') : '-'}</TableCell>
                 <TableCell>{periode.dateFin ? new Date(periode.dateFin).toLocaleDateString('fr-FR') : '-'}</TableCell>
                 <TableCell>

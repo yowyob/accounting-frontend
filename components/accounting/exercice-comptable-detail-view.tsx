@@ -7,7 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Save, Trash2, ArrowLeft, Lock } from 'lucide-react';
 import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
+import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
     Card,
     CardContent,
@@ -37,6 +41,28 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
     onDelete,
     onBack,
 }) => {
+    const [periodes, setPeriodes] = React.useState<PeriodeComptableDto[]>([]);
+    const [isLoadingPeriodes, setIsLoadingPeriodes] = React.useState(false);
+
+    React.useEffect(() => {
+        const fetchPeriodes = async () => {
+            if (!exercice?.id) return;
+            setIsLoadingPeriodes(true);
+            try {
+                // Filter periods by exercice_id if API supports it, or filter client-side
+                const response = await AccountingPeriodsService.getAllPeriodeComptables();
+                if (response && response.data) {
+                    setPeriodes(response.data.filter(p => p.exercice_id === exercice.id));
+                }
+            } catch (error) {
+                console.error("Failed to fetch periods for fiscal year:", error);
+            } finally {
+                setIsLoadingPeriodes(false);
+            }
+        };
+        fetchPeriodes();
+    }, [exercice?.id]);
+
     const form = useForm<ExerciceComptableDto>({
         defaultValues: exercice || {
             code: '',
@@ -64,11 +90,10 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                 GÉNÉRAL
                             </TabsTrigger>
                             <TabsTrigger
-                                value="advanced"
-                                disabled
-                                className="rounded-none border-b-2 border-transparent py-3 font-semibold text-gray-300 cursor-not-allowed"
+                                value="periods"
+                                className="rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 py-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
                             >
-                                AUTRES PARAMÈTRES
+                                PÉRIODES
                             </TabsTrigger>
                         </TabsList>
 
@@ -149,6 +174,49 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                         </FormItem>
                                     )}
                                 />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="periods" className="space-y-6 mt-0">
+                            <div className="rounded-md border">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="bg-gray-50/50">
+                                            <TableHead>Code</TableHead>
+                                            <TableHead>Dates</TableHead>
+                                            <TableHead>Statut</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {isLoadingPeriodes ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center py-8 text-gray-400">
+                                                    Chargement des périodes...
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : periodes.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center py-8 text-gray-400 italic">
+                                                    Aucune période définie pour cet exercice.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            periodes.map((periode) => (
+                                                <TableRow key={periode.id}>
+                                                    <TableCell className="font-medium">{periode.code}</TableCell>
+                                                    <TableCell className="text-sm text-gray-500">
+                                                        {periode.dateDebut} au {periode.dateFin}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={periode.cloturee ? 'secondary' : 'default'} className="text-[10px] h-5">
+                                                            {periode.cloturee ? 'Clôturée' : 'Ouverte'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </div>
                         </TabsContent>
                     </Tabs>
