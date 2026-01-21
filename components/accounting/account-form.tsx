@@ -63,9 +63,9 @@ export function AccountingForm({ initialData, onSave, onCancel }: AccountingForm
   ];
 
   const amountTypeOptions = [
-    'Montant TTC',
-    'Montant HT',
-    'Montant TVA',
+    'Montant Toutes Taxes Comprises',
+    'Montant Hors Taxes',
+    'Montant Taxe sur Valeur Ajoutée',
   ];
 
   return (

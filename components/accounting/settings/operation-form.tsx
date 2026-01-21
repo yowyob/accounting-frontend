@@ -62,13 +62,13 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       sensPrincipal: 'DEBIT',
       comptePrincipal: '',
       estCompteStatique: true,
-      typeMontant: 'TTC',
+      typeMontant: 'Toutes Taxes Comprises',
       journalComptableId: '',
       actif: true,
       contreparties: [{
         compte: '',
         estCompteTiers: false,
-        typeMontant: 'TTC',
+        typeMontant: 'Toutes Taxes Comprises',
         journalComptableId: '',
         sens: 'DEBIT',
         operationComptableId: undefined as any
@@ -182,11 +182,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="ESPECE">ESPECE (au comptant)</SelectItem>
-                          <SelectItem value="CHEQUE">CHEQUE (au comptant)</SelectItem>
-                          <SelectItem value="VIREMENT">VIREMENT (au comptant)</SelectItem>
-                          <SelectItem value="MOBILE">MOBILE (au comptant)</SelectItem>
-                          <SelectItem value="CR">CREDIT (CR)</SelectItem>
+                          <SelectItem value="ESPECE">Comptant par espèces</SelectItem>
+                          <SelectItem value="CHEQUE">Comptant par chèque</SelectItem>
+                          <SelectItem value="VIREMENT">Comptant par chèque postal</SelectItem>
+                          <SelectItem value="MOBILE">Mobile Money</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -272,10 +271,9 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="TTC">Montant TTC</SelectItem>
-                          <SelectItem value="HT">Montant HT</SelectItem>
-                          <SelectItem value="TVA">Montant TVA</SelectItem>
-                          <SelectItem value="PAU">Prix d'Achat Unitaire (PAU)</SelectItem>
+                          <SelectItem value="TTC">Montant Toutes Taxes Comprises</SelectItem>
+                          <SelectItem value="HT">Montant Hors Taxes</SelectItem>
+                          <SelectItem value="TVA">Montant Taxe sur la Valeur Ajoutée</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
