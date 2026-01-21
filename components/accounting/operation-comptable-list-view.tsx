@@ -129,7 +129,7 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="flex gap-4 items-center">
-          <Button onClick={onAddNew} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="mr-2 h-4 w-4" /> Nouvelle Opération
           </Button>
           <div className="w-64">
@@ -137,7 +137,7 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
               placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 border-gray-300 focus:border-indigo-500"
+              className="h-9 border-gray-300 focus:border-blue-500"
             />
           </div>
         </div>

@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, ArrowLeft, Check, Plus, Trash } from 'lucide-react';
+import { Save, Trash2, ArrowLeft, Check, Plus, Trash, ChevronsUpDown } from 'lucide-react';
 import { EcritureComptable, DetailEcritureDto, UUID } from '@/types/accounting';
 import {
   Select,
@@ -379,7 +379,7 @@ import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, ArrowLeft, Check, Plus, Trash } from 'lucide-react';
+import { Save, Trash2, ArrowLeft, Check, Plus, Trash, ChevronsUpDown } from 'lucide-react';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
@@ -391,6 +391,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 
@@ -423,7 +437,8 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   onBack,
 }) => {
   const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
-  const [periodes, setPeriodes] = useState<{ id: string; code: string }[]>([]);
+  const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
+  const [openPeriodePopover, setOpenPeriodePopover] = useState(false);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
 
@@ -492,13 +507,13 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     try {
       const response = await AccountingPeriodsService.getAllPeriodeComptables();
       if (response.success && response.data) {
-        setPeriodes(response.data.map((p) => ({ id: p.id!, code: p.code || p.id!.slice(0, 8) })));
+        // Filter only non-closed periods
+        const nonClosedPeriodes = response.data.filter(p => !p.cloturee);
+        setPeriodes(nonClosedPeriodes);
       }
     } catch (error) {
       console.error("Failed to fetch periods:", error);
-      setPeriodes([
-        { id: 'periode-1', code: '2024-01' },
-      ]);
+      setPeriodes([]);
     } finally {
       setIsLoadingPeriodes(false);
     }
@@ -551,10 +566,6 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
       <div className="flex justify-between items-center p-6 border-b">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Retour
-        </Button>
         {!ecriture?.validee && (
           <Button onClick={onValidate} className="bg-green-600 hover:bg-green-700 text-white">
             <Check className="mr-2 h-4 w-4" />
@@ -631,24 +642,63 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Période Comptable <span className="text-red-500">*</span></FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ''}
-                      disabled={isLoadingPeriodes}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingPeriodes ? "Chargement..." : "Sélectionner une période"} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {periodes.map((periode) => (
-                          <SelectItem key={periode.id} value={periode.id}>
-                            {periode.code}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={openPeriodePopover} onOpenChange={setOpenPeriodePopover}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={isLoadingPeriodes}
+                          >
+                            {field.value
+                              ? periodes.find(
+                                (periode) => periode.id === field.value
+                              )?.code
+                              : isLoadingPeriodes ? "Chargement..." : "Sélectionner une période"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command
+                          filter={(value, search) => {
+                            if (value.toLowerCase().includes(search.toLowerCase())) return 1;
+                            return 0;
+                          }}
+                        >
+                          <CommandInput placeholder="Rechercher une période..." className="border-none focus:ring-0" />
+                          <CommandList>
+                            <CommandEmpty>Aucune période trouvée.</CommandEmpty>
+                            <CommandGroup>
+                              {periodes.filter(p => p.id).map((periode) => (
+                                <CommandItem
+                                  value={periode.code}
+                                  key={periode.id!}
+                                  onSelect={() => {
+                                    form.setValue("periodeComptableId", periode.id!);
+                                    setOpenPeriodePopover(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      periode.id === field.value
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {periode.code}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

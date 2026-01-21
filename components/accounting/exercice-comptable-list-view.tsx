@@ -81,7 +81,7 @@ export const ExerciceComptableListView: React.FC<ExerciceComptableListViewProps>
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
-                <Button onClick={onAddNew} className="bg-indigo-600 hover:bg-indigo-700">
+                <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
                     <Plus className="mr-2 h-4 w-4" />
                     Nouvel Exercice
                 </Button>
