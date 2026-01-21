@@ -115,11 +115,11 @@ export const modules: Record<ModuleKey, Module> = {
     composeActionLabel: "Ajouter",
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
-      { title: "Opérations Comptables", icon: FileClock, href: "/accounting/operations" },
       { title: "Exercices Comptables", icon: FileClock, href: "/accounting/fiscal-years" },
       { title: "Périodes Comptables", icon: ListChecks, href: "/accounting/periods" },
-      { title: "Taxes", icon: Coins, href: "/accounting/taxes" },
       { title: "Journaux", icon: Notebook, href: "/accounting/journals" },
+      { title: "Opérations Comptables", icon: FileClock, href: "/accounting/operations" },
+      { title: "Taxes", icon: Coins, href: "/accounting/taxes" },
       { title: "Devises", icon: Globe, href: "/accounting/devises" },
       { title: "Positions Fiscales", icon: Scale, href: "/accounting/positionsfiscales" },
       { title: "Modes de Paiement", icon: CreditCard, href: "/accounting/modes-paiement" },

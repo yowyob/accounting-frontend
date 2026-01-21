@@ -158,8 +158,11 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="VENTE">Vend à un client</SelectItem>
-                          <SelectItem value="ACHAT">Achète à un fournisseur</SelectItem>
+                          <SelectItem value="VENTE">Vend à un client (VENTE)</SelectItem>
+                          <SelectItem value="ACHAT">Achète à un fournisseur (ACHAT)</SelectItem>
+                          <SelectItem value="SALAIRE">Paye un salaire (SALAIRE)</SelectItem>
+                          <SelectItem value="PAIEMENT">Effectue un paiement (PAIEMENT)</SelectItem>
+                          <SelectItem value="DIVERS">Opération diverse (DIVERS)</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

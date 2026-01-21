@@ -15,11 +15,27 @@ import {
   TableCell,
 } from '@/components/ui/table';
 
-const OPERATION_DESCRIPTIONS: Record<string, string> = {
-  "VENTE": "Vente client",
-  "ACHAT": "Achat fournisseur",
-  "Règlement": "Règlement",
-  "Dépense": "Dépense",
+const OPERATION_TEMPLATES: Record<string, string> = {
+  "VENTE": "Vend à un client",
+  "ACHAT": "Achète à un fournisseur",
+  "SALAIRE": "Paye un salaire",
+  "PAIEMENT": "Effectue un paiement",
+  "DIVERS": "Opération diverse",
+};
+
+const MODE_REGLEMENT_LABELS: Record<string, { label: string, isComptant: boolean }> = {
+  "ESPECE": { label: "par espèces [CCE]", isComptant: true },
+  "CHEQUE": { label: "par chèque [CHQ]", isComptant: true },
+  "VIREMENT": { label: "par virement [VIR]", isComptant: true },
+  "MOBILE": { label: "par mobile [MOB]", isComptant: true },
+  "CR": { label: "par crédit [CR]", isComptant: false },
+};
+
+const MONTANT_LABELS: Record<string, string> = {
+  "TTC": "Montant Toutes Taxes Comprises [TTC]",
+  "HT": "Montant Hors Taxes [HT]",
+  "TVA": "Montant TVA [TVA]",
+  "PAU": "Prix d'Achat Unitaire [PAU]",
 };
 
 interface OperationComptableListViewProps {
@@ -90,11 +106,24 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredOperations = operations.filter((op) =>
-    op.typeOperation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    op.modeReglement?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    op.comptePrincipal?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const formatOperationAsSentence = (op: OperationComptableDto) => {
+    const verb = OPERATION_TEMPLATES[op.typeOperation] || op.typeOperation;
+    const modeInfo = MODE_REGLEMENT_LABELS[op.modeReglement] || { label: `par ${op.modeReglement}`, isComptant: false };
+    const comptantStr = modeInfo.isComptant ? "au comptant " : "";
+    const action = op.sensPrincipal === 'DEBIT' ? 'on débite le compte' : 'on crédite le compte';
+    const amount = MONTANT_LABELS[op.typeMontant] || `du Montant [${op.typeMontant}]`;
+
+    return (
+      <span className="leading-relaxed">
+        {verb} {comptantStr}{modeInfo.label}, {action} <span className="font-mono bg-blue-50 text-blue-700 px-1 py-0.5 rounded border border-blue-100 font-bold">[{op.comptePrincipal}]</span> {amount}
+      </span>
+    );
+  };
+
+  const filteredOperations = operations.filter((op) => {
+    const sentenceContent = `${OPERATION_TEMPLATES[op.typeOperation]} ${op.modeReglement} ${op.comptePrincipal} ${op.typeMontant}`.toLowerCase();
+    return sentenceContent.includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="space-y-4">
@@ -119,14 +148,10 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
 
       <div className="border rounded-lg overflow-hidden">
         <Table>
-          <TableHeader className="bg-gray-50/50">
+          <TableHeader className="bg-gray-50/50 border-b">
             <TableRow>
-              <TableHead className="w-[200px]">Type</TableHead>
-              <TableHead>Mode</TableHead>
-              <TableHead>Compte</TableHead>
-              <TableHead>Sens</TableHead>
-              <TableHead>Montant</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="font-bold text-gray-900 border-r">Opération</TableHead>
+              <TableHead className="text-right font-bold text-gray-900 w-[100px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,23 +169,13 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
               filteredOperations.map((operation) => (
                 <TableRow
                   key={operation.id}
-                  className="group hover:bg-indigo-50/30 cursor-pointer"
+                  className="group hover:bg-blue-50/50 cursor-pointer border-b transition-colors"
                   onClick={() => onSelectOperation(operation.id || '')}
                 >
-                  <TableCell className="font-medium text-indigo-900">
-                    {OPERATION_DESCRIPTIONS[operation.typeOperation] || operation.typeOperation}
+                  <TableCell className="py-4 text-sm text-gray-700 border-r">
+                    {formatOperationAsSentence(operation)}
                   </TableCell>
-                  <TableCell>{operation.modeReglement}</TableCell>
-                  <TableCell>
-                    <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono font-bold">{operation.comptePrincipal}</code>
-                  </TableCell>
-                  <TableCell>
-                    <span className={operation.sensPrincipal === 'DEBIT' ? 'text-emerald-600 font-medium' : 'text-rose-600 font-medium'}>
-                      {operation.sensPrincipal}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-xs text-gray-600">{operation.typeMontant}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right py-4">
                     <RowActions
                       operation={operation}
                       onEdit={onEditOperation}
