@@ -35,7 +35,7 @@ const RowActions = ({ periode, onEdit, onDelete, onClose }: {
   onClose: (id: string) => void;
 }) => {
   return (
-    <div className="w-12 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
       <TooltipProvider>
         {!periode.cloturee && (
           <Tooltip>
@@ -112,11 +112,11 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
         <TableBody>
           {isLoading ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-gray-400 font-medium italic">Chargement des périodes...</TableCell>
+              <TableCell colSpan={6} className="text-center py-10 text-gray-400 font-medium italic">Chargement des périodes...</TableCell>
             </TableRow>
           ) : periodes.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">Aucune période trouvée.</TableCell>
+              <TableCell colSpan={6} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">Aucune période trouvée.</TableCell>
             </TableRow>
           ) : (
             periodes.map((periode) => (

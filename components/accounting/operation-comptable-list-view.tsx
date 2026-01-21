@@ -157,11 +157,11 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-gray-400 italic">Chargement...</TableCell>
+                <TableCell colSpan={2} className="text-center py-10 text-gray-400 italic">Chargement...</TableCell>
               </TableRow>
             ) : filteredOperations.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">
+                <TableCell colSpan={2} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">
                   Aucune opération trouvée.
                 </TableCell>
               </TableRow>
