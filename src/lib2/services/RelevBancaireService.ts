@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponseListMapStringObject } from '../models/ApiResponseListMapStringObject';
-import type { ApiResponseMapStringObject } from '../models/ApiResponseMapStringObject';
+import type { ApiResponseWrapperListMapStringObject } from '../models/ApiResponseWrapperListMapStringObject';
+import type { ApiResponseWrapperMapStringObject } from '../models/ApiResponseWrapperMapStringObject';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -13,7 +13,7 @@ export class RelevBancaireService {
      * Parse un fichier CSV de relevé bancaire et retourne les transactions détectées
      * @param compteBancaire
      * @param formData
-     * @returns ApiResponseListMapStringObject Fichier uploadé et parsé
+     * @returns ApiResponseWrapperListMapStringObject Fichier uploadé et parsé
      * @throws ApiError
      */
     public static uploadReleve(
@@ -21,7 +21,7 @@ export class RelevBancaireService {
         formData?: {
             file: Blob;
         },
-    ): CancelablePromise<ApiResponseListMapStringObject> {
+    ): CancelablePromise<ApiResponseWrapperListMapStringObject> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/comptable/releve/upload',
@@ -41,12 +41,12 @@ export class RelevBancaireService {
      * Importer un relevé en écritures
      * Convertit les transactions d'un relevé en écritures comptables
      * @param releveId
-     * @returns ApiResponseMapStringObject Relevé importé avec succès
+     * @returns ApiResponseWrapperMapStringObject Relevé importé avec succès
      * @throws ApiError
      */
     public static importerReleve(
         releveId: string,
-    ): CancelablePromise<ApiResponseMapStringObject> {
+    ): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/comptable/releve/import/{releveId}',
@@ -64,10 +64,10 @@ export class RelevBancaireService {
     /**
      * Liste des relevés importés
      * Retourne la liste des relevés bancaires uploadés pour le tenant
-     * @returns ApiResponseListMapStringObject Liste récupérée
+     * @returns ApiResponseWrapperListMapStringObject Liste récupérée
      * @throws ApiError
      */
-    public static getListeReleves(): CancelablePromise<ApiResponseListMapStringObject> {
+    public static getListeReleves(): CancelablePromise<ApiResponseWrapperListMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/comptable/releve/list',

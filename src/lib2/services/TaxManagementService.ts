@@ -2,45 +2,45 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AgenceDto } from '../models/AgenceDto';
-import type { ApiResponseWrapperAgenceDto } from '../models/ApiResponseWrapperAgenceDto';
-import type { ApiResponseWrapperListAgenceDto } from '../models/ApiResponseWrapperListAgenceDto';
+import type { ApiResponseWrapperListTaxeDto } from '../models/ApiResponseWrapperListTaxeDto';
+import type { ApiResponseWrapperTaxeDto } from '../models/ApiResponseWrapperTaxeDto';
 import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
+import type { TaxeDto } from '../models/TaxeDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class AccountingAgencesService {
+export class TaxManagementService {
     /**
-     * Get agency by ID
+     * Get tax by ID
      * @param id
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperTaxeDto OK
      * @throws ApiError
      */
-    public static getAgence(
+    public static getTaxe(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+    ): CancelablePromise<ApiResponseWrapperTaxeDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/taxes/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Update an agency
+     * Update an existing tax
      * @param id
      * @param requestBody
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperTaxeDto OK
      * @throws ApiError
      */
-    public static updateAgence(
+    public static updateTaxe(
         id: string,
-        requestBody: AgenceDto,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+        requestBody: TaxeDto,
+    ): CancelablePromise<ApiResponseWrapperTaxeDto> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/taxes/{id}',
             path: {
                 'id': id,
             },
@@ -49,45 +49,51 @@ export class AccountingAgencesService {
         });
     }
     /**
-     * Delete an agency
+     * Delete a tax
      * @param id
      * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
-    public static deleteAgence(
+    public static deleteTaxe(
         id: string,
     ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/taxes/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Get all agencies for current tenant
-     * @returns ApiResponseWrapperListAgenceDto OK
+     * List all taxes for the current tenant
+     * @param onlyActive
+     * @returns ApiResponseWrapperListTaxeDto OK
      * @throws ApiError
      */
-    public static getAllAgences(): CancelablePromise<ApiResponseWrapperListAgenceDto> {
+    public static getAllTaxes(
+        onlyActive: boolean = false,
+    ): CancelablePromise<ApiResponseWrapperListTaxeDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/agences',
+            url: '/api/accounting/taxes',
+            query: {
+                'onlyActive': onlyActive,
+            },
         });
     }
     /**
-     * Create a new agency
+     * Create a new tax
      * @param requestBody
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperTaxeDto OK
      * @throws ApiError
      */
-    public static createAgence(
-        requestBody: AgenceDto,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+    public static createTaxe(
+        requestBody: TaxeDto,
+    ): CancelablePromise<ApiResponseWrapperTaxeDto> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/agences',
+            url: '/api/accounting/taxes',
             body: requestBody,
             mediaType: 'application/json',
         });

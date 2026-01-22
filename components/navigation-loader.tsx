@@ -7,19 +7,13 @@ import { useLoadingStore } from "@/hooks/use-loading-store";
 export const NavigationLoader = () => {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { startLoading, stopLoading } = useLoadingStore();
+    const { startLoading } = useLoadingStore();
 
     useEffect(() => {
         // Trigger loading on path or param change
+        // We only start here; the page layout/component will stop it when mounted
         startLoading();
-
-        // Simulate a short delay for smooth transition or wait for next tick
-        const timer = setTimeout(() => {
-            stopLoading();
-        }, 500); // 500ms delay to make it visible but not annoying
-
-        return () => clearTimeout(timer);
-    }, [pathname, searchParams, startLoading, stopLoading]);
+    }, [pathname, searchParams, startLoading]);
 
     return null;
 };

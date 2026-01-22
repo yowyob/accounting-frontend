@@ -101,12 +101,12 @@ export class AccountingPlanComptableService {
      * Initialize accounting plan
      * Creates a default set of accounts for the given tenant.
      * @param tenantId
-     * @returns string Plan initialized successfully
+     * @returns ApiResponseWrapperString Plan initialized successfully
      * @throws ApiError
      */
     public static initPlanComptable(
         tenantId: string,
-    ): CancelablePromise<string> {
+    ): CancelablePromise<ApiResponseWrapperString> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/plan-comptable/admin/tenants/{tenantId}/plan-comptable/init-ohada-2025',

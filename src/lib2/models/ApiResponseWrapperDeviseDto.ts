@@ -2,11 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResponseVoid = {
+import type { DeviseDto } from './DeviseDto';
+export type ApiResponseWrapperDeviseDto = {
     success?: boolean;
     message?: string;
-    data?: Record<string, any>;
+    data?: DeviseDto;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

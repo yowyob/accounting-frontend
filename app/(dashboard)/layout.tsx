@@ -4,8 +4,10 @@ import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useSidebar } from "@/hooks/useSidebar";
 import { cn } from "@/lib/utils";
-import React from "react";
+import React, { useEffect } from "react";
 import { ComposeWindow } from "@/components/ui/compose-window";
+import { useLoadingStore } from "@/hooks/use-loading-store";
+import { usePathname } from "next/navigation";
 
 export default function DashboardLayout({
   children,
@@ -13,6 +15,13 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { isCollapsed } = useSidebar();
+  const { stopLoading } = useLoadingStore();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    // When the layout mounts or route changes, stop the global loader
+    stopLoading();
+  }, [pathname, stopLoading]);
 
   return (
     <div className="h-screen w-screen overflow-hidden flex bg-[#f6f8fc]">

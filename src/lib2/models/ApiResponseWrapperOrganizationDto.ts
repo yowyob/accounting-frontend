@@ -2,12 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ExerciceComptableDto } from './ExerciceComptableDto';
-export type ApiResponseListExerciceComptableDto = {
+import type { OrganizationDto } from './OrganizationDto';
+export type ApiResponseWrapperOrganizationDto = {
     success?: boolean;
     message?: string;
-    data?: Array<ExerciceComptableDto>;
+    data?: OrganizationDto;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

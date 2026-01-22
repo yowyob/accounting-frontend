@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PlanComptableDto } from './PlanComptableDto';
-export type ApiResponseWrapperPlanComptableDto = {
+import type { AgenceDto } from './AgenceDto';
+export type ApiResponseWrapperListAgenceDto = {
     success?: boolean;
     message?: string;
-    data?: PlanComptableDto;
+    data?: Array<AgenceDto>;
     timestamp?: string;
     traceId?: string;
     path?: string;

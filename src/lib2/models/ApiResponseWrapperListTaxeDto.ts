@@ -2,11 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResponseInteger = {
+import type { TaxeDto } from './TaxeDto';
+export type ApiResponseWrapperListTaxeDto = {
     success?: boolean;
     message?: string;
-    data?: number;
+    data?: Array<TaxeDto>;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

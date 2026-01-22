@@ -5,11 +5,11 @@
 import type { PeriodeComptableDto } from './PeriodeComptableDto';
 export type ApiResponseWrapperPeriodeComptableDto = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: PeriodeComptableDto;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

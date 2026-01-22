@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponseExerciceComptableDto } from '../models/ApiResponseExerciceComptableDto';
-import type { ApiResponseListExerciceComptableDto } from '../models/ApiResponseListExerciceComptableDto';
-import type { ApiResponseVoid } from '../models/ApiResponseVoid';
+import type { ApiResponseWrapperExerciceComptableDto } from '../models/ApiResponseWrapperExerciceComptableDto';
+import type { ApiResponseWrapperListExerciceComptableDto } from '../models/ApiResponseWrapperListExerciceComptableDto';
+import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
 import type { ExerciceComptableDto } from '../models/ExerciceComptableDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -13,12 +13,12 @@ export class AccountingFiscalYearsService {
     /**
      * Get fiscal year by ID
      * @param id
-     * @returns ApiResponseExerciceComptableDto OK
+     * @returns ApiResponseWrapperExerciceComptableDto OK
      * @throws ApiError
      */
     public static getExercice(
         id: string,
-    ): CancelablePromise<ApiResponseExerciceComptableDto> {
+    ): CancelablePromise<ApiResponseWrapperExerciceComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/exercices/{id}',
@@ -31,13 +31,13 @@ export class AccountingFiscalYearsService {
      * Update a fiscal year
      * @param id
      * @param requestBody
-     * @returns ApiResponseExerciceComptableDto OK
+     * @returns ApiResponseWrapperExerciceComptableDto OK
      * @throws ApiError
      */
     public static updateExercice(
         id: string,
         requestBody: ExerciceComptableDto,
-    ): CancelablePromise<ApiResponseExerciceComptableDto> {
+    ): CancelablePromise<ApiResponseWrapperExerciceComptableDto> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/accounting/exercices/{id}',
@@ -51,12 +51,12 @@ export class AccountingFiscalYearsService {
     /**
      * Delete a fiscal year
      * @param id
-     * @returns ApiResponseVoid OK
+     * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
     public static deleteExercice(
         id: string,
-    ): CancelablePromise<ApiResponseVoid> {
+    ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/accounting/exercices/{id}',
@@ -67,10 +67,10 @@ export class AccountingFiscalYearsService {
     }
     /**
      * Get all fiscal years for current tenant
-     * @returns ApiResponseListExerciceComptableDto OK
+     * @returns ApiResponseWrapperListExerciceComptableDto OK
      * @throws ApiError
      */
-    public static getAllExercices(): CancelablePromise<ApiResponseListExerciceComptableDto> {
+    public static getAllExercices(): CancelablePromise<ApiResponseWrapperListExerciceComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/exercices',
@@ -79,12 +79,12 @@ export class AccountingFiscalYearsService {
     /**
      * Create a new fiscal year
      * @param requestBody
-     * @returns ApiResponseExerciceComptableDto OK
+     * @returns ApiResponseWrapperExerciceComptableDto OK
      * @throws ApiError
      */
     public static createExercice(
         requestBody: ExerciceComptableDto,
-    ): CancelablePromise<ApiResponseExerciceComptableDto> {
+    ): CancelablePromise<ApiResponseWrapperExerciceComptableDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/exercices',
@@ -95,12 +95,12 @@ export class AccountingFiscalYearsService {
     /**
      * Close a fiscal year
      * @param id
-     * @returns ApiResponseVoid OK
+     * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
     public static closeExercice(
         id: string,
-    ): CancelablePromise<ApiResponseVoid> {
+    ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/exercices/{id}/close',
@@ -112,12 +112,12 @@ export class AccountingFiscalYearsService {
     /**
      * Get active fiscal year for a given date
      * @param date
-     * @returns ApiResponseExerciceComptableDto OK
+     * @returns ApiResponseWrapperExerciceComptableDto OK
      * @throws ApiError
      */
     public static getActiveExercice(
         date: string,
-    ): CancelablePromise<ApiResponseExerciceComptableDto> {
+    ): CancelablePromise<ApiResponseWrapperExerciceComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/exercices/active',

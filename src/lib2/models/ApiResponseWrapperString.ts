@@ -4,11 +4,11 @@
 /* eslint-disable */
 export type ApiResponseWrapperString = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: string;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

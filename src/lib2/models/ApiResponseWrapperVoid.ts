@@ -4,11 +4,11 @@
 /* eslint-disable */
 export type ApiResponseWrapperVoid = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: Record<string, any>;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

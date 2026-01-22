@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponseListMapStringObject } from '../models/ApiResponseListMapStringObject';
-import type { ApiResponseMapStringObject } from '../models/ApiResponseMapStringObject';
+import type { ApiResponseWrapperListMapStringObject } from '../models/ApiResponseWrapperListMapStringObject';
+import type { ApiResponseWrapperMapStringObject } from '../models/ApiResponseWrapperMapStringObject';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -12,12 +12,12 @@ export class MouvementsDeStockService {
      * Créer un mouvement de stock
      * Enregistre un mouvement de stock (entrée, sortie, transfert) et génère l'impact comptable
      * @param requestBody
-     * @returns ApiResponseMapStringObject Mouvement créé avec succès
+     * @returns ApiResponseWrapperMapStringObject Mouvement créé avec succès
      * @throws ApiError
      */
     public static creerMouvement(
         requestBody: Record<string, Record<string, any>>,
-    ): CancelablePromise<ApiResponseMapStringObject> {
+    ): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/comptable/stock/mouvement',
@@ -35,13 +35,13 @@ export class MouvementsDeStockService {
      * Retourne tous les mouvements de stock du tenant
      * @param type
      * @param produitId
-     * @returns ApiResponseListMapStringObject Liste récupérée
+     * @returns ApiResponseWrapperListMapStringObject Liste récupérée
      * @throws ApiError
      */
     public static getMouvements(
         type?: string,
         produitId?: string,
-    ): CancelablePromise<ApiResponseListMapStringObject> {
+    ): CancelablePromise<ApiResponseWrapperListMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/comptable/stock/mouvements',
@@ -58,12 +58,12 @@ export class MouvementsDeStockService {
      * Impact comptable d'un mouvement
      * Retourne les écritures comptables générées par un mouvement de stock
      * @param mouvementId
-     * @returns ApiResponseMapStringObject Impact récupéré
+     * @returns ApiResponseWrapperMapStringObject Impact récupéré
      * @throws ApiError
      */
     public static getImpactComptable(
         mouvementId: string,
-    ): CancelablePromise<ApiResponseMapStringObject> {
+    ): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/comptable/stock/impact-comptable/{mouvementId}',
