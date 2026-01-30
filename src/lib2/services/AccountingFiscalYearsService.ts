@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { ApiResponseWrapperExerciceComptableDto } from '../models/ApiResponseWrapperExerciceComptableDto';
 import type { ApiResponseWrapperListExerciceComptableDto } from '../models/ApiResponseWrapperListExerciceComptableDto';
-import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
+import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { ExerciceComptableDto } from '../models/ExerciceComptableDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -51,12 +51,12 @@ export class AccountingFiscalYearsService {
     /**
      * Delete a fiscal year
      * @param id
-     * @returns ApiResponseWrapperVoid OK
+     * @returns ApiResponseWrapperObject OK
      * @throws ApiError
      */
     public static deleteExercice(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperVoid> {
+    ): CancelablePromise<ApiResponseWrapperObject> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/accounting/exercices/{id}',
@@ -95,12 +95,12 @@ export class AccountingFiscalYearsService {
     /**
      * Close a fiscal year
      * @param id
-     * @returns ApiResponseWrapperVoid OK
+     * @returns ApiResponseWrapperObject OK
      * @throws ApiError
      */
     public static closeExercice(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperVoid> {
+    ): CancelablePromise<ApiResponseWrapperObject> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/exercices/{id}/close',

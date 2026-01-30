@@ -14,6 +14,7 @@ import {
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { Edit, Trash2, Plus, Check, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 interface EcritureComptableListViewProps {
   ecritures: EcritureComptableDto[];
@@ -27,37 +28,35 @@ interface EcritureComptableListViewProps {
 }
 
 const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onValidate: (id: string) => void }) => {
+  if (ecriture.validee) return null; // Hide actions if validated
+
   return (
-    <div className="w-12 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="w-12 flex items-center justify-end gap-1 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
       <TooltipProvider>
-        {!ecriture.validee && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onValidate(ecriture.id || '')}>
-                <Check className="h-4 w-4 text-green-600" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Valider</p></TooltipContent>
-          </Tooltip>
-        )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ecriture.id || '')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-green-600" onClick={() => onValidate(ecriture.id || '')}>
+              <Check className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>Valider</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600" onClick={() => onEdit(ecriture.id || '')}>
               <Edit className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent><p>Modifier</p></TooltipContent>
         </Tooltip>
-        {!ecriture.validee && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(ecriture)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Supprimer</p></TooltipContent>
-          </Tooltip>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600" onClick={() => onDelete(ecriture)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>Supprimer</p></TooltipContent>
+        </Tooltip>
       </TooltipProvider>
     </div>
   );
@@ -106,13 +105,29 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
             </TableRow>
           ) : (
             ecritures.map((ecriture) => (
-              <TableRow key={ecriture.id} className="group">
-                <TableCell>{ecriture.libelle}</TableCell>
-                <TableCell>{new Date(ecriture.dateEcriture).toLocaleDateString()}</TableCell>
-                <TableCell>{ecriture.journalComptableLibelle || ecriture.journalComptableId}</TableCell>
-                <TableCell>{(ecriture.montantTotalDebit || 0).toLocaleString('fr-FR')}</TableCell>
-                <TableCell>{(ecriture.montantTotalCredit || 0).toLocaleString('fr-FR')}</TableCell>
-                <TableCell>{ecriture.validee ? 'Oui' : 'Non'}</TableCell>
+              <TableRow
+                key={ecriture.id}
+                className="group cursor-pointer hover:bg-gray-50 bg-white"
+                onClick={() => onSelectEcriture(ecriture.id || '')}
+              >
+                <TableCell className="font-medium text-blue-900">{ecriture.libelle}</TableCell>
+                <TableCell>
+                  {new Date(ecriture.dateEcriture).toLocaleDateString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric'
+                  })}
+                </TableCell>
+                <TableCell>
+                  <span className="font-medium text-gray-700">{ecriture.journalComptableLibelle}</span>
+                </TableCell>
+                <TableCell className="font-mono">{ecriture.montantTotalDebit?.toLocaleString('fr-FR')}</TableCell>
+                <TableCell className="font-mono">{ecriture.montantTotalCredit?.toLocaleString('fr-FR')}</TableCell>
+                <TableCell>
+                  <Badge variant={ecriture.validee ? "default" : "secondary"}>
+                    {ecriture.validee ? 'Validée' : 'Brouillon'}
+                  </Badge>
+                </TableCell>
                 <TableCell>
                   <RowActions
                     ecriture={ecriture}

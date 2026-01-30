@@ -79,7 +79,7 @@ export class AccountingOrganizationsService {
     /**
      * Create a new organization
      * @param requestBody
-     * @returns ApiResponseWrapperOrganizationDto OK
+     * @returns ApiResponseWrapperOrganizationDto Created
      * @throws ApiError
      */
     public static createOrganization(

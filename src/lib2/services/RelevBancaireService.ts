@@ -13,7 +13,7 @@ export class RelevBancaireService {
      * Parse un fichier CSV de relevé bancaire et retourne les transactions détectées
      * @param compteBancaire
      * @param formData
-     * @returns ApiResponseWrapperListMapStringObject Fichier uploadé et parsé
+     * @returns ApiResponseWrapperListMapStringObject OK
      * @throws ApiError
      */
     public static uploadReleve(
@@ -30,18 +30,13 @@ export class RelevBancaireService {
             },
             formData: formData,
             mediaType: 'multipart/form-data',
-            errors: {
-                400: `Fichier invalide ou format non reconnu`,
-                401: `Non authentifié`,
-                403: `Accès refusé`,
-            },
         });
     }
     /**
      * Importer un relevé en écritures
      * Convertit les transactions d'un relevé en écritures comptables
      * @param releveId
-     * @returns ApiResponseWrapperMapStringObject Relevé importé avec succès
+     * @returns ApiResponseWrapperMapStringObject OK
      * @throws ApiError
      */
     public static importerReleve(
@@ -53,27 +48,18 @@ export class RelevBancaireService {
             path: {
                 'releveId': releveId,
             },
-            errors: {
-                400: `Relevé déjà importé ou invalide`,
-                401: `Non authentifié`,
-                403: `Accès refusé`,
-                404: `Relevé non trouvé`,
-            },
         });
     }
     /**
      * Liste des relevés importés
      * Retourne la liste des relevés bancaires uploadés pour le tenant
-     * @returns ApiResponseWrapperListMapStringObject Liste récupérée
+     * @returns ApiResponseWrapperListMapStringObject OK
      * @throws ApiError
      */
     public static getListeReleves(): CancelablePromise<ApiResponseWrapperListMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/comptable/releve/list',
-            errors: {
-                401: `Non authentifié`,
-            },
         });
     }
 }

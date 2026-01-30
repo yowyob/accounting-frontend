@@ -1,389 +1,15 @@
-/*
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, ArrowLeft, Check, Plus, Trash, ChevronsUpDown } from 'lucide-react';
-import { EcritureComptable, DetailEcritureDto, UUID } from '@/types/accounting';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { getJounalComptables, getPeriodeComptables } from '@/lib/api';
-
-interface EcritureComptableDetailViewProps {
-  ecriture: EcritureComptable | null;
-  onSave: (data: EcritureComptable) => void;
-  onDelete: () => void;
-  onValidate: () => void;
-  onBack: () => void;
-}
-
-export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewProps> = ({
-  ecriture,
-  onSave,
-  onDelete,
-  onValidate,
-  onBack,
-}) => {
-  const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
-  const [periodes, setPeriodes] = useState<{ id: string; code: string }[]>([]);
-  const [isLoadingJournals, setIsLoadingJournals] = useState(true);
-  const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
-
-  const form = useForm<EcritureComptable>({
-    defaultValues: ecriture || {
-      libelle: '',
-      dateEcriture: new Date().toISOString().split('T')[0],
-      journalComptableId: '',
-      periodeComptableId: '',
-      montantTotalDebit: 0,
-      montantTotalCredit: 0,
-      validee: false,
-      referenceExterne: '',
-      notes: '',
-      detailsEcriture: [{ compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 }],
-    },
-  });
-
-  useEffect(() => {
-    form.reset(ecriture || {
-      libelle: '',
-      dateEcriture: new Date().toISOString().split('T')[0],
-      journalComptableId: '',
-      periodeComptableId: '',
-      montantTotalDebit: 0,
-      montantTotalCredit: 0,
-      validee: false,
-      referenceExterne: '',
-      notes: '',
-      detailsEcriture: [{ compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 }],
-    });
-  }, [ecriture, form]);
-
-  const fetchJournals = async () => {
-    try {
-      const response = await getJounalComptables();
-      setJournals(response.data.map((j) => ({ id: j.id!, libelle: j.libelle })));
-    } catch (error) {
-      console.error("Failed to fetch journals:", error);
-    } finally {
-      setIsLoadingJournals(false);
-    }
-  };
-
-  const fetchPeriodes = async () => {
-    try {
-      const response = await getPeriodeComptables();
-      setPeriodes(response.data.map((p) => ({ id: p.id!, code: p.code || p.id!.slice(0, 8) })));
-    } catch (error) {
-      console.error("Failed to fetch periods:", error);
-    } finally {
-      setIsLoadingPeriodes(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchJournals();
-    fetchPeriodes();
-  }, []);
-
-  const onSubmit = (data: EcritureComptable) => {
-    const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
-    const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
-    if (totalDebit !== totalCredit) {
-      form.setError('detailsEcriture', { message: 'Les montants de débit et de crédit doivent être égaux.' });
-      return;
-    }
-    onSave({ ...data, montantTotalDebit: totalDebit, montantTotalCredit: totalCredit });
-  };
-
-  const addDetailLine = () => {
-    form.setValue('detailsEcriture', [
-      ...(form.getValues('detailsEcriture') || []),
-      { compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 },
-    ]);
-  };
-
-  const removeDetailLine = (index: number) => {
-    const currentDetails = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', currentDetails.filter((_, i) => i !== index));
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
-      <div className="flex justify-end items-center p-6 border-b">
-
-        {!ecriture?.validee && (
-          <Button onClick={onValidate} className="bg-green-600 hover:bg-green-700 text-white">
-            <Check className="mr-2 h-4 w-4" />
-            Valider
-          </Button>
-        )}
-      </div>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="libelle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Libellé <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dateEcriture"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Écriture <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="journalComptableId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Journal Comptable <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={(value) => field.onChange(value)}
-                        value={field.value || ''}
-                        disabled={isLoadingJournals}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingJournals ? "Chargement..." : "Sélectionner un journal"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {journals.map((journal) => (
-                            <SelectItem key={journal.id} value={journal.id}>
-                              {journal.libelle}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="periodeComptableId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Période Comptable <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={(value) => field.onChange(value)}
-                        value={field.value || ''}
-                        disabled={isLoadingPeriodes}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingPeriodes ? "Chargement..." : "Sélectionner une période"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {periodes.map((periode) => (
-                            <SelectItem key={periode.id} value={periode.id}>
-                              {periode.code}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="montantTotalDebit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Montant Total Débit</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="montantTotalCredit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Montant Total Crédit</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="referenceExterne"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Référence Externe</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Ex: Réf-001" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Informations supplémentaires..." />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            //{/* Détails de l'Écriture *///}
-/*            
-            <div className="p-4 border-t border-b bg-gray-50">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-700">Détails de l&#39;Écriture</h3>
-                {!ecriture?.validee && (
-                  <Button variant="outline" size="sm" onClick={addDetailLine}>
-                    <Plus className="mr-2 h-4 w-4" /> Ajouter une ligne
-                  </Button>
-                )}
-              </div>
-              {form.watch('detailsEcriture')?.map((detail, index) => (
-                <div key={detail.compteId} className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-4 p-4 bg-white rounded-lg shadow-sm">
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.compteId`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Compte</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Numéro du compte" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.libelle`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Libellé</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Description de la ligne" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.montantDebit`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Débit</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value) || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.montantCredit`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Crédit</FormLabel>
-                        <FormControl>
-                          <Input type="number" {...field} onChange={(e) => field.onChange(Number(e.target.value) || 0)} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex items-end">
-                    {!ecriture?.validee && (
-                      <Button variant="destructive" size="sm" onClick={() => removeDetailLine(index)}>
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              <FormMessage>{form.formState.errors.detailsEcriture?.message}</FormMessage>
-            </div>
-          </div>
-          <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
-            {!ecriture?.validee && (
-              <>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </Button>
-                <Button variant="destructive" onClick={onDelete}>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer
-                </Button>
-              </>
-            )}
-
-          </div>
-        </form>
-      </Form>
-    </div>
-  );
-};
-*/
-
-"use client";
-
-import React, { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Save, Trash2, ArrowLeft, Check, Plus, Trash, ChevronsUpDown } from 'lucide-react';
+import { Save, Trash2, Check, Plus, ChevronsUpDown, FileText, Info, Search } from 'lucide-react';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
-import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
 import {
   Select,
   SelectContent,
@@ -405,29 +31,86 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
+import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
-import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 
 interface EcritureComptableDetailViewProps {
   ecriture: EcritureComptableDto | null;
   onSave: (data: EcritureComptableDto) => void;
-  onDelete: () => void;
-  onValidate: () => void;
+  onDelete?: () => void; // Optional here as page-level handles it
+  onValidate?: () => void;
   onBack: () => void;
 }
 
-// Fonction pour générer un UUID simple en local
-const generateUUID = (): string => {
-  return `uuid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-// Créer un type pour le formulaire avec dateEcriture en string (déjà string dans le DTO)
 type EcritureComptableForm = EcritureComptableDto;
 
-// Convertir Date en string pour l'input
 const formatDateForInput = (date: Date): string => {
   return date.toISOString().split('T')[0];
+};
+
+// Sub-component for Account Selection to handle its own Popover state
+const AccountSelector = ({
+  value,
+  onChange,
+  accounts,
+  disabled
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  accounts: CompteDto[];
+  disabled?: boolean
+}) => {
+  const [open, setOpen] = useState(false);
+  const selectedAccount = accounts.find((acc) => acc.id === value || acc.noCompte === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-mono md:border-none md:bg-transparent md:h-auto md:p-0 md:focus-visible:ring-1 focus-visible:ring-blue-500"
+          disabled={disabled}
+        >
+          {selectedAccount
+            ? `${selectedAccount.noCompte}`
+            : "Compte..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Rechercher un compte (numéro ou nom)..." />
+          <CommandList>
+            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
+            <CommandGroup>
+              {accounts.map((acc) => (
+                <CommandItem
+                  key={acc.id}
+                  value={`${acc.noCompte} ${acc.libelle}`}
+                  onSelect={() => {
+                    onChange(acc.id!); // We store the ID internally
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === acc.id || value === acc.noCompte ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className="font-bold mr-2 text-blue-700">{acc.noCompte}</span>
+                  <span className="text-gray-600">{acc.libelle}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
 };
 
 export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewProps> = ({
@@ -439,20 +122,19 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 }) => {
   const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
   const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
-  const [accounts, setAccounts] = useState<string[]>([]); // Store only noCompte for validation
+  const [accounts, setAccounts] = useState<CompteDto[]>([]);
   const [openPeriodePopover, setOpenPeriodePopover] = useState(false);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
 
-  // Initialiser les valeurs par défaut
   const getDefaultValues = (): EcritureComptableForm => {
     if (ecriture) {
       return {
         ...ecriture,
         detailsEcriture: ecriture.detailsEcriture?.map(d => ({
           ...d,
-          // Handle legacy mapping - ensure consistent field names
-          compteComptableId: d.compteComptableId || (d as any).compteId,
+          compteComptableId: d.compteComptableId,
           montantDebit: d.montantDebit || 0,
           montantCredit: d.montantCredit || 0
         })) || []
@@ -484,464 +166,393 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
 
   const form = useForm<EcritureComptableForm>({
     defaultValues: getDefaultValues(),
-    mode: "onChange" // Validate on change
+    mode: "onChange"
   });
 
-  // Watch detailsEcriture for auto-calculation
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "detailsEcriture"
+  });
+
   const detailsEcriture = form.watch('detailsEcriture');
-
-  useEffect(() => {
-    if (detailsEcriture) {
-      const totalDebit = detailsEcriture.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
-      const totalCredit = detailsEcriture.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
-
-      form.setValue('montantTotalDebit', totalDebit);
-      form.setValue('montantTotalCredit', totalCredit);
-    }
-  }, [detailsEcriture, form]);
+  const liveTotalDebit = detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0;
+  const liveTotalCredit = detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0;
 
   useEffect(() => {
     form.reset(getDefaultValues());
   }, [ecriture, form]);
 
-  const fetchJournals = async () => {
-    try {
-      const response = await AccountingJournalsService.getAllJournalComptables();
-      if (response.success && response.data) {
-        setJournals(response.data.map((j) => ({ id: j.id!, libelle: j.libelle })));
-      }
-    } catch (error) {
-      console.error("Failed to fetch journals:", error);
-      // Fallback data removed for production readiness
-    } finally {
-      setIsLoadingJournals(false);
-    }
-  };
-
-  const fetchPeriodes = async () => {
-    try {
-      const response = await AccountingPeriodsService.getAllPeriodeComptables();
-      if (response.success && response.data) {
-        // Filter only non-closed periods
-        const nonClosedPeriodes = response.data.filter(p => !p.cloturee);
-        setPeriodes(nonClosedPeriodes);
-      }
-    } catch (error) {
-      console.error("Failed to fetch periods:", error);
-      setPeriodes([]);
-    } finally {
-      setIsLoadingPeriodes(false);
-    }
-  };
-
-  const fetchAccounts = async () => {
-    try {
-      const response = await AccountingPlanComptableService.getAllPlanComptables();
-      if (response.success && response.data) {
-        // Extract and store noCompte for validation
-        const accountNumbers = response.data.map(acc => acc.noCompte);
-        setAccounts(accountNumbers);
-      }
-    } catch (error) {
-      console.error("Failed to fetch accounts:", error);
-    }
-  };
-
   useEffect(() => {
-    fetchJournals();
-    fetchPeriodes();
-    fetchAccounts();
+    const fetchData = async () => {
+      try {
+        const [journalsRes, periodsRes, accountsRes] = await Promise.all([
+          JournalManagementService.getAllJournals(),
+          AccountingPeriodsService.getAllPeriodeComptables(),
+          AccountingComptesService.getAllComptes()
+        ]);
+
+        if (journalsRes.success && journalsRes.data) {
+          setJournals(journalsRes.data.map((j) => ({ id: j.id!, libelle: j.libelle })));
+        }
+
+        if (periodsRes.success && periodsRes.data) {
+          setPeriodes(periodsRes.data.filter(p => !p.cloturee));
+        }
+
+        if (accountsRes.success && accountsRes.data) {
+          setAccounts(accountsRes.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dependencies:", error);
+      } finally {
+        setIsLoadingJournals(false);
+        setIsLoadingPeriodes(false);
+        setIsLoadingAccounts(false);
+      }
+    };
+    fetchData();
   }, []);
 
-  const validateAccount = (value: string) => {
-    if (!value) return true; // Let required validator handle empty fields if needed
-    if (accounts.length === 0) return true; // Skip validation if accounts haven't loaded
-    return accounts.includes(value) || "Ce numéro de compte n'existe pas.";
-  };
-
   const onSubmit = (data: EcritureComptableForm) => {
-    // Totals are already calculated by watcher, but ensure they are consistent
-    const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
-    const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
+    if (ecriture?.validee) return;
 
-    if (totalDebit !== totalCredit) {
-      form.setError('root', { // Use root error
+    if (liveTotalDebit !== liveTotalCredit) {
+      form.setError('root', {
         type: 'manual',
         message: 'Les montants de débit et de crédit doivent être égaux.'
       });
-      // Also display toast or alert if needed
       return;
     }
 
-    onSave({
-      ...data,
-      montantTotalDebit: totalDebit,
-      montantTotalCredit: totalCredit
-    });
+    onSave(data);
   };
 
   const addDetailLine = () => {
-    const currentDetails = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', [
-      ...currentDetails,
-      {
-        compteComptableId: '',
-        libelle: '',
-        montantDebit: 0,
-        montantCredit: 0,
-        sens: 'DEBIT',
-        ecritureComptableId: ecriture?.id || ''
-      } as DetailEcritureDto,
-    ]);
-  };
-
-  const removeDetailLine = (index: number) => {
-    const currentDetails = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', currentDetails.filter((_, i) => i !== index));
+    append({
+      compteComptableId: '',
+      libelle: '',
+      montantDebit: 0,
+      montantCredit: 0,
+      sens: 'DEBIT',
+      ecritureComptableId: ecriture?.id || ''
+    } as DetailEcritureDto);
   };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
-      <div className="flex justify-between items-center p-6 border-b">
-        {!ecriture?.validee && (
-          <Button onClick={onValidate} className="bg-green-600 hover:bg-green-700 text-white">
-            <Check className="mr-2 h-4 w-4" />
-            Valider
-          </Button>
-        )}
+      <div className="flex justify-end items-center p-6 border-b">
+        {/* Validation button removed from here, handled in the validation page if needed */}
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="libelle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Libellé <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="dateEcriture"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Écriture <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="journalComptableId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Journal Comptable <span className="text-red-500">*</span></FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ''}
-                      disabled={isLoadingJournals}
-                    >
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8">
+            {/* General Info */}
+            <div className="bg-blue-50/40 p-6 rounded-2xl border border-blue-100 shadow-sm space-y-6">
+              <div className="flex items-center gap-3 border-b border-blue-100 pb-4">
+                <div className="bg-blue-600 p-2 rounded-lg text-white">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <h3 className="text-lg font-bold text-blue-900 uppercase tracking-tight">Informations Générales</h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <FormField
+                  control={form.control}
+                  name="libelle"
+                  rules={{ required: "Le libellé est obligatoire" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-900">Libellé de l'Écriture <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={isLoadingJournals ? "Chargement..." : "Sélectionner un journal"} />
-                        </SelectTrigger>
+                        <Input {...field} placeholder="Ex: Achat de fournitures" className="bg-white border-blue-200 focus:ring-blue-500" />
                       </FormControl>
-                      <SelectContent>
-                        {journals.map((journal) => (
-                          <SelectItem key={journal.id} value={journal.id}>
-                            {journal.libelle}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="periodeComptableId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Période Comptable <span className="text-red-500">*</span></FormLabel>
-                    <Popover open={openPeriodePopover} onOpenChange={setOpenPeriodePopover}>
-                      <PopoverTrigger asChild>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="dateEcriture"
+                  rules={{ required: "La date est obligatoire" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-900">Date de l'Écriture <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} className="bg-white border-blue-200 focus:ring-blue-500" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="journalComptableId"
+                  rules={{ required: "Veuillez sélectionner un journal" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-900">Journal <span className="text-red-500">*</span></FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''} disabled={isLoadingJournals}>
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                            disabled={isLoadingPeriodes}
-                          >
-                            {field.value
-                              ? periodes.find(
-                                (periode) => periode.id === field.value
-                              )?.code
-                              : isLoadingPeriodes ? "Chargement..." : "Sélectionner une période"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
+                          <SelectTrigger className="bg-white border-blue-200 focus:ring-blue-500">
+                            <SelectValue placeholder={isLoadingJournals ? "Chargement..." : "Choisir un journal"} />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[400px] p-0">
-                        <Command
-                          filter={(value, search) => {
-                            if (value.toLowerCase().includes(search.toLowerCase())) return 1;
-                            return 0;
-                          }}
-                        >
-                          <CommandInput placeholder="Rechercher une période..." className="border-none focus:ring-0" />
-                          <CommandList>
-                            <CommandEmpty>Aucune période trouvée.</CommandEmpty>
-                            <CommandGroup>
-                              {periodes.filter(p => p.id).map((periode) => (
-                                <CommandItem
-                                  value={periode.code}
-                                  key={periode.id!}
-                                  onSelect={() => {
-                                    form.setValue("periodeComptableId", periode.id!);
-                                    setOpenPeriodePopover(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      periode.id === field.value
-                                        ? "opacity-100"
-                                        : "opacity-0"
-                                    )}
-                                  />
-                                  {periode.code}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="montantTotalDebit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Montant Total Débit</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="montantTotalCredit"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Montant Total Crédit</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} disabled />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FormField
-                control={form.control}
-                name="referenceExterne"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Référence Externe</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Ex: Réf-001" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Notes</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Informations supplémentaires..." />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                        <SelectContent>
+                          {journals.map((journal) => (
+                            <SelectItem key={journal.id} value={journal.id}>{journal.libelle}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="periodeComptableId"
+                  rules={{ required: "Veuillez sélectionner une période" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-900">Période <span className="text-red-500">*</span></FormLabel>
+                      <Popover open={openPeriodePopover} onOpenChange={setOpenPeriodePopover}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn("w-full justify-between bg-white border-blue-200", !field.value && "text-muted-foreground")}
+                              disabled={isLoadingPeriodes}
+                            >
+                              {field.value ? periodes.find(p => p.id === field.value)?.code : isLoadingPeriodes ? "Chargement..." : "Sélectionner une période"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Chercher une période..." className="border-none focus:ring-0" />
+                            <CommandList>
+                              <CommandEmpty>Aucune période.</CommandEmpty>
+                              <CommandGroup>
+                                {periodes.map((p) => (
+                                  <CommandItem
+                                    key={p.id!}
+                                    value={p.code}
+                                    onSelect={() => { form.setValue("periodeComptableId", p.id!); setOpenPeriodePopover(false); }}
+                                  >
+                                    <Check className={cn("mr-2 h-4 w-4", p.id === field.value ? "opacity-100" : "opacity-0")} />
+                                    {p.code}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
 
-            {/* Détails de l'Écriture */}
-            <div className="p-4 border-t border-b bg-gray-50">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-700">Détails de l&#39;Écriture</h3>
+            {/* Detail Entries Section */}
+            <div className="space-y-6">
+              <div className="flex justify-between items-center border-b pb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
+                  <h3 className="text-xl font-bold text-gray-800">Détails de l'Écriture</h3>
+                </div>
                 {!ecriture?.validee && (
-                  <Button variant="outline" size="sm" onClick={addDetailLine} type="button">
+                  <Button variant="outline" size="sm" onClick={addDetailLine} type="button" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100 font-semibold">
                     <Plus className="mr-2 h-4 w-4" /> Ajouter une ligne
                   </Button>
                 )}
               </div>
-              {form.watch('detailsEcriture')?.map((detail, index) => (
-                <div key={detail.compteComptableId || index} className="grid grid-cols-1 md:grid-cols-5 gap-5 mb-4 p-4 bg-white rounded-lg shadow-sm">
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.compteComptableId`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Compte</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Numéro du compte"
-                            onChange={(e) => {
-                              field.onChange(e);
-                              // Trigger validation immediately if desired, or let mode: 'onChange' handle it
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                    rules={{
-                      required: "Numéro de compte requis",
-                      validate: validateAccount
-                    }}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.libelle`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Libellé</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Description de la ligne" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.montantDebit`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Débit</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) => {
-                              const val = Number(e.target.value) || 0;
-                              field.onChange(val);
-                              // Force recalculate totals
-                              const currentDetails = form.getValues('detailsEcriture') || [];
-                              // We need to use the new value for the current index, as getValues might have old value for this field during render cycle depending on RHF version behavior
-                              // but since we just called onChange, let's calculate manually to be safe and instant
-                              const updatedDetails = [...currentDetails];
-                              updatedDetails[index] = { ...updatedDetails[index], montantDebit: val };
 
-                              const totalDebit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
-                              const totalCredit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
+              <div className="bg-gray-50 rounded-2xl border p-1 overflow-hidden shadow-inner">
+                <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  <div className="col-span-3 text-center">N° Compte</div>
+                  <div className="col-span-5">Libellé de la ligne</div>
+                  <div className="col-span-2 text-right">Débit</div>
+                  <div className="col-span-2 text-right">Crédit</div>
+                </div>
 
-                              form.setValue('montantTotalDebit', totalDebit);
-                              form.setValue('montantTotalCredit', totalCredit);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name={`detailsEcriture.${index}.montantCredit`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Crédit</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) => {
-                              const val = Number(e.target.value) || 0;
-                              field.onChange(val);
-                              // Force recalculate totals
-                              const currentDetails = form.getValues('detailsEcriture') || [];
-                              const updatedDetails = [...currentDetails];
-                              updatedDetails[index] = { ...updatedDetails[index], montantCredit: val };
+                <div className="space-y-1">
+                  {fields.map((field, index) => (
+                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-1 items-center p-4 md:p-1 bg-white md:bg-transparent md:border-b last:border-0 hover:bg-white/80 transition-colors group">
+                      <div className="col-span-3">
+                        <FormField
+                          control={form.control}
+                          name={`detailsEcriture.${index}.compteComptableId`}
+                          rules={{ required: "Requis" }}
+                          render={({ field }) => (
+                            <FormItem className="space-y-0">
+                              <FormLabel className="md:hidden font-semibold">Compte</FormLabel>
+                              <FormControl>
+                                <AccountSelector
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  accounts={accounts}
+                                  disabled={ecriture?.validee}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-12 md:col-span-5">
+                        <FormField
+                          control={form.control}
+                          name={`detailsEcriture.${index}.libelle`}
+                          render={({ field }) => (
+                            <FormItem className="space-y-0">
+                              <FormLabel className="md:hidden font-semibold">Libellé</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Description"
+                                  disabled={ecriture?.validee}
+                                  className="md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-6 md:col-span-2">
+                        <FormField
+                          control={form.control}
+                          name={`detailsEcriture.${index}.montantDebit`}
+                          render={({ field }) => (
+                            <FormItem className="space-y-0">
+                              <FormLabel className="md:hidden font-semibold text-emerald-600">Débit</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  disabled={ecriture?.validee}
+                                  onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                                  className="text-right md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500 font-mono text-emerald-600 font-medium"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-6 md:col-span-2 relative">
+                        <FormField
+                          control={form.control}
+                          name={`detailsEcriture.${index}.montantCredit`}
+                          render={({ field }) => (
+                            <FormItem className="space-y-0">
+                              <FormLabel className="md:hidden font-semibold text-rose-600">Crédit</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  {...field}
+                                  disabled={ecriture?.validee}
+                                  onChange={(e) => field.onChange(Number(e.target.value) || 0)}
+                                  className="text-right md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500 font-mono text-rose-600 font-medium"
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                        {!ecriture?.validee && fields.length > 2 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            onClick={() => remove(index)}
+                            className="absolute -right-10 top-0 text-red-300 opacity-0 group-hover:opacity-100 transition-opacity hover:text-red-500 hover:bg-red-50 h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                              const totalDebit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0);
-                              const totalCredit = updatedDetails.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0);
+              <FormMessage>{form.formState.errors.root?.message}</FormMessage>
 
-                              form.setValue('montantTotalDebit', totalDebit);
-                              form.setValue('montantTotalCredit', totalCredit);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex items-end">
-                    {!ecriture?.validee && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeDetailLine(index)}
-                        type="button"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
+              <div className="bg-gray-900 text-white rounded-xl p-6 shadow-xl space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <Info className="text-gray-400 h-5 w-5" />
+                    <span className="text-gray-300 text-sm font-medium">L'écriture doit être équilibrée (Total Débit = Total Crédit).</span>
+                  </div>
+
+                  <div className="flex items-center gap-8">
+                    <div className="text-right">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Débit</p>
+                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalDebit > 0 ? "text-emerald-400" : "text-white")}>
+                        {liveTotalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="h-10 w-px bg-gray-700"></div>
+                    <div className="text-right">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Crédit</p>
+                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalCredit > 0 ? "text-emerald-400" : "text-white")}>
+                        {liveTotalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              ))}
-              {form.formState.errors.detailsEcriture?.message && (
-                <p className="text-red-500 text-sm mt-2">
-                  {form.formState.errors.detailsEcriture.message}
-                </p>
-              )}
+                {liveTotalDebit !== liveTotalCredit && (
+                  <div className="text-center p-2 bg-rose-950/30 border border-rose-900/50 rounded text-rose-300 text-xs font-medium animate-pulse">
+                    Déséquilibre de {(Math.abs(liveTotalDebit - liveTotalCredit)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 text-gray-800 mb-2">
+                  <FileText className="h-5 w-5 text-gray-400" />
+                  <h3 className="font-bold">Informations Complémentaires</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="referenceExterne"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-blue-900 font-medium">Référence Externe</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Ex: FACT-2026-001" className="bg-gray-50 border-gray-200 focus:bg-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-blue-900 font-medium">Notes Internes</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Remarques éventuelles..." className="bg-gray-50 border-gray-200 focus:bg-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-          <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+
+          <div className="p-4 border-t bg-gray-50 flex justify-end gap-3">
+            <Button variant="outline" onClick={onBack} type="button">
+              Fermer
+            </Button>
             {!ecriture?.validee && (
-              <>
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                  <Save className="mr-2 h-4 w-4" />
-                  Enregistrer
-                </Button>
-                <Button variant="destructive" onClick={onDelete} type="button">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Supprimer
-                </Button>
-              </>
+              <Button type="submit" disabled={form.formState.isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]">
+                <Save className="mr-2 h-4 w-4" />
+                Enregistrer
+              </Button>
             )}
           </div>
         </form>

@@ -68,8 +68,10 @@ export default function OperationComptablePage() {
       if (selectedOperationId === operationToDelete.id) {
         setSelectedOperationId(null);
       }
-    } catch (error) {
+      toast.success("Opération supprimée avec succès");
+    } catch (error: any) {
       console.error("Failed to delete operation:", error);
+      toast.error(`Erreur lors de la suppression: ${error.body?.message || error.message || "Erreur inconnue"}`);
     } finally {
       setOperationToDelete(null);
     }

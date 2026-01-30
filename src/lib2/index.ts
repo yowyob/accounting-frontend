@@ -23,6 +23,7 @@ export type { ApiResponseWrapperListDeclarationFiscaleDto } from './models/ApiRe
 export type { ApiResponseWrapperListDeviseDto } from './models/ApiResponseWrapperListDeviseDto';
 export type { ApiResponseWrapperListEcritureComptableDto } from './models/ApiResponseWrapperListEcritureComptableDto';
 export type { ApiResponseWrapperListExerciceComptableDto } from './models/ApiResponseWrapperListExerciceComptableDto';
+export type { ApiResponseWrapperListJournalAuditDto } from './models/ApiResponseWrapperListJournalAuditDto';
 export type { ApiResponseWrapperListJournalComptableDto } from './models/ApiResponseWrapperListJournalComptableDto';
 export type { ApiResponseWrapperListMapStringObject } from './models/ApiResponseWrapperListMapStringObject';
 export type { ApiResponseWrapperListOperationComptableDto } from './models/ApiResponseWrapperListOperationComptableDto';
@@ -41,7 +42,7 @@ export type { ApiResponseWrapperString } from './models/ApiResponseWrapperString
 export type { ApiResponseWrapperTauxChangeDto } from './models/ApiResponseWrapperTauxChangeDto';
 export type { ApiResponseWrapperTaxeDto } from './models/ApiResponseWrapperTaxeDto';
 export type { ApiResponseWrapperVoid } from './models/ApiResponseWrapperVoid';
-export { ComptableObjectRequest } from './models/ComptableObjectRequest';
+export { ComptableObject } from './models/ComptableObject';
 export type { CompteDto } from './models/CompteDto';
 export type { ContrepartieDto } from './models/ContrepartieDto';
 export type { DeclarationFiscaleDto } from './models/DeclarationFiscaleDto';
@@ -64,7 +65,6 @@ export { AccountingEntriesService } from './services/AccountingEntriesService';
 export { AccountingFinancialReportsService } from './services/AccountingFinancialReportsService';
 export { AccountingFiscalYearsService } from './services/AccountingFiscalYearsService';
 export { AccountingInvoiceUploadService } from './services/AccountingInvoiceUploadService';
-export { AccountingJournalsService } from './services/AccountingJournalsService';
 export { AccountingOperationsService } from './services/AccountingOperationsService';
 export { AccountingOrganizationsService } from './services/AccountingOrganizationsService';
 export { AccountingPeriodsService } from './services/AccountingPeriodsService';
@@ -76,6 +76,7 @@ export { CurrencyManagementService } from './services/CurrencyManagementService'
 export { DebugControllerService } from './services/DebugControllerService';
 export { ExchangeRateManagementService } from './services/ExchangeRateManagementService';
 export { HealthControllerService } from './services/HealthControllerService';
+export { JournalManagementService } from './services/JournalManagementService';
 export { LettrageService } from './services/LettrageService';
 export { MouvementsDeStockService } from './services/MouvementsDeStockService';
 export { RelevBancaireService } from './services/RelevBancaireService';
