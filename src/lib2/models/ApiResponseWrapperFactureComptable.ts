@@ -5,11 +5,11 @@
 import type { FactureComptable } from './FactureComptable';
 export type ApiResponseWrapperFactureComptable = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: FactureComptable;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

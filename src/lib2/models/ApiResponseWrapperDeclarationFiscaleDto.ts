@@ -5,11 +5,11 @@
 import type { DeclarationFiscaleDto } from './DeclarationFiscaleDto';
 export type ApiResponseWrapperDeclarationFiscaleDto = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: DeclarationFiscaleDto;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

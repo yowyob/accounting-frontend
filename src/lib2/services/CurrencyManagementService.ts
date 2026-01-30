@@ -2,45 +2,45 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AgenceDto } from '../models/AgenceDto';
-import type { ApiResponseWrapperAgenceDto } from '../models/ApiResponseWrapperAgenceDto';
-import type { ApiResponseWrapperListAgenceDto } from '../models/ApiResponseWrapperListAgenceDto';
+import type { ApiResponseWrapperDeviseDto } from '../models/ApiResponseWrapperDeviseDto';
+import type { ApiResponseWrapperListDeviseDto } from '../models/ApiResponseWrapperListDeviseDto';
 import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
+import type { DeviseDto } from '../models/DeviseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class AccountingAgencesService {
+export class CurrencyManagementService {
     /**
-     * Get agency by ID
+     * Get currency by ID
      * @param id
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperDeviseDto OK
      * @throws ApiError
      */
-    public static getAgence(
+    public static getDevise(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+    ): CancelablePromise<ApiResponseWrapperDeviseDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/currencies/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Update an agency
+     * Update an existing currency
      * @param id
      * @param requestBody
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperDeviseDto OK
      * @throws ApiError
      */
-    public static updateAgence(
+    public static updateDevise(
         id: string,
-        requestBody: AgenceDto,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+        requestBody: DeviseDto,
+    ): CancelablePromise<ApiResponseWrapperDeviseDto> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/currencies/{id}',
             path: {
                 'id': id,
             },
@@ -49,45 +49,51 @@ export class AccountingAgencesService {
         });
     }
     /**
-     * Delete an agency
+     * Delete a currency
      * @param id
      * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
-    public static deleteAgence(
+    public static deleteDevise(
         id: string,
     ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/accounting/agences/{id}',
+            url: '/api/accounting/currencies/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Get all agencies for current tenant
-     * @returns ApiResponseWrapperListAgenceDto OK
+     * List all currencies
+     * @param onlyActive
+     * @returns ApiResponseWrapperListDeviseDto OK
      * @throws ApiError
      */
-    public static getAllAgences(): CancelablePromise<ApiResponseWrapperListAgenceDto> {
+    public static getAllDevises(
+        onlyActive: boolean = false,
+    ): CancelablePromise<ApiResponseWrapperListDeviseDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/agences',
+            url: '/api/accounting/currencies',
+            query: {
+                'onlyActive': onlyActive,
+            },
         });
     }
     /**
-     * Create a new agency
+     * Create a new currency
      * @param requestBody
-     * @returns ApiResponseWrapperAgenceDto OK
+     * @returns ApiResponseWrapperDeviseDto OK
      * @throws ApiError
      */
-    public static createAgence(
-        requestBody: AgenceDto,
-    ): CancelablePromise<ApiResponseWrapperAgenceDto> {
+    public static createDevise(
+        requestBody: DeviseDto,
+    ): CancelablePromise<ApiResponseWrapperDeviseDto> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/agences',
+            url: '/api/accounting/currencies',
             body: requestBody,
             mediaType: 'application/json',
         });

@@ -7,6 +7,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingPointageBancaireService {
     /**
+     * Import and point bank statement
      * @param file
      * @returns string OK
      * @throws ApiError

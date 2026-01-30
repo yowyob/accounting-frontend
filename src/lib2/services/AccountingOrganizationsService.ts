@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponseListOrganizationDto } from '../models/ApiResponseListOrganizationDto';
-import type { ApiResponseOrganizationDto } from '../models/ApiResponseOrganizationDto';
-import type { ApiResponseVoid } from '../models/ApiResponseVoid';
+import type { ApiResponseWrapperListOrganizationDto } from '../models/ApiResponseWrapperListOrganizationDto';
+import type { ApiResponseWrapperOrganizationDto } from '../models/ApiResponseWrapperOrganizationDto';
+import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
 import type { OrganizationDto } from '../models/OrganizationDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -13,12 +13,12 @@ export class AccountingOrganizationsService {
     /**
      * Get organization by ID
      * @param id
-     * @returns ApiResponseOrganizationDto OK
+     * @returns ApiResponseWrapperOrganizationDto OK
      * @throws ApiError
      */
     public static getOrganization(
         id: string,
-    ): CancelablePromise<ApiResponseOrganizationDto> {
+    ): CancelablePromise<ApiResponseWrapperOrganizationDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/organizations/{id}',
@@ -31,13 +31,13 @@ export class AccountingOrganizationsService {
      * Update an organization
      * @param id
      * @param requestBody
-     * @returns ApiResponseOrganizationDto OK
+     * @returns ApiResponseWrapperOrganizationDto OK
      * @throws ApiError
      */
     public static updateOrganization(
         id: string,
         requestBody: OrganizationDto,
-    ): CancelablePromise<ApiResponseOrganizationDto> {
+    ): CancelablePromise<ApiResponseWrapperOrganizationDto> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/api/accounting/organizations/{id}',
@@ -51,12 +51,12 @@ export class AccountingOrganizationsService {
     /**
      * Delete an organization
      * @param id
-     * @returns ApiResponseVoid OK
+     * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
     public static deleteOrganization(
         id: string,
-    ): CancelablePromise<ApiResponseVoid> {
+    ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/accounting/organizations/{id}',
@@ -67,10 +67,10 @@ export class AccountingOrganizationsService {
     }
     /**
      * Get all organizations
-     * @returns ApiResponseListOrganizationDto OK
+     * @returns ApiResponseWrapperListOrganizationDto OK
      * @throws ApiError
      */
-    public static getAllOrganizations(): CancelablePromise<ApiResponseListOrganizationDto> {
+    public static getAllOrganizations(): CancelablePromise<ApiResponseWrapperListOrganizationDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/organizations',
@@ -79,12 +79,12 @@ export class AccountingOrganizationsService {
     /**
      * Create a new organization
      * @param requestBody
-     * @returns ApiResponseOrganizationDto OK
+     * @returns ApiResponseWrapperOrganizationDto Created
      * @throws ApiError
      */
     public static createOrganization(
         requestBody: OrganizationDto,
-    ): CancelablePromise<ApiResponseOrganizationDto> {
+    ): CancelablePromise<ApiResponseWrapperOrganizationDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/organizations',

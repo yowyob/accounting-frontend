@@ -2,11 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ApiResponseString = {
+import type { TauxChangeDto } from './TauxChangeDto';
+export type ApiResponseWrapperTauxChangeDto = {
     success?: boolean;
     message?: string;
-    data?: string;
+    data?: TauxChangeDto;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

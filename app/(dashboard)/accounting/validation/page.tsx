@@ -1,16 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  EcritureComptable,
-} from '@/types/accounting';
-import {
-  getEcrituresComptables,
-  validateEcritureComptable,
-  rejectEcritureComptable,
-} from '@/lib/api';
-import { EcritureComptableDetailView } from '@/components/accounting/ecriture-comptable-detail-view';
-import { useCompose } from '@/hooks/use-compose-store';
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
+import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
+import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
+import { EcritureComptableReadView } from '@/components/accounting/ecriture-comptable-read-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,170 +18,216 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
-import { Check, X, Eye, RefreshCw, Search } from 'lucide-react';
+import { Check, Eye, RefreshCw, Search } from 'lucide-react';
+import { toast } from 'sonner';
 
-type AccountingValidationPageProps = object
-
-export default function AccountingValidationPage({ }: AccountingValidationPageProps) {
-  const [ecritures, setEcritures] = useState<EcritureComptable[]>([]);
+export default function AccountingValidationPage() {
+  const [ecritures, setEcritures] = useState<EcritureComptableDto[]>([]);
+  const [journals, setJournals] = useState<JournalComptableDto[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; noCompte: string }[]>([]);
   const [selectedEcritureId, setSelectedEcritureId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("list");
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const { onOpen, onClose: closeCompose } = useCompose();
 
-  const fetchEcritures = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await getEcrituresComptables();
-      setEcritures(Array.isArray(response.data) ? response.data : []);
+      const [entriesRes, journalsRes, accountsRes] = await Promise.all([
+        AccountingEntriesService.getNonValidated(),
+        JournalManagementService.getAllJournals(),
+        AccountingPlanComptableService.getAllPlanComptables()
+      ]);
+
+      const fetchedJournals = Array.isArray(journalsRes.data) ? journalsRes.data : [];
+      setJournals(fetchedJournals);
+
+      const fetchedAccounts = Array.isArray(accountsRes.data) ? accountsRes.data : [];
+      setAccounts(fetchedAccounts.map(a => ({ id: a.id!, noCompte: a.noCompte })));
+
+      const fetchedEntries = Array.isArray(entriesRes.data) ? entriesRes.data : [];
+      // Enroll entries with simple Journal Name mapping for the list
+      const enrichedEntries = fetchedEntries.map(e => ({
+        ...e,
+        journalComptableLibelle: fetchedJournals.find(j => j.id === e.journalComptableId)?.libelle || e.journalComptableId
+      }));
+
+      setEcritures(enrichedEntries);
     } catch (error) {
-      console.error("Failed to fetch ecritures:", error);
+      console.error("Failed to fetch data:", error);
+      toast.error("Erreur lors du chargement des écritures");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchEcritures();
-  }, [fetchEcritures]);
+    fetchData();
+  }, [fetchData]);
 
   const handleValidate = async (id: string) => {
     try {
-      await validateEcritureComptable(id);
-      setEcritures((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, validee: true, dateValidation: new Date() } : e))
-      );
-      if (selectedEcritureId === id) setSelectedEcritureId(null);
+      await AccountingEntriesService.validateEcriture(id);
+      toast.success("Écriture validée avec succès");
+
+      // Update local state to remove validated entry
+      setEcritures((prev) => prev.filter((e) => e.id !== id));
+
+      // If we were viewing details of this entry, go back to list
+      if (selectedEcritureId === id) {
+        setSelectedEcritureId(null);
+        setActiveTab("list");
+      }
     } catch (error) {
       console.error("Failed to validate ecriture:", error);
-    }
-  };
-
-  const handleReject = async (id: string) => {
-    try {
-      await rejectEcritureComptable(id);
-      setEcritures((prev) => prev.filter((e) => e.id !== id));
-      if (selectedEcritureId === id) setSelectedEcritureId(null);
-    } catch (error) {
-      console.error("Failed to reject ecriture:", error);
+      toast.error("Erreur lors de la validation");
     }
   };
 
   const filteredEcritures = ecritures.filter((e) =>
     e.libelle.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (e.referenceExterne?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (e.periodeComptableCode || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (e.journalComptableLibelle?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
+
+  const handleOpenDetail = async (id: string) => {
+    try {
+      const response = await AccountingEntriesService.getById1(id);
+      if (response.success && response.data) {
+        // Enrich with current context data
+        const entry = response.data;
+        if (!entry.journalComptableLibelle) {
+          const journal = journals.find(j => j.id === entry.journalComptableId);
+          if (journal) entry.journalComptableLibelle = journal.libelle;
+        }
+        if (entry.detailsEcriture) {
+          entry.detailsEcriture = entry.detailsEcriture.map(d => {
+            const acc = accounts.find(a => a.id === d.compteComptableId);
+            return {
+              ...d,
+              compteComptableNo: acc?.noCompte || d.compteComptableId
+            } as any;
+          });
+        }
+
+        // Set full details in state for the view
+        setEcritures(prev => prev.map(e => e.id === id ? entry : e));
+
+        setSelectedEcritureId(id);
+        setActiveTab("details");
+      }
+    } catch (e) {
+      console.error("Error loading details", e);
+      toast.error("Impossible de charger les détails");
+    }
+  };
 
   const selectedEcriture = selectedEcritureId
     ? ecritures.find((e) => e.id === selectedEcritureId) || null
     : null;
 
-  const handleOpenDetail = (id: string) => {
-    const ecriture = ecritures.find((e) => e.id === id) || null;
-    onOpen({
-      title: `Détails de l'Écriture ${ecriture?.libelle || ''}`,
-      content: (
-        <EcritureComptableDetailView
-          ecriture={ecriture}
-          onSave={() => { }}
-          onDelete={() => { }}
-          onValidate={() => handleValidate(id)}
-          onBack={closeCompose}
-        />
-      ),
-    });
-  };
-
   return (
     <div className="min-h-screen p-4 bg-gray-50">
-      <Tabs defaultValue="list" className="w-full mx-auto">
-        <TabsList className="grid w-full grid-cols-2 bg-white rounded-t-lg shadow">
-          <TabsTrigger value="list" className="data-[state=active]:bg-blue-100">Liste des Écritures</TabsTrigger>
-          <TabsTrigger value="details" className="data-[state=active]:bg-blue-100" disabled={!selectedEcritureId}>
-            Détails
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="list" className="bg-white rounded-b-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4 gap-4">
-            <div className="relative w-80">
-            <Input
-              placeholder="Rechercher par libellé, référence ou période..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-            />
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Validation des Écritures</h1>
+            <p className="text-gray-500">Validez les écritures comptables en attente.</p>
           </div>
-          <Button onClick={fetchEcritures} variant="outline">
+          <Button onClick={fetchData} variant="outline" size="icon">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <Table className="w-full">
-          <TableHeader>
-            <TableRow className="bg-gray-100">
-              <TableHead>Libellé</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Période</TableHead>
-              <TableHead>Référence</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="w-48">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">Chargement...</TableCell>
-              </TableRow>
-            ) : filteredEcritures.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">Aucune écriture trouvée.</TableCell>
-              </TableRow>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 bg-white rounded-t-lg shadow">
+            <TabsTrigger value="list" className="data-[state=active]:bg-blue-100">Liste des Écritures</TabsTrigger>
+            <TabsTrigger value="details" className="data-[state=active]:bg-blue-100" disabled={!selectedEcritureId}>
+              Détails {selectedEcriture && ` - ${selectedEcriture.libelle}`}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="list" className="bg-white rounded-b-lg shadow p-6 mt-0">
+            <div className="flex items-center mb-6">
+              <div className="relative w-full md:w-96">
+                <Input
+                  placeholder="Rechercher par libellé, référence, journal..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead>Libellé</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Journal</TableHead>
+                    <TableHead className="text-right">Débit</TableHead>
+                    <TableHead className="text-right">Crédit</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">Chargement des écritures...</TableCell>
+                    </TableRow>
+                  ) : filteredEcritures.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">Aucune écriture à valider.</TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredEcritures.map((ecriture) => (
+                      <TableRow key={ecriture.id} className="group hover:bg-gray-50 cursor-pointer" onClick={() => handleOpenDetail(ecriture.id!)}>
+                        <TableCell className="font-medium">{ecriture.libelle}</TableCell>
+                        <TableCell>{new Date(ecriture.dateEcriture).toLocaleDateString()}</TableCell>
+                        <TableCell>{ecriture.journalComptableLibelle}</TableCell>
+                        <TableCell className="text-right font-mono text-emerald-600">{ecriture.montantTotalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono text-emerald-600">{ecriture.montantTotalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-center gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenDetail(ecriture.id!)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                              <Eye className="h-4 w-4 mr-1" /> Détails
+                            </Button>
+                            <Button size="sm" onClick={() => handleValidate(ecriture.id!)} className="bg-green-600 hover:bg-green-700 text-white">
+                              <Check className="h-4 w-4 mr-1" /> Valider
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="details" className="bg-white rounded-b-lg shadow p-6 mt-0">
+            {selectedEcriture ? (
+              <div className="space-y-6">
+                <div className="flex justify-end border-b pb-4">
+                  <Button
+                    size="lg"
+                    onClick={() => handleValidate(selectedEcriture.id!)}
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-md transition-all hover:scale-105"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    Valider cette écriture
+                  </Button>
+                </div>
+                <EcritureComptableReadView ecriture={selectedEcriture} />
+              </div>
             ) : (
-              filteredEcritures.map((ecriture) => (
-                <TableRow key={ecriture.id} className="group hover:bg-gray-50">
-                  <TableCell>{ecriture.libelle}</TableCell>
-                  <TableCell>{new Date(ecriture.dateEcriture).toLocaleDateString()}</TableCell>
-                  <TableCell>{ecriture.periodeComptableCode}</TableCell>
-                  <TableCell>{ecriture.referenceExterne || '-'}</TableCell>
-                  <TableCell>{ecriture.validee ? 'Validée' : 'En attente'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenDetail(ecriture.id!)}>
-                        <Eye className="h-4 w-4 text-blue-600" />
-                      </Button>
-                      {!ecriture.validee && (
-                        <>
-                          <Button variant="ghost" size="icon" onClick={() => handleValidate(ecriture.id!)}>
-                            <Check className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleReject(ecriture.id!)}>
-                            <X className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+              <div className="text-center py-12 text-gray-500">Sélectionnez une écriture pour voir les détails.</div>
             )}
-          </TableBody>
-        </Table>
-      </TabsContent>
-      <TabsContent value="details" className="bg-white rounded-b-lg shadow p-6">
-        {selectedEcriture ? (
-          <EcritureComptableDetailView
-            ecriture={selectedEcriture}
-            onSave={() => { }}
-            onDelete={() => { }}
-            onValidate={() => handleValidate(selectedEcriture.id!)}
-            onBack={() => setSelectedEcritureId(null)}
-          />
-        ) : (
-          <div className="text-center py-4 text-gray-500">Sélectionnez une écriture pour voir les détails.</div>
-        )}
-      </TabsContent>
-    </Tabs>
-    </div >
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 }

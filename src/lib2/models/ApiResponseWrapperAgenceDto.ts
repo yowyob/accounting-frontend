@@ -3,11 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AgenceDto } from './AgenceDto';
-export type ApiResponseAgenceDto = {
+export type ApiResponseWrapperAgenceDto = {
     success?: boolean;
     message?: string;
     data?: AgenceDto;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

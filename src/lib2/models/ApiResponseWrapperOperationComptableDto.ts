@@ -5,11 +5,11 @@
 import type { OperationComptableDto } from './OperationComptableDto';
 export type ApiResponseWrapperOperationComptableDto = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: OperationComptableDto;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

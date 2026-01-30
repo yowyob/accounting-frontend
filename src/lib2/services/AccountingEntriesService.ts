@@ -4,143 +4,144 @@
 /* eslint-disable */
 import type { ApiResponseWrapperEcritureComptableDto } from '../models/ApiResponseWrapperEcritureComptableDto';
 import type { ApiResponseWrapperListEcritureComptableDto } from '../models/ApiResponseWrapperListEcritureComptableDto';
-import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
-import type { ComptableObjectRequest } from '../models/ComptableObjectRequest';
+import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
+import type { ComptableObject } from '../models/ComptableObject';
 import type { EcritureComptableDto } from '../models/EcritureComptableDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingEntriesService {
     /**
-     * List all accounting entries
+     * List all entries for the current tenant
      * @returns ApiResponseWrapperListEcritureComptableDto OK
      * @throws ApiError
      */
-    public static getAllEcritures(): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
+    public static getAll1(): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/entries',
+            url: '/api/accounting/ecritures',
         });
     }
     /**
-     * Create an accounting entry manually
-     * Creates a new entry after period and journal validation.
+     * Create a new accounting entry
      * @param requestBody
-     * @returns EcritureComptableDto Entry created successfully
+     * @returns ApiResponseWrapperEcritureComptableDto OK
      * @throws ApiError
      */
     public static createEcriture(
         requestBody: EcritureComptableDto,
-    ): CancelablePromise<EcritureComptableDto> {
+    ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/entries',
+            url: '/api/accounting/ecritures',
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                400: `Data validation error`,
-            },
         });
     }
     /**
      * Validate an accounting entry
      * @param id
+     * @param user
      * @returns ApiResponseWrapperEcritureComptableDto OK
      * @throws ApiError
      */
     public static validateEcriture(
         id: string,
+        user?: string,
     ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/entries/{id}/validate',
+            url: '/api/accounting/ecritures/{id}/validate',
             path: {
                 'id': id,
+            },
+            query: {
+                'user': user,
             },
         });
     }
     /**
-     * Generate an entry from an accounting object
+     * Generate an entry from a comptable object
      * @param requestBody
      * @returns ApiResponseWrapperEcritureComptableDto OK
      * @throws ApiError
      */
-    public static generateFromComptableObject(
-        requestBody: ComptableObjectRequest,
+    public static generate(
+        requestBody: ComptableObject,
     ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/entries/generate-from-object',
+            url: '/api/accounting/ecritures/generate',
             body: requestBody,
             mediaType: 'application/json',
         });
     }
     /**
-     * Get an accounting entry by ID
+     * Get an entry by its ID
      * @param id
      * @returns ApiResponseWrapperEcritureComptableDto OK
      * @throws ApiError
      */
-    public static getEcritureById(
+    public static getById1(
         id: string,
     ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/entries/{id}',
+            url: '/api/accounting/ecritures/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Delete an accounting entry (if not validated)
+     * Delete an accounting entry
      * @param id
-     * @returns ApiResponseWrapperVoid OK
+     * @returns ApiResponseWrapperObject OK
      * @throws ApiError
      */
-    public static deleteEcriture(
+    public static delete1(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperVoid> {
+    ): CancelablePromise<ApiResponseWrapperObject> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/api/accounting/entries/{id}',
+            url: '/api/accounting/ecritures/{id}',
             path: {
                 'id': id,
             },
         });
     }
     /**
-     * Search entries by period and journal
-     * @param startDate
-     * @param endDate
+     * Search entries by date range and journal
+     * @param start
+     * @param end
      * @param journalId
      * @returns ApiResponseWrapperListEcritureComptableDto OK
      * @throws ApiError
      */
-    public static searchEcritures(
-        startDate?: string,
-        endDate?: string,
+    public static search(
+        start?: string,
+        end?: string,
         journalId?: string,
     ): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/entries/search',
+            url: '/api/accounting/ecritures/search',
             query: {
-                'start_date': startDate,
-                'end_date': endDate,
-                'journal_id': journalId,
+                'start': start,
+                'end': end,
+                'journalId': journalId,
             },
         });
     }
     /**
-     * List non-validated entries
+     * List all non-validated entries
      * @returns ApiResponseWrapperListEcritureComptableDto OK
      * @throws ApiError
      */
-    public static getNonValidatedEcritures(): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
+    public static getNonValidated(): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/accounting/entries/non-validated',
+            url: '/api/accounting/ecritures/non-validated',
         });
     }
 }

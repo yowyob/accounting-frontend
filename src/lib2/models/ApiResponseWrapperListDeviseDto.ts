@@ -2,12 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AgenceDto } from './AgenceDto';
-export type ApiResponseListAgenceDto = {
+import type { DeviseDto } from './DeviseDto';
+export type ApiResponseWrapperListDeviseDto = {
     success?: boolean;
     message?: string;
-    data?: Array<AgenceDto>;
+    data?: Array<DeviseDto>;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

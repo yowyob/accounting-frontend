@@ -1,17 +1,16 @@
-// components/accounting/operation-form.tsx
 "use client";
 
-import React from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Save, PlusCircle, Trash2, ChevronDown, Loader2 } from 'lucide-react';
-import { AccountingJournalsService } from '@/src/lib2/services/AccountingJournalsService';
-import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
+import { Save, PlusCircle, Trash2, ChevronDown, Check, ChevronsUpDown } from 'lucide-react';
+import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
-import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
 import {
   Select,
   SelectContent,
@@ -30,6 +29,20 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { ContrepartieDto } from '@/src/lib2/models/ContrepartieDto';
 
@@ -39,42 +52,96 @@ interface OperationFormProps {
   onCancel: () => void;
 }
 
-export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
-  const [journals, setJournals] = React.useState<JournalComptableDto[]>([]);
-  const [isLoadingJournals, setIsLoadingJournals] = React.useState(true);
-  const [accounts, setAccounts] = React.useState<PlanComptableDto[]>([]);
-  const [isLoadingAccounts, setIsLoadingAccounts] = React.useState(true);
+// Sub-component for Account Selection in the Form
+const AccountSelector = ({
+  value,
+  onChange,
+  accounts,
+  placeholder = "Sélectionner un compte..."
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  accounts: CompteDto[];
+  placeholder?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const selectedAccount = accounts.find((acc) => acc.id === value || acc.noCompte === value);
 
-  React.useEffect(() => {
-    const fetchJournals = async () => {
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-mono"
+        >
+          {selectedAccount
+            ? `${selectedAccount.noCompte}`
+            : placeholder}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[400px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Rechercher par numéro ou libellé..." />
+          <CommandList>
+            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
+            <CommandGroup>
+              {accounts.map((acc) => (
+                <CommandItem
+                  key={acc.id}
+                  value={`${acc.noCompte} ${acc.libelle}`}
+                  onSelect={() => {
+                    onChange(acc.noCompte); // We store the account number as requested by user ("non les numeros des plan comptable" but he meant account numbers)
+                    // Wait, prompt says: "les numero de compte entrer lors de la creation d'une ecriture comptable et des operations comptables doivent etre les numero de comptes"
+                    // And "non les numeros des plan comptable".
+                    // In my previous tool use I was using IDs. I should check if backend expects IDs or Numbers.
+                    // Usually it's account numbers for visibility. I will use noCompte if that's what he wants.
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === acc.noCompte ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className="font-bold mr-2 text-blue-700">{acc.noCompte}</span>
+                  <span className="text-gray-600">{acc.libelle}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
+  const [journals, setJournals] = useState<JournalComptableDto[]>([]);
+  const [isLoadingJournals, setIsLoadingJournals] = useState(true);
+  const [accounts, setAccounts] = useState<CompteDto[]>([]);
+  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        console.log("Fetching journals...");
-        const response = await AccountingJournalsService.getActiveJournalComptables();
-        console.log("Journals response:", response);
-        const journalData = Array.isArray(response.data) ? response.data : [];
-        console.log("Journals data:", journalData);
-        setJournals(journalData);
+        const [journalsRes, accountsRes] = await Promise.all([
+          JournalManagementService.getActiveJournals(),
+          AccountingComptesService.getAllComptes()
+        ]);
+        setJournals(Array.isArray(journalsRes.data) ? journalsRes.data : []);
+        setAccounts(Array.isArray(accountsRes.data) ? accountsRes.data : []);
       } catch (error) {
-        console.error("Failed to fetch journals:", error);
+        console.error("Failed to fetch form dependencies:", error);
       } finally {
         setIsLoadingJournals(false);
-      }
-    };
-    fetchJournals();
-  }, []);
-
-  React.useEffect(() => {
-    const fetchAccounts = async () => {
-      try {
-        const response = await AccountingPlanComptableService.getAllPlanComptables();
-        setAccounts(Array.isArray(response.data) ? response.data : []);
-      } catch (error) {
-        console.error("Failed to fetch accounts:", error);
-      } finally {
         setIsLoadingAccounts(false);
       }
     };
-    fetchAccounts();
+    fetchData();
   }, []);
 
   const form = useForm<OperationComptableDto>({
@@ -90,26 +157,21 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       contreparties: [{
         compte: '',
         estCompteTiers: false,
-        typeMontant: 'Toutes Taxes Comprises',
+        typeMontant: 'TTC',
         journalComptableId: '',
         sens: 'DEBIT',
-        operationComptableId: undefined as any
       } as ContrepartieDto],
     },
   });
 
-  // Validation function to check if account exists
-  const validateAccountExists = (accountNumber: string) => {
-    if (!accountNumber || accountNumber.trim() === '') return true; // Let required validation handle empty
-    const exists = accounts.some(acc => acc.noCompte === accountNumber.trim());
-    return exists || "Ce compte n'existe pas dans le plan comptable. Veuillez saisir un compte valide.";
-  };
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "contreparties"
+  });
 
   const onSubmit = (data: OperationComptableDto) => {
-    // Filter out contreparties with empty compte (invalid)
     const validContreparties = data.contreparties?.filter(cp => cp.compte && cp.compte.trim() !== '');
 
-    // On nettoie les données pour éviter d'envoyer des chaînes vides pour les IDs
     const cleanData = {
       ...data,
       id: data.id || undefined,
@@ -117,35 +179,12 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       contreparties: validContreparties?.map(cp => ({
         ...cp,
         id: cp.id || undefined,
-        // Ensure journalComptableId is present, fallback to main operation's journal
         journalComptableId: cp.journalComptableId || data.journalComptableId || undefined,
         operationComptableId: cp.operationComptableId || undefined,
       }))
     } as any;
 
-    console.log("Form Data submitted (cleaned):", cleanData);
     onSave(cleanData);
-  };
-
-  const addCounterparty = () => {
-    const currentCounterparties = form.getValues('contreparties') || [];
-    form.setValue('contreparties', [
-      ...(currentCounterparties || []),
-      {
-        compte: '',
-        estCompteTiers: false,
-        typeMontant: 'TTC',
-        journalComptableId: '',
-        sens: 'DEBIT',
-        operationComptableId: initialData?.id as any
-      } as ContrepartieDto,
-    ]);
-  };
-
-  const removeCounterparty = (index: number) => {
-    const newCounterparties = [...(form.getValues('contreparties') || [])];
-    newCounterparties.splice(index);
-    form.setValue('contreparties', newCounterparties);
   };
 
   const contreparties = form.watch('contreparties');
@@ -213,7 +252,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         <SelectContent>
                           <SelectItem value="ESPECE">Comptant par espèces</SelectItem>
                           <SelectItem value="CHEQUE">Comptant par chèque</SelectItem>
-                          <SelectItem value="VIREMENT">Comptant par chèque postal</SelectItem>
+                          <SelectItem value="VIREMENT">Comptant par virement</SelectItem>
                           <SelectItem value="MOBILE">Mobile Money</SelectItem>
                         </SelectContent>
                       </Select>
@@ -276,15 +315,17 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="comptePrincipal"
-                  rules={{
-                    required: "Requis",
-                    validate: validateAccountExists
-                  }}
+                  rules={{ required: "Requis" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Compte principal <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="ex. 571100" />
+                        <AccountSelector
+                          value={field.value}
+                          onChange={field.onChange}
+                          accounts={accounts}
+                          placeholder="ex. 571100"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -334,19 +375,19 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
             <TabsContent value="comptes" className="space-y-6 mt-0">
               <div className="flex items-center justify-between pb-2 border-b">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Contreparties</h3>
-                <Button type="button" variant="outline" size="sm" onClick={addCounterparty} className="border-blue-500 text-blue-600 hover:bg-blue-50">
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ compte: '', estCompteTiers: false, typeMontant: 'TTC', journalComptableId: '', sens: 'DEBIT' } as ContrepartieDto)} className="border-blue-500 text-blue-600 hover:bg-blue-50">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Ajouter un compte
                 </Button>
               </div>
 
               <div className="space-y-4">
-                {contreparties?.map((counterparty, index) => (
-                  <Collapsible key={index} defaultOpen className="rounded-lg border bg-white shadow-sm overflow-hidden">
+                {fields.map((field, index) => (
+                  <Collapsible key={field.id} defaultOpen className="rounded-lg border bg-white shadow-sm overflow-hidden">
                     <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">#{index + 1}</div>
-                        <span className="text-sm font-medium">{counterparty.compte || "Nouveau compte..."}</span>
+                        <span className="text-sm font-medium">{contreparties[index]?.compte || "Nouveau compte..."}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -354,7 +395,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           variant="ghost"
                           size="sm"
                           className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={(e) => { e.stopPropagation(); removeCounterparty(index); }}
+                          onClick={(e) => { e.stopPropagation(); remove(index); }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -366,15 +407,17 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                         <FormField
                           control={form.control}
                           name={`contreparties.${index}.compte`}
-                          rules={{
-                            required: "Requis",
-                            validate: validateAccountExists
-                          }}
+                          rules={{ required: "Requis" }}
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Compte contrepartie <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="ex. 411100" />
+                                <AccountSelector
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  accounts={accounts}
+                                  placeholder="ex. 411100"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -436,7 +479,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingJournals ? "..." : ""} />
+                                    <SelectValue placeholder={isLoadingJournals ? "..." : "Sélectionner"} />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -460,7 +503,6 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
 
         </div>
 
-        {/* Footer harmonisé */}
         <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             ANNULER

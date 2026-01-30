@@ -2,21 +2,22 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { JournalAuditDto } from '../models/JournalAuditDto';
+import type { ApiResponseWrapperListJournalAuditDto } from '../models/ApiResponseWrapperListJournalAuditDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingAuditService {
     /**
+     * Get all audits for a tenant
      * @param tenantId
      * @param limit
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static getAllByTenant(
         tenantId: string,
         limit: number = 100,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/tenant/{tenantId}',
@@ -29,15 +30,16 @@ export class AccountingAuditService {
         });
     }
     /**
+     * Get audits by user
      * @param tenantId
      * @param utilisateur
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static getByUtilisateur(
         tenantId: string,
         utilisateur: string,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/tenant/{tenantId}/utilisateur/{utilisateur}',
@@ -48,17 +50,18 @@ export class AccountingAuditService {
         });
     }
     /**
+     * Get audits by time period
      * @param tenantId
      * @param debut
      * @param fin
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static getByPeriode(
         tenantId: string,
         debut: string,
         fin: string,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/tenant/{tenantId}/periode',
@@ -72,15 +75,16 @@ export class AccountingAuditService {
         });
     }
     /**
+     * Get audits by accounting entry ID
      * @param tenantId
      * @param ecritureId
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static getByEcriture(
         tenantId: string,
         ecritureId: string,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/tenant/{tenantId}/ecriture/{ecritureId}',
@@ -91,15 +95,16 @@ export class AccountingAuditService {
         });
     }
     /**
+     * Get audits by action type
      * @param tenantId
      * @param action
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static getByAction(
         tenantId: string,
         action: string,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/tenant/{tenantId}/action/{action}',
@@ -110,12 +115,13 @@ export class AccountingAuditService {
         });
     }
     /**
+     * Advanced search for audit logs
      * @param tenantId
      * @param utilisateur
      * @param action
      * @param debut
      * @param fin
-     * @returns JournalAuditDto OK
+     * @returns ApiResponseWrapperListJournalAuditDto OK
      * @throws ApiError
      */
     public static rechercher(
@@ -124,7 +130,7 @@ export class AccountingAuditService {
         action?: string,
         debut?: string,
         fin?: string,
-    ): CancelablePromise<Array<JournalAuditDto>> {
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/audit/rechercher',

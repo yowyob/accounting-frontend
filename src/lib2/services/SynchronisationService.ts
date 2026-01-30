@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ApiResponseMapStringObject } from '../models/ApiResponseMapStringObject';
-import type { ApiResponseString } from '../models/ApiResponseString';
+import type { ApiResponseWrapperMapStringObject } from '../models/ApiResponseWrapperMapStringObject';
+import type { ApiResponseWrapperString } from '../models/ApiResponseWrapperString';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -11,10 +11,10 @@ export class SynchronisationService {
     /**
      * Vider le cache Redis
      * Supprime tous les caches Redis du tenant (Admin uniquement)
-     * @returns ApiResponseString Cache vidé
+     * @returns ApiResponseWrapperString Cache vidé
      * @throws ApiError
      */
-    public static clearRedisCache(): CancelablePromise<ApiResponseString> {
+    public static clearRedisCache(): CancelablePromise<ApiResponseWrapperString> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/comptable/sync/redis/clear',
@@ -27,10 +27,10 @@ export class SynchronisationService {
     /**
      * Forcer la synchronisation Elasticsearch
      * Réindexe toutes les écritures comptables dans Elasticsearch (Admin uniquement)
-     * @returns ApiResponseMapStringObject Synchronisation effectuée
+     * @returns ApiResponseWrapperMapStringObject Synchronisation effectuée
      * @throws ApiError
      */
-    public static syncElasticsearch(): CancelablePromise<ApiResponseMapStringObject> {
+    public static syncElasticsearch(): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/comptable/sync/elasticsearch',
@@ -43,10 +43,10 @@ export class SynchronisationService {
     /**
      * Statut de la synchronisation
      * Retourne les statistiques de synchronisation Elasticsearch et Redis
-     * @returns ApiResponseMapStringObject Statut récupéré
+     * @returns ApiResponseWrapperMapStringObject Statut récupéré
      * @throws ApiError
      */
-    public static getSyncStatus(): CancelablePromise<ApiResponseMapStringObject> {
+    public static getSyncStatus(): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/comptable/sync/status',

@@ -3,11 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { OrganizationDto } from './OrganizationDto';
-export type ApiResponseListOrganizationDto = {
+export type ApiResponseWrapperListOrganizationDto = {
     success?: boolean;
     message?: string;
     data?: Array<OrganizationDto>;
     timestamp?: string;
-    error?: string;
+    traceId?: string;
+    path?: string;
+    code?: number;
 };
 

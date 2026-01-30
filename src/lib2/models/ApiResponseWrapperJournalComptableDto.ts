@@ -5,11 +5,11 @@
 import type { JournalComptableDto } from './JournalComptableDto';
 export type ApiResponseWrapperJournalComptableDto = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: JournalComptableDto;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 

@@ -5,11 +5,11 @@
 import type { EcritureComptableDto } from './EcritureComptableDto';
 export type ApiResponseWrapperListEcritureComptableDto = {
     success?: boolean;
-    statusCode?: number;
     message?: string;
     data?: Array<EcritureComptableDto>;
     timestamp?: string;
     traceId?: string;
     path?: string;
+    code?: number;
 };
 
