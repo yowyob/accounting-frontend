@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Save, Trash2, Check, Plus, ChevronsUpDown, FileText, Info, Search } from 'lucide-react';
+import { Save, Trash2, Plus, ChevronsUpDown, FileText, Info, Check } from 'lucide-react';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
@@ -34,11 +34,12 @@ import { cn } from '@/lib/utils';
 import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
+import { toast } from 'sonner';
 
 interface EcritureComptableDetailViewProps {
   ecriture: EcritureComptableDto | null;
   onSave: (data: EcritureComptableDto) => void;
-  onDelete?: () => void; // Optional here as page-level handles it
+  onDelete?: () => void;
   onValidate?: () => void;
   onBack: () => void;
 }
@@ -47,70 +48,6 @@ type EcritureComptableForm = EcritureComptableDto;
 
 const formatDateForInput = (date: Date): string => {
   return date.toISOString().split('T')[0];
-};
-
-// Sub-component for Account Selection to handle its own Popover state
-const AccountSelector = ({
-  value,
-  onChange,
-  accounts,
-  disabled
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  accounts: CompteDto[];
-  disabled?: boolean
-}) => {
-  const [open, setOpen] = useState(false);
-  const selectedAccount = accounts.find((acc) => acc.id === value || acc.noCompte === value);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between font-mono md:border-none md:bg-transparent md:h-auto md:p-0 md:focus-visible:ring-1 focus-visible:ring-blue-500"
-          disabled={disabled}
-        >
-          {selectedAccount
-            ? `${selectedAccount.noCompte}`
-            : "Compte..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Rechercher un compte (numéro ou nom)..." />
-          <CommandList>
-            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
-            <CommandGroup>
-              {accounts.map((acc) => (
-                <CommandItem
-                  key={acc.id}
-                  value={`${acc.noCompte} ${acc.libelle}`}
-                  onSelect={() => {
-                    onChange(acc.id!); // We store the ID internally
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === acc.id || value === acc.noCompte ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <span className="font-bold mr-2 text-blue-700">{acc.noCompte}</span>
-                  <span className="text-gray-600">{acc.libelle}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
 };
 
 export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewProps> = ({
@@ -126,7 +63,16 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   const [openPeriodePopover, setOpenPeriodePopover] = useState(false);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+
+  const getAccountNumber = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId || acc.noCompte === accountId);
+    return account ? account.noCompte : accountId;
+  };
+
+  const getAccountId = (accountNo: string) => {
+    const account = accounts.find(acc => acc.noCompte === accountNo || acc.id === accountNo);
+    return account ? account.id : accountNo;
+  };
 
   const getDefaultValues = (): EcritureComptableForm => {
     if (ecriture) {
@@ -134,7 +80,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
         ...ecriture,
         detailsEcriture: ecriture.detailsEcriture?.map(d => ({
           ...d,
-          compteComptableId: d.compteComptableId,
+          compteComptableId: getAccountNumber(d.compteComptableId),
           montantDebit: d.montantDebit || 0,
           montantCredit: d.montantCredit || 0
         })) || []
@@ -207,7 +153,6 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
       } finally {
         setIsLoadingJournals(false);
         setIsLoadingPeriodes(false);
-        setIsLoadingAccounts(false);
       }
     };
     fetchData();
@@ -224,7 +169,28 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
       return;
     }
 
-    onSave(data);
+    // Validation for account existence
+    const invalidAccounts = data.detailsEcriture.filter(detail => {
+      if (!detail.compteComptableId) return false;
+      return !accounts.some(acc => acc.noCompte === detail.compteComptableId);
+    });
+
+    if (invalidAccounts.length > 0) {
+      const nums = invalidAccounts.map(d => d.compteComptableId).join(', ');
+      toast.error(`Le(s) compte(s) suivant(s) n'existe(nt) pas : ${nums}`);
+      return;
+    }
+
+    // Convert numbers back to IDs before saving
+    const processedData = {
+      ...data,
+      detailsEcriture: data.detailsEcriture.map(d => ({
+        ...d,
+        compteComptableId: getAccountId(d.compteComptableId)!
+      }))
+    };
+
+    onSave(processedData);
   };
 
   const addDetailLine = () => {
@@ -241,7 +207,6 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg">
       <div className="flex justify-end items-center p-6 border-b">
-        {/* Validation button removed from here, handled in the validation page if needed */}
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
@@ -390,10 +355,10 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                             <FormItem className="space-y-0">
                               <FormLabel className="md:hidden font-semibold">Compte</FormLabel>
                               <FormControl>
-                                <AccountSelector
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  accounts={accounts}
+                                <Input
+                                  {...field}
+                                  placeholder="N° Compte"
+                                  className="font-mono md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
                                   disabled={ecriture?.validee}
                                 />
                               </FormControl>
@@ -460,7 +425,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                             </FormItem>
                           )}
                         />
-                        {!ecriture?.validee && fields.length > 2 && (
+                        {!ecriture?.validee && fields.length > 1 && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -478,36 +443,6 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
               </div>
 
               <FormMessage>{form.formState.errors.root?.message}</FormMessage>
-
-              <div className="bg-gray-900 text-white rounded-xl p-6 shadow-xl space-y-4">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                  <div className="flex items-center gap-3">
-                    <Info className="text-gray-400 h-5 w-5" />
-                    <span className="text-gray-300 text-sm font-medium">L'écriture doit être équilibrée (Total Débit = Total Crédit).</span>
-                  </div>
-
-                  <div className="flex items-center gap-8">
-                    <div className="text-right">
-                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Débit</p>
-                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalDebit > 0 ? "text-emerald-400" : "text-white")}>
-                        {liveTotalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                    <div className="h-10 w-px bg-gray-700"></div>
-                    <div className="text-right">
-                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Crédit</p>
-                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalCredit > 0 ? "text-emerald-400" : "text-white")}>
-                        {liveTotalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                {liveTotalDebit !== liveTotalCredit && (
-                  <div className="text-center p-2 bg-rose-950/30 border border-rose-900/50 rounded text-rose-300 text-xs font-medium animate-pulse">
-                    Déséquilibre de {(Math.abs(liveTotalDebit - liveTotalCredit)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
-                  </div>
-                )}
-              </div>
 
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 text-gray-800 mb-2">
@@ -540,6 +475,37 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                     )}
                   />
                 </div>
+              </div>
+
+              {/* Totals Footer - MOVED TO THE END */}
+              <div className="bg-gray-900 text-white rounded-xl p-6 shadow-xl space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <Info className="text-gray-400 h-5 w-5" />
+                    <span className="text-gray-300 text-sm font-medium">L'écriture doit être équilibrée (Total Débit = Total Crédit).</span>
+                  </div>
+
+                  <div className="flex items-center gap-8">
+                    <div className="text-right">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Débit</p>
+                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalDebit > 0 ? "text-emerald-400" : "text-white")}>
+                        {liveTotalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                    <div className="h-10 w-px bg-gray-700"></div>
+                    <div className="text-right">
+                      <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">Total Crédit</p>
+                      <p className={cn("text-2xl font-mono font-bold", liveTotalDebit === liveTotalCredit && liveTotalCredit > 0 ? "text-emerald-400" : "text-white")}>
+                        {liveTotalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {liveTotalDebit !== liveTotalCredit && (
+                  <div className="text-center p-2 bg-rose-950/30 border border-rose-900/50 rounded text-rose-300 text-xs font-medium animate-pulse">
+                    Déséquilibre de {(Math.abs(liveTotalDebit - liveTotalCredit)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                  </div>
+                )}
               </div>
             </div>
           </div>

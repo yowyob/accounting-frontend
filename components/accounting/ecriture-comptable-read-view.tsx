@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -13,12 +15,31 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Calendar, FileText, Hash, Info, Notebook, Tag } from 'lucide-react';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
 
 interface EcritureComptableReadViewProps {
     ecriture: EcritureComptableDto;
 }
 
 export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps> = ({ ecriture }) => {
+    const [accounts, setAccounts] = useState<CompteDto[]>([]);
+
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            const res = await AccountingComptesService.getAllComptes();
+            if (res.success && res.data) {
+                setAccounts(res.data);
+            }
+        };
+        fetchAccounts();
+    }, []);
+
+    const getAccountNumber = (accountId: string) => {
+        const account = accounts.find(acc => acc.id === accountId || acc.noCompte === accountId);
+        return account ? account.noCompte : accountId;
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Main Info Card */}
@@ -116,7 +137,7 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                                     <TableCell className="font-bold text-blue-800 px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <div className="h-2 w-2 rounded-full bg-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            {detail.compteComptableNo || detail.compteComptableId}
+                                            {getAccountNumber(detail.compteComptableId)}
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-gray-600">{detail.libelle}</TableCell>
@@ -134,11 +155,21 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                                 <TableCell colSpan={2} className="px-6 py-5 text-right">
                                     <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mr-4">Total Équilibre</span>
                                 </TableCell>
-                                <TableCell className="text-right font-mono font-bold text-lg text-emerald-400">
-                                    {ecriture.montantTotalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                <TableCell className="text-right py-5">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Débit</span>
+                                        <span className="font-mono font-bold text-lg text-emerald-400">
+                                            {ecriture.montantTotalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
                                 </TableCell>
-                                <TableCell className="text-right font-mono font-bold text-lg text-rose-400 px-6">
-                                    {ecriture.montantTotalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                <TableCell className="text-right px-6 py-5">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Crédit</span>
+                                        <span className="font-mono font-bold text-lg text-rose-400">
+                                            {ecriture.montantTotalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         </tfoot>
