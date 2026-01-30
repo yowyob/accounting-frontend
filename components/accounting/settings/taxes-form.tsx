@@ -1,4 +1,4 @@
-// components/accounting/settings/taxe-form.tsx
+// components/accounting/settings/taxes-form.tsx
 "use client";
 
 import React from 'react';
@@ -6,167 +6,218 @@ import { useForm } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Save } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Taxe } from '@/types/accounting';
+import { TaxeDto } from '@/src/lib2/models/TaxeDto';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 interface TaxeFormProps {
-  initialData: Partial<Taxe> | null;
-  onSave: (data: Taxe) => void;
+  initialData: Partial<TaxeDto> | null;
+  onSave: (data: TaxeDto) => void;
   onCancel: () => void;
 }
 
 export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCancel }) => {
-  const form = useForm<Taxe>({
+  const form = useForm<TaxeDto>({
     defaultValues: initialData || {
-      name: '',
-      rate: 0,
-      taxAccount: '',
-      type: 'collectee',
-      mode: 'ajoute',
+      code: '',
+      libelle: '',
+      taux: 0,
+      compte_collecte: '',
+      compte_deductible: '',
+      actif: true,
+      pays: '',
     },
   });
 
-  const onSubmit = (data: Taxe) => {
-    data.rate = parseFloat(data.rate as any);
-    const cleanData = {
+  const onSubmit = (data: TaxeDto) => {
+    onSave({
       ...data,
-      id: data.id || undefined,
-    } as Taxe;
-    onSave(cleanData);
+      taux: parseFloat(data.taux as any),
+    });
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col rounded-lg shadow-lg bg-white overflow-hidden">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col rounded-lg shadow-lg bg-white overflow-hidden text-gray-700">
         <div className="flex-1 overflow-y-auto p-8 space-y-6">
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-auto rounded-none p-0 mb-8 border-b">
+              <TabsTrigger
+                value="general"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 py-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
+              >
+                GÉNÉRAL
+              </TabsTrigger>
+              <TabsTrigger
+                value="comptabilite"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 py-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
+              >
+                COMPTABILITÉ ET ADV.
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Nom de la taxe (Pleine largeur) */}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nom de la taxe <span className="text-red-500">*</span></FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="ex: TVA Facturée 18%" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <TabsContent value="general" className="space-y-6 mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="code"
+                  rules={{ required: "Le code est requis" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Code de la taxe <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="ex: TVA18" className="font-mono uppercase" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="taux"
+                  rules={{ required: "Le taux est requis" }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Taux (en %) <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="number" step="0.01" {...field} placeholder="18.00" className="pr-8" />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">%</span>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-          {/* Taux et Compte sur la même ligne */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Taux (en %) <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="ex: 18" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="taxAccount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Compte comptable <span className="text-red-500">*</span></FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="ex: 4431" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          {/* Type et Mode sur la même ligne */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type <span className="text-red-500">*</span></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+              <FormField
+                control={form.control}
+                name="libelle"
+                rules={{ required: "Le libellé est requis" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">Désignation complète <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
-                      </SelectTrigger>
+                      <Input {...field} placeholder="ex: Taxe sur la Valeur Ajoutée (Taux Normal)" />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="collectee">TVA Collectée</SelectItem>
-                      <SelectItem value="deductible">TVA Déductible</SelectItem>
-                      <SelectItem value="autre">Autre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="mode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mode <span className="text-red-500">*</span></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un mode" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="ajoute">Ajouté au prix</SelectItem>
-                      <SelectItem value="inclus">Inclus dans le prix</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          {/* PARTIE DESCRIPTION AJOUTÉE (Style Notes du Plan Comptable) */}
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    {...field}
-                    rows={3}
-                    placeholder="Informations supplémentaires sur cette taxe..."
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="pays"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Pays / Région</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="ex: Cameroun (CEMAC)" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="actif"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-[68px] bg-gray-50/50">
+                      <div className="space-y-0.5">
+                        <FormLabel className="font-semibold">Taxe active</FormLabel>
+                      </div>
+                      <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="comptabilite" className="space-y-6 mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="compte_collecte"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-red-600">Compte TVA Collectée</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="ex: 443100" className="font-mono" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="compte_deductible"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-green-600">Compte TVA Déductible</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="ex: 445100" className="font-mono" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={form.control}
+                  name="date_debut_validite"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Début de validité</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="date_fin_validite"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-gray-400 italic font-normal">Fin de validité (Optionnel)</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
 
-        {/* Footer harmonisé avec le Plan Comptable */}
         <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} className="font-semibold">
             ANNULER
           </Button>
           <Button
             type="submit"
-            className="bg-[#007bff] hover:bg-[#0069d9]"
+            className="bg-blue-600 hover:bg-blue-700 shadow-sm font-semibold px-6"
             disabled={form.formState.isSubmitting}
           >
             <Save size={16} className="mr-2" />
             <span>
-              {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
+              {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Mettre à jour la taxe" : "Créer la taxe")}
             </span>
           </Button>
         </div>

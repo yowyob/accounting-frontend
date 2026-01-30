@@ -1,53 +1,64 @@
+// components/accounting/taxe-list-view.tsx
 "use client";
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Taxe } from '@/types/accounting';
+import { TaxeDto } from '@/src/lib2/models/TaxeDto';
 import {
   Plus,
   RefreshCw,
   Search,
-  DollarSign,
-  ShoppingCart,
-  Building2,
-  Percent,
-  FileText,
-  ArrowUpCircle,
-  Hash,
   Edit,
   Trash2,
 } from 'lucide-react';
 
 interface TaxeListViewProps {
-  taxes: Taxe[];
+  taxes: TaxeDto[];
   isLoading: boolean;
   onEdit: (id: string) => void;
-  onDelete: (taxe: Taxe) => void;
+  onDelete: (taxe: TaxeDto) => void;
   onAddNew: () => void;
   onRefresh: () => void;
 }
 
-const getTaxIcon = (name: string) => {
-  if (name.toLowerCase().includes('collectée')) return <DollarSign className="h-5 w-5" />;
-  if (name.toLowerCase().includes('achats')) return <ShoppingCart className="h-5 w-5" />;
-  if (name.toLowerCase().includes('immobilisations')) return <Building2 className="h-5 w-5" />;
-  if (name.toLowerCase().includes('réduite')) return <Percent className="h-5 w-5" />;
-  if (name.toLowerCase().includes('export')) return <ArrowUpCircle className="h-5 w-5" />;
-  if (name.toLowerCase().includes('services')) return <FileText className="h-5 w-5" />;
-  return <Percent className="h-5 w-5" />;
-};
-
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'Actif': return <Badge className="bg-green-100 text-green-800">Actif</Badge>;
-    case 'Passif': return <Badge className="bg-red-100 text-red-800">Passif</Badge>;
-    case 'Exonérée': return <Badge className="bg-gray-100 text-gray-800">Exonérée</Badge>;
-    default: return <Badge variant="secondary">{status}</Badge>;
-  }
+const RowActions = ({ taxe, onEdit, onDelete }: {
+  taxe: TaxeDto,
+  onEdit: (id: string) => void,
+  onDelete: (taxe: TaxeDto) => void
+}) => {
+  return (
+    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); onEdit(taxe.id!); }}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>Modifier la taxe</p></TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(taxe); }}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent><p>Supprimer la taxe</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </div>
+  );
 };
 
 export const TaxeListView: React.FC<TaxeListViewProps> = ({
@@ -59,174 +70,96 @@ export const TaxeListView: React.FC<TaxeListViewProps> = ({
   onRefresh,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('Toutes');
-
-  // Exemple de données stats (à remplacer par des calculs réels si besoin)
-  const totalCollectee = 1_250_000;
-  const totalDeductible = 850_000;
-  const nombreTaxes = taxes.length;
 
   const filteredTaxes = taxes.filter((taxe) => {
-    const matchesSearch =
-      taxe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      taxe.taxAccount.includes(searchTerm);
-    const matchesFilter = filterStatus === 'Toutes' || true; // À adapter selon un champ statut si existant
-    return matchesSearch && matchesFilter;
+    return (
+      taxe.libelle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      taxe.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (taxe.compte_collecte && taxe.compte_collecte.includes(searchTerm)) ||
+      (taxe.compte_deductible && taxe.compte_deductible.includes(searchTerm))
+    );
   });
 
   return (
-    <div className="space-y-8">
-      {/* En-tête */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Taxes OHADA</h1>
-          <p className="text-gray-600 mt-1">Gérez vos taxes conformément au plan comptable OHADA</p>
+    <div className="space-y-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="relative w-full md:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Rechercher par libellé, code ou compte..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-10 border-gray-200"
+          />
         </div>
-        <div className="flex gap-3">
-          <Button onClick={onRefresh} variant="outline" size="lg">
-            <RefreshCw className="h-5 w-5 mr-2" />
-            Actualiser
-          </Button>
-          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700" size="lg">
-            <Plus className="h-5 w-5 mr-2" />
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <Button onClick={onAddNew} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
             Nouvelle Taxe
           </Button>
+          <Button onClick={onRefresh} variant="outline" size="icon" className="h-10 w-10">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
         </div>
       </div>
 
-      {/* Recherche */}
-      <div className="relative max-w-2xl">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-        <Input
-          placeholder="Rechercher une taxe..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-12 h-12 text-base border-gray-300"
-        />
-      </div>
-
-      {/* Filtres par statut */}
-      <Tabs value={filterStatus} onValueChange={setFilterStatus}>
-        <TabsList className="grid w-full max-w-md grid-cols-4 h-12">
-          <TabsTrigger value="Toutes" className="text-base">Toutes</TabsTrigger>
-          <TabsTrigger value="Actif" className="text-base">Actif</TabsTrigger>
-          <TabsTrigger value="Passif" className="text-base">Passif</TabsTrigger>
-          <TabsTrigger value="Exonérée" className="text-base">Exonérée</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Cartes statistiques */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-blue-600 text-white">
-          <CardContent className="p-6">
-            <p className="text-blue-100 text-lg">Total TVA Collectée</p>
-            <p className="text-3xl font-bold mt-2">{totalCollectee.toLocaleString()} FCFA</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-600 text-white">
-          <CardContent className="p-6">
-            <p className="text-blue-100 text-lg">Total TVA Déductible</p>
-            <p className="text-3xl font-bold mt-2">{totalDeductible.toLocaleString()} FCFA</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-blue-600 text-white">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-lg">Nombre de Taxes</p>
-              <p className="text-3xl font-bold mt-2">{nombreTaxes}</p>
-            </div>
-            <RefreshCw className="h-12 w-12 text-blue-300" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Liste des taxes configurées */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {isLoading ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            <RefreshCw className="h-10 w-10 animate-spin mx-auto mb-4" />
-            Chargement...
-          </div>
-        ) : filteredTaxes.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-gray-500">
-            Aucune taxe trouvée.
-          </div>
-        ) : (
-          filteredTaxes.map((taxe) => (
-            <Card
-              key={taxe.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer border-gray-200"
-              onClick={() => onEdit(taxe.id!)}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
-                      {getTaxIcon(taxe.name)}
+      <div className="rounded-md border border-gray-200 overflow-hidden">
+        <Table>
+          <TableHeader className="bg-gray-50/50">
+            <TableRow>
+              <TableHead className="font-semibold text-gray-700">Code</TableHead>
+              <TableHead className="font-semibold text-gray-700">Libellé</TableHead>
+              <TableHead className="font-semibold text-gray-700 text-center">Taux</TableHead>
+              <TableHead className="font-semibold text-gray-700">Comptes (Coll. / Déd.)</TableHead>
+              <TableHead className="font-semibold text-gray-700">Statut</TableHead>
+              <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-gray-400 italic font-medium">
+                  Chargement des taxes...
+                </TableCell>
+              </TableRow>
+            ) : filteredTaxes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-gray-400 italic font-medium border-2 border-dashed m-4 rounded-lg">
+                  Aucune taxe trouvée.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTaxes.map((taxe) => (
+                <TableRow
+                  key={taxe.id}
+                  className="group hover:bg-gray-50/50 cursor-pointer"
+                  onClick={() => onEdit(taxe.id!)}
+                >
+                  <TableCell className="font-mono font-medium text-blue-600">{taxe.code}</TableCell>
+                  <TableCell className="font-medium text-gray-900">{taxe.libelle}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant="secondary" className="font-bold text-blue-700 bg-blue-50/80 hover:bg-blue-100">
+                      {taxe.taux}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 italic">
+                      {taxe.compte_collecte || '—'} / {taxe.compte_deductible || '—'}
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{taxe.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className="bg-blue-100 text-blue-800">
-                          {taxe.rate}%
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions au hover */}
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onEdit(taxe.id!);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Modifier</TooltipContent>
-                      </Tooltip>
-
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDelete(taxe);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Supprimer</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600 flex items-center gap-1">
-                      <Hash className="h-4 w-4" />
-                      {taxe.taxAccount}
-                    </span>
-                    {getStatusBadge('Actif')} {/* À adapter selon ton modèle */}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={taxe.actif ? 'default' : 'secondary'} className={taxe.actif ? 'bg-green-100 text-green-700 hover:bg-green-200 border-none' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>
+                      {taxe.actif ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <RowActions taxe={taxe} onEdit={onEdit} onDelete={onDelete} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
