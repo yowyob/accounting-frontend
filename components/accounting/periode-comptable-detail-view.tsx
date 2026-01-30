@@ -113,7 +113,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                     <FormItem>
                       <FormLabel>Code (YYYY-MM) <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="2025-09" />
+                        <Input {...field} placeholder="2025-09" disabled={periode?.cloturee} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -128,7 +128,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                       <FormLabel>Exercice Comptable <span className="text-red-500">*</span></FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger disabled={periode?.cloturee}>
                             <SelectValue placeholder={isLoadingExercices ? "Chargement..." : "Sélectionner un exercice"} />
                           </SelectTrigger>
                         </FormControl>
@@ -153,7 +153,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                     <FormItem>
                       <FormLabel>Notes</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Informations complémentaires..." />
+                        <Input {...field} placeholder="Informations complémentaires..." disabled={periode?.cloturee} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -169,7 +169,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                     <FormItem>
                       <FormLabel>Date de début <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} disabled={periode?.cloturee} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +183,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                     <FormItem>
                       <FormLabel>Date de fin <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} disabled={periode?.cloturee} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -227,10 +227,12 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
               </Button>
             </>
           )}
-          <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-            <Save className="mr-2 h-4 w-4" />
-            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
-          </Button>
+          {!periode?.cloturee && (
+            <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
+              <Save className="mr-2 h-4 w-4" />
+              <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
+            </Button>
+          )}
         </div>
       </form>
     </Form>

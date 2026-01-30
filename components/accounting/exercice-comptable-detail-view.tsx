@@ -107,7 +107,7 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                         <FormItem>
                                             <FormLabel>Code <span className="text-red-500">*</span></FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="EX: 2025" />
+                                                <Input {...field} placeholder="EX: 2025" disabled={exercice?.cloture} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -121,7 +121,7 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                         <FormItem>
                                             <FormLabel>Libellé <span className="text-red-500">*</span></FormLabel>
                                             <FormControl>
-                                                <Input {...field} placeholder="EX: Exercice 2025" />
+                                                <Input {...field} placeholder="EX: Exercice 2025" disabled={exercice?.cloture} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -137,7 +137,7 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                         <FormItem>
                                             <FormLabel>Date de début <span className="text-red-500">*</span></FormLabel>
                                             <FormControl>
-                                                <Input type="date" {...field} />
+                                                <Input type="date" {...field} disabled={exercice?.cloture} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -151,7 +151,7 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                                         <FormItem>
                                             <FormLabel>Date de fin <span className="text-red-500">*</span></FormLabel>
                                             <FormControl>
-                                                <Input type="date" {...field} />
+                                                <Input type="date" {...field} disabled={exercice?.cloture} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -238,10 +238,12 @@ export const ExerciceComptableDetailView: React.FC<ExerciceComptableDetailViewPr
                             </Button>
                         </>
                     )}
-                    <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-                        <Save className="mr-2 h-4 w-4" />
-                        <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
-                    </Button>
+                    {!exercice?.cloture && (
+                        <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
+                            <Save className="mr-2 h-4 w-4" />
+                            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
+                        </Button>
+                    )}
                 </div>
             </form>
         </Form>

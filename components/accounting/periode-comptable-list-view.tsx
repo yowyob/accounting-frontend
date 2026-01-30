@@ -47,14 +47,16 @@ const RowActions = ({ periode, onEdit, onDelete, onClose }: {
             <TooltipContent><p>Clôturer la période</p></TooltipContent>
           </Tooltip>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(periode.id || ''); }}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Modifier</p></TooltipContent>
-        </Tooltip>
+        {!periode.cloturee && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(periode.id || ''); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Modifier</p></TooltipContent>
+          </Tooltip>
+        )}
         {!periode.cloturee && (
           <Tooltip>
             <TooltipTrigger asChild>

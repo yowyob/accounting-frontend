@@ -6,7 +6,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Save, PlusCircle, Trash2, ChevronDown, Check, ChevronsUpDown } from 'lucide-react';
+import { Save, PlusCircle, Trash2, ChevronDown } from 'lucide-react';
 import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
@@ -29,22 +29,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { ContrepartieDto } from '@/src/lib2/models/ContrepartieDto';
+import { toast } from 'sonner';
 
 interface OperationFormProps {
   initialData: Partial<OperationComptableDto> | null;
@@ -52,78 +39,20 @@ interface OperationFormProps {
   onCancel: () => void;
 }
 
-// Sub-component for Account Selection in the Form
-const AccountSelector = ({
-  value,
-  onChange,
-  accounts,
-  placeholder = "Sélectionner un compte..."
-}: {
-  value: string;
-  onChange: (val: string) => void;
-  accounts: CompteDto[];
-  placeholder?: string;
-}) => {
-  const [open, setOpen] = useState(false);
-  const selectedAccount = accounts.find((acc) => acc.id === value || acc.noCompte === value);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between font-mono"
-        >
-          {selectedAccount
-            ? `${selectedAccount.noCompte}`
-            : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Rechercher par numéro ou libellé..." />
-          <CommandList>
-            <CommandEmpty>Aucun compte trouvé.</CommandEmpty>
-            <CommandGroup>
-              {accounts.map((acc) => (
-                <CommandItem
-                  key={acc.id}
-                  value={`${acc.noCompte} ${acc.libelle}`}
-                  onSelect={() => {
-                    onChange(acc.noCompte); // We store the account number as requested by user ("non les numeros des plan comptable" but he meant account numbers)
-                    // Wait, prompt says: "les numero de compte entrer lors de la creation d'une ecriture comptable et des operations comptables doivent etre les numero de comptes"
-                    // And "non les numeros des plan comptable".
-                    // In my previous tool use I was using IDs. I should check if backend expects IDs or Numbers.
-                    // Usually it's account numbers for visibility. I will use noCompte if that's what he wants.
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === acc.noCompte ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  <span className="font-bold mr-2 text-blue-700">{acc.noCompte}</span>
-                  <span className="text-gray-600">{acc.libelle}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
 export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
   const [journals, setJournals] = useState<JournalComptableDto[]>([]);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [accounts, setAccounts] = useState<CompteDto[]>([]);
-  const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
+
+  const getAccountNumber = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId || acc.noCompte === accountId);
+    return account ? account.noCompte : accountId;
+  };
+
+  const getAccountId = (accountNo: string) => {
+    const account = accounts.find(acc => acc.noCompte === accountNo || acc.id === accountNo);
+    return account ? account.id : accountNo;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -132,17 +61,33 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
           JournalManagementService.getActiveJournals(),
           AccountingComptesService.getAllComptes()
         ]);
-        setJournals(Array.isArray(journalsRes.data) ? journalsRes.data : []);
-        setAccounts(Array.isArray(accountsRes.data) ? accountsRes.data : []);
+        const fetchedJournals = Array.isArray(journalsRes.data) ? journalsRes.data : [];
+        const fetchedAccounts = Array.isArray(accountsRes.data) ? accountsRes.data : [];
+
+        setJournals(fetchedJournals);
+        setAccounts(fetchedAccounts);
+
+        // If initialData exists, we might need to update form values once accounts are loaded
+        if (initialData) {
+          if (initialData.comptePrincipal) {
+            const acc = fetchedAccounts.find(a => a.id === initialData.comptePrincipal || a.noCompte === initialData.comptePrincipal);
+            if (acc) form.setValue('comptePrincipal', acc.noCompte);
+          }
+          if (initialData.contreparties) {
+            initialData.contreparties.forEach((cp, index) => {
+              const acc = fetchedAccounts.find(a => a.id === cp.compte || a.noCompte === cp.compte);
+              if (acc) form.setValue(`contreparties.${index}.compte`, acc.noCompte);
+            });
+          }
+        }
       } catch (error) {
         console.error("Failed to fetch form dependencies:", error);
       } finally {
         setIsLoadingJournals(false);
-        setIsLoadingAccounts(false);
       }
     };
     fetchData();
-  }, []);
+  }, [initialData]);
 
   const form = useForm<OperationComptableDto>({
     defaultValues: initialData || {
@@ -170,6 +115,24 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
   });
 
   const onSubmit = (data: OperationComptableDto) => {
+    // Validation for account existence
+    const invalidAccounts: string[] = [];
+
+    if (data.comptePrincipal && !accounts.some(acc => acc.noCompte === data.comptePrincipal)) {
+      invalidAccounts.push(data.comptePrincipal);
+    }
+
+    data.contreparties?.forEach(cp => {
+      if (cp.compte && !accounts.some(acc => acc.noCompte === cp.compte)) {
+        invalidAccounts.push(cp.compte);
+      }
+    });
+
+    if (invalidAccounts.length > 0) {
+      toast.error(`Le(s) compte(s) suivant(s) n'existe(nt) pas : ${invalidAccounts.join(', ')}`);
+      return;
+    }
+
     const validContreparties = data.contreparties?.filter(cp => cp.compte && cp.compte.trim() !== '');
 
     const cleanData = {
@@ -320,12 +283,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                     <FormItem>
                       <FormLabel>Compte principal <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <AccountSelector
-                          value={field.value}
-                          onChange={field.onChange}
-                          accounts={accounts}
-                          placeholder="ex. 571100"
-                        />
+                        <Input {...field} placeholder="ex. 571100" className="font-mono" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -412,12 +370,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                             <FormItem>
                               <FormLabel>Compte contrepartie <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
-                                <AccountSelector
-                                  value={field.value}
-                                  onChange={field.onChange}
-                                  accounts={accounts}
-                                  placeholder="ex. 411100"
-                                />
+                                <Input {...field} placeholder="ex. 411100" className="font-mono" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
