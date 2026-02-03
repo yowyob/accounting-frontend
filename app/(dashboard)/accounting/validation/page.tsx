@@ -127,16 +127,11 @@ export default function AccountingValidationPage() {
     : null;
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Validation des Écritures</h1>
-            <p className="text-gray-500">Validez les écritures comptables en attente.</p>
-          </div>
-          <Button onClick={fetchData} variant="outline" size="icon">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+    <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Validation des Écritures</h2>
+          <p className="text-sm text-gray-500">Validez les écritures comptables en attente.</p>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
