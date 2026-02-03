@@ -1,123 +1,226 @@
-// app/(dashboard)/accounting/journals/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { JournalComptableListView } from '@/components/accounting/journal-comptable-list-view';
 import { JournalComptableDetailView } from '@/components/accounting/journal-comptable-detail-view';
-import { useCompose } from '@/hooks/use-compose-store';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function JournalComptablePage() {
   const [journals, setJournals] = useState<JournalComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJournalId, setSelectedJournalId] = useState<string | null>(null);
-  const [journalToDelete, setJournalToDelete] = useState<JournalComptableDto | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { onOpen, onClose: closeCompose } = useCompose();
-
-  const fetchAndSetJournals = useCallback(async () => {
+  const fetchJournals = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const response = await JournalManagementService.getAllJournals();
-      setJournals(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Failed to fetch journals:", error);
-      setJournals([]);
-      toast.error("Échec du chargement des journaux");
+      const response = await AccountingJournalManagementService.getAllJournals();
+      if (response && response.data) {
+        setJournals(response.data);
+      } else {
+        setJournals([]);
+      }
+    } catch (err: any) {
+      let reason = "Impossible de charger les journaux.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
+
+      console.error("Failed to fetch journals:", err);
+      toast.error('Erreur lors du chargement', {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+      setError('Impossible de charger les journaux comptables. Veuillez vérifier votre connexion internet.');
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchAndSetJournals();
-  }, [fetchAndSetJournals]);
+    fetchJournals();
+  }, [fetchJournals]);
 
   const handleSave = async (data: JournalComptableDto) => {
-    const isNew = !data.id;
     try {
-      if (isNew) {
-        await JournalManagementService.createJournal(data);
-        toast.success("Journal créé avec succès");
+      if (data.id) {
+        await AccountingJournalManagementService.updateJournal(data.id, data);
+        toast.success('Journal mis à jour avec succès', {
+          description: `Le journal ${data.codeJournal} a été modifié.`,
+          className: "bg-green-50 border-green-200 text-green-800"
+        });
       } else {
-        await JournalManagementService.updateJournal(data.id!, data);
-        toast.success("Journal mis à jour avec succès");
+        await AccountingJournalManagementService.createJournal(data);
+        toast.success('Journal créé avec succès', {
+          description: `Le nouveau journal ${data.codeJournal} a été ajouté.`,
+          className: "bg-green-50 border-green-200 text-green-800"
+        });
       }
-      closeCompose();
+      await fetchJournals();
       setSelectedJournalId(null);
-      await fetchAndSetJournals();
-    } catch (error) {
-      console.error("Failed to save journal:", error);
-      toast.error("Erreur lors de l'enregistrement du journal");
+      setIsEditing(false);
+    } catch (err: any) {
+      let reason = "Une erreur inattendue est survenue.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
+
+      toast.error("Erreur lors de l'enregistrement", {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
     }
   };
 
-  const confirmDelete = async () => {
-    if (!journalToDelete?.id) return;
+  const confirmDelete = (journal: JournalComptableDto) => {
+    if (journal.id) setDeleteId(journal.id);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
     try {
-      await JournalManagementService.deleteJournal(journalToDelete.id);
-      toast.success("Journal supprimé avec succès");
-      await fetchAndSetJournals();
-      if (selectedJournalId === journalToDelete.id) {
+      await AccountingJournalManagementService.deleteJournal(deleteId);
+      toast.success('Journal supprimé', {
+        description: 'Le journal a été retiré avec succès.',
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+      await fetchJournals();
+      if (selectedJournalId === deleteId) {
         setSelectedJournalId(null);
+        setIsEditing(false);
       }
-    } catch (error) {
-      console.error("Failed to delete journal:", error);
-      toast.error("Erreur lors de la suppression du journal");
-    } finally {
-      setJournalToDelete(null);
-    }
-  };
+    } catch (err: any) {
+      let reason = "Impossible de supprimer ce journal.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
 
-  const handleOpenCompose = (journal?: JournalComptableDto) => {
-    onOpen({
-      title: journal ? "Modifier le Journal" : "Nouveau Journal",
-      content: (
-        <JournalComptableDetailView
-          journal={journal || null}
-          onSave={handleSave}
-          onDelete={() => {
-            if (journal) {
-              setJournalToDelete(journal);
-              closeCompose();
-            }
-          }}
-          onBack={closeCompose}
-        />
-      ),
-    });
+      toast.error("Erreur de suppression", {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+    } finally {
+      setDeleteId(null);
+    }
   };
 
   const handleSelectJournal = (id: string) => {
-    const journal = journals.find(j => j.id === id);
-    if (journal) handleOpenCompose(journal);
+    setSelectedJournalId(id);
+    setIsEditing(false);
   };
+
+  const handleEditJournal = (id: string) => {
+    setSelectedJournalId(id);
+    setIsEditing(true);
+  };
+
+  const handleAddNew = () => {
+    setSelectedJournalId('new');
+    setIsEditing(true);
+  };
+
+  const handleBack = () => {
+    setSelectedJournalId(null);
+    setIsEditing(false);
+  };
+
+  const selectedJournal = selectedJournalId === 'new' ? null : journals.find(j => j.id === selectedJournalId);
+
+  if (selectedJournalId) {
+    return (
+      <div className="min-h-screen p-4 bg-gray-100">
+        <div className="w-full max-w-5xl mx-auto">
+          <JournalComptableDetailView
+            journal={selectedJournal || null}
+            onSave={handleSave}
+            onBack={handleBack}
+            onDelete={() => selectedJournal && confirmDelete(selectedJournal)}
+            forceEdit={isEditing}
+            onEdit={() => setIsEditing(true)}
+          />
+        </div>
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Cela supprimera définitivement le journal
+                et pourrait affecter les écritures associées.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">
-      <div className="w-full bg-white p-6 rounded-lg shadow-lg">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Journaux Comptables</h2>
+          <p className="text-sm text-gray-500">Gérez vos journaux auxiliaires (Ventes, Achats, Banque, Caisse, OD).</p>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <JournalComptableListView
           journals={journals}
           isLoading={isLoading}
           onSelectJournal={handleSelectJournal}
-          onEditJournal={handleSelectJournal}
-          onDeleteJournal={setJournalToDelete}
-          onAddNew={() => handleOpenCompose()}
-          onRefresh={fetchAndSetJournals}
+          onEditJournal={handleEditJournal}
+          onDeleteJournal={confirmDelete}
+          onAddNew={handleAddNew}
+          onRefresh={fetchJournals}
+          selectedId={selectedJournalId || undefined}
         />
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Cela supprimera définitivement le journal
+                et pourrait affecter les écritures associées.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-      {journalToDelete && (
-        <ConfirmationDialog
-          isOpen={!!journalToDelete}
-          onClose={() => setJournalToDelete(null)}
-          onConfirm={confirmDelete}
-          title={`Supprimer le journal ${journalToDelete.libelle} ?`}
-          description="Cette action est irréversible. Toutes les données associées seront définitivement supprimées."
-        />
-      )}
     </div>
   );
 }

@@ -35,7 +35,6 @@ interface PeriodeComptableDetailViewProps {
   periode: PeriodeComptableDto | null;
   onSave: (data: PeriodeComptableDto) => void;
   onClose: () => void;
-  onDelete: () => void;
   onBack: () => void;
 }
 
@@ -43,7 +42,6 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
   periode,
   onSave,
   onClose,
-  onDelete,
   onBack,
 }) => {
   const [exercices, setExercices] = React.useState<ExerciceComptableDto[]>([]);
@@ -220,10 +218,6 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
               <Button variant="outline" type="button" onClick={handleClose} className="text-orange-600 border-orange-200 hover:bg-orange-50">
                 <Lock className="mr-2 h-4 w-4" />
                 Clôturer
-              </Button>
-              <Button variant="destructive" type="button" onClick={onDelete}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Supprimer
               </Button>
             </>
           )}

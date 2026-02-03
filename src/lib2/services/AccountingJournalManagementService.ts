@@ -9,7 +9,7 @@ import type { JournalComptableDto } from '../models/JournalComptableDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class JournalManagementService {
+export class AccountingJournalManagementService {
     /**
      * Get journal by ID
      * @param id

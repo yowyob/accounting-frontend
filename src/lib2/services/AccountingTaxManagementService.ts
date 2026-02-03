@@ -9,7 +9,7 @@ import type { TaxeDto } from '../models/TaxeDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
-export class TaxManagementService {
+export class AccountingTaxManagementService {
     /**
      * Get tax by ID
      * @param id

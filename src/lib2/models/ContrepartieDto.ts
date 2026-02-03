@@ -4,10 +4,10 @@
 /* eslint-disable */
 export type ContrepartieDto = {
     id?: string;
-    compte: string;
     sens: string;
     notes?: string;
     operationComptableId: string;
+    compteId: string;
     estCompteTiers: boolean;
     typeMontant: string;
     journalComptableId: string;

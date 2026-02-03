@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { EcritureComptableReadView } from '@/components/accounting/ecriture-comptable-read-view';
@@ -30,7 +30,7 @@ export default function EcritureComptableDetailsPage() {
         try {
             const [entryRes, journalsRes, accountsRes] = await Promise.all([
                 AccountingEntriesService.getById1(id),
-                JournalManagementService.getAllJournals(),
+                AccountingJournalManagementService.getAllJournals(),
                 AccountingPlanComptableService.getAllPlanComptables()
             ]);
 

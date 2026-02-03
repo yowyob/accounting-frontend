@@ -1,166 +1,171 @@
-// app/(dashboard)/accounting/modes-paiement/page.tsx
 "use client";
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { ModePaiement } from '@/types/accounting';
-
-// --- Vraies importations API (pour plus tard) ---
-// import { getModesPaiement, createModePaiement, updateModePaiement, deleteModePaiement } from '@/lib/api'; 
-
 import { ModePaiementListView } from '@/components/accounting/mode-paiement-list-view';
 import { ModePaiementForm } from '@/components/accounting/settings/mode-paiement-form';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { useCompose } from '@/hooks/use-compose-store';
+import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// --- Données Mockées (Actuellement utilisées) ---
+// --- Mocks kept for consistency with original file ---
 const mockModes: ModePaiement[] = [
   { id: '1', name: 'Compte UBA', type: 'banque', journalId: '521100' },
   { id: '2', name: 'Caisse Principale', type: 'especes', journalId: '571100' },
   { id: '3', name: 'Orange Money', type: 'mobile_money', journalId: '573100' },
 ];
-// -------------------------------------
 
 export default function ModesPaiementPage() {
-  // --- États (configurés pour les mocks) ---
-  const [modes, setModes] = useState<ModePaiement[]>(mockModes); 
-  const [isLoading, setIsLoading] = useState(false); 
-  
-  // --- Vrais états (à décommenter plus tard) ---
-  // const [modes, setModes] = useState<ModePaiement[]>([]);
-  // const [isLoading, setIsLoading] = useState(true);
-  
-  const [modeToDelete, setModeToDelete] = useState<ModePaiement | null>(null);
+  const [modes, setModes] = useState<ModePaiement[]>(mockModes);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedModeId, setSelectedModeId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { onOpen, onClose: closeCompose } = useCompose();
-
-  // --- useEffect (commenté pour utiliser les mocks) ---
-  // useEffect(() => {
-  //   fetchAndSetModes();
-  // }, []);
-
-  // --- Fonction de chargement (simulée pour les mocks) ---
-  const fetchAndSetModes = useCallback(async () => {
-    console.log("Simulation du rafraîchissement");
+  const fetchModes = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
+    // Simulate fetch
     setTimeout(() => {
-      setModes(mockModes); 
+      setModes(mockModes);
       setIsLoading(false);
     }, 500);
   }, []);
 
-  /* // --- Vraie fonction de chargement API (pour plus tard) ---
-  const fetchAndSetModes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // const response = await getModesPaiement();
-      // setModes(Array.isArray(response.data) ? response.data : []);
-    } catch (error) {
-      console.error("Failed to fetch modes:", error);
-      setModes([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-  */
+  // Initial fetch handled by mock state, but kept for future structure
+  useEffect(() => {
+    // fetchModes();
+  }, [fetchModes]);
 
-  // --- Fonction de sauvegarde (simulée pour les mocks) ---
   const handleSave = async (data: ModePaiement) => {
-    const isNew = !data.id;
-    if (isNew) {
-      const created = { ...data, id: Math.random().toString() };
-      setModes((prev) => [...prev, created]);
-    } else {
-      setModes((prev) => prev.map(m => m.id === data.id ? data : m));
-    }
-    closeCompose();
-  };
-
-  /*
-  // --- Vraie fonction de sauvegarde API (pour plus tard) ---
-  const handleSave = async (data: ModePaiement) => {
-    const isNew = !data.id;
     try {
+      // Mock save logic
+      const isNew = !data.id;
       if (isNew) {
-        // await createModePaiement(data);
+        const created = { ...data, id: Math.random().toString() };
+        setModes((prev) => [...prev, created]);
+        toast.success('Mode de paiement créé');
       } else {
-        // await updateModePaiement(data.id!, data);
+        setModes((prev) => prev.map(m => m.id === data.id ? data : m));
+        toast.success('Mode de paiement mis à jour');
       }
-      await fetchAndSetModes(); 
-      closeCompose();
-    } catch (error) {
-      console.error("Failed to save mode:", error);
+      setSelectedModeId(null);
+      setIsEditing(false);
+    } catch (err: any) {
+      toast.error("Erreur lors de l'enregistrement");
     }
   };
-  */
 
-  // --- Fonction de suppression (simulée pour les mocks) ---
-  const confirmDelete = async () => {
-    if (!modeToDelete?.id) return;
-    setModes((prev) => prev.filter(m => m.id !== modeToDelete.id));
-    setModeToDelete(null);
+  const confirmDelete = (mode: ModePaiement) => {
+    if (mode.id) setDeleteId(mode.id);
   };
 
-  /*
-  // --- Vraie fonction de suppression API (pour plus tard) ---
-  const confirmDelete = async () => {
-    if (!modeToDelete?.id) return;
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
     try {
-      // await deleteModePaiement(modeToDelete.id);
-      await fetchAndSetModes(); 
-    } catch (error) {
-      console.error("Failed to delete mode:", error);
+      setModes((prev) => prev.filter(m => m.id !== deleteId));
+      toast.success('Mode de paiement supprimé');
+      if (selectedModeId === deleteId) {
+        setSelectedModeId(null);
+        setIsEditing(false);
+      }
+    } catch (err: any) {
+      toast.error("Erreur de suppression");
     } finally {
-      setModeToDelete(null);
+      setDeleteId(null);
     }
   };
-  */
 
-  // --- Fonctions pour ouvrir la modale ---
+  const handleSelectMode = (id: string) => {
+    setSelectedModeId(id);
+    setIsEditing(false);
+  };
+
+  const handleEditMode = (id: string) => {
+    setSelectedModeId(id);
+    setIsEditing(true);
+  };
+
   const handleAddNew = () => {
-    onOpen({
-      title: "Nouveau Mode de Paiement",
-      content: <ModePaiementForm
-        initialData={{}}
-        onSave={handleSave}
-        onCancel={closeCompose}
-      />
-    });
+    setSelectedModeId('new');
+    setIsEditing(true);
   };
 
-  const handleEdit = (id: string) => {
-    const modeToEdit = modes.find(m => m.id === id);
-    if (!modeToEdit) return;
-
-    onOpen({
-      title: "Modifier le Mode de Paiement",
-      content: <ModePaiementForm
-        initialData={modeToEdit}
-        onSave={handleSave}
-        onCancel={closeCompose}
-      />
-    });
+  const handleBack = () => {
+    setSelectedModeId(null);
+    setIsEditing(false);
   };
 
-  // --- Rendu ---
+  const selectedMode = selectedModeId === 'new' ? null : modes.find(m => m.id === selectedModeId);
+
+  if (selectedModeId) {
+    return (
+      <div className="min-h-screen p-4 bg-gray-100">
+        <div className="w-full max-w-5xl mx-auto">
+          <ModePaiementForm
+            initialData={selectedMode || {}}
+            onSave={handleSave}
+            onCancel={handleBack}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <ModePaiementListView
-        modes={modes}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={setModeToDelete}
-        onAddNew={handleAddNew}
-        onRefresh={fetchAndSetModes}
-      />
-      {modeToDelete && (
-        <ConfirmationDialog
-          isOpen={!!modeToDelete}
-          onClose={() => setModeToDelete(null)}
-          onConfirm={confirmDelete}
-          title={`Supprimer ${modeToDelete.name} ?`}
-          description="Cette action est irréversible."
+    <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Modes de Paiement</h2>
+          <p className="text-sm text-gray-500">Gérez les différents moyens de paiement acceptés.</p>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <ModePaiementListView
+          modes={modes}
+          isLoading={isLoading}
+          onEdit={handleEditMode}
+          onDelete={confirmDelete}
+          onAddNew={handleAddNew}
+          onRefresh={fetchModes}
         />
-      )}
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

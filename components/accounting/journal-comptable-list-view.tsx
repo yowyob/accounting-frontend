@@ -1,8 +1,10 @@
 // components/accounting/journal-comptable-list-view.tsx
 "use client";
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 import {
   Table,
   TableHeader,
@@ -12,7 +14,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
-import { Edit, Trash2, Plus, RefreshCw } from 'lucide-react';
+import { Edit, Trash2, RefreshCw, Search, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 
@@ -24,6 +26,7 @@ interface JournalComptableListViewProps {
   onDeleteJournal: (journal: JournalComptableDto) => void;
   onAddNew: () => void;
   onRefresh: () => void;
+  selectedId?: string;
 }
 
 const RowActions = ({ journal, onEdit, onDelete }: {
@@ -63,64 +66,103 @@ export const JournalComptableListView: React.FC<JournalComptableListViewProps> =
   onDeleteJournal,
   onAddNew,
   onRefresh,
+  selectedId,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+
+  // Filter journals
+  const filteredJournals = useMemo(() => {
+    return journals.filter(journal => {
+      const matchesSearch =
+        journal.codeJournal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        journal.libelle?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [journals, searchQuery]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouveau Journal
-        </Button>
-        <Button onClick={onRefresh} variant="outline" size="icon">
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </Button>
+      {/* Toolbar with search, filters, and buttons */}
+      <div className="space-y-4">
+        {/* Top Row: Search */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Rechercher..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Row: Action buttons (New left, Refresh right) */}
+        <div className="flex items-center justify-between">
+          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau Journal
+          </Button>
+          <Button onClick={onRefresh} variant="outline" size="icon">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Code</TableHead>
-            <TableHead>Libellé</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader className="bg-gray-50/50">
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-gray-400 font-medium italic">Chargement des journaux...</TableCell>
+              <TableHead className="font-bold text-gray-900">Code</TableHead>
+              <TableHead className="font-bold text-gray-900">Libellé</TableHead>
+              <TableHead className="font-bold text-gray-900">Type</TableHead>
+              <TableHead className="font-bold text-gray-900">Statut</TableHead>
+              <TableHead className="text-right font-bold text-gray-900 px-6">Actions</TableHead>
             </TableRow>
-          ) : journals.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={5} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg font-medium italic">Aucun journal trouvé.</TableCell>
-            </TableRow>
-          ) : (
-            journals.map((journal) => (
-              <TableRow
-                key={journal.id}
-                className="group hover:bg-gray-50/50 cursor-pointer"
-                onClick={() => onSelectJournal(journal.id!)}
-              >
-                <TableCell className="font-medium text-gray-900">{journal.codeJournal}</TableCell>
-                <TableCell>{journal.libelle}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
-                    {journal.typeJournal}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={journal.actif ? 'default' : 'secondary'} className={journal.actif ? 'bg-green-100 text-green-700 hover:bg-green-200 border-none' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>
-                    {journal.actif ? 'Actif' : 'Inactif'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <RowActions journal={journal} onEdit={onEditJournal} onDelete={onDeleteJournal} />
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-gray-400 font-medium italic">
+                  Chargement des journaux...
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : filteredJournals.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-10 text-gray-400 font-medium italic">Aucun journal trouvé.</TableCell>
+              </TableRow>
+            ) : (
+              filteredJournals.map((journal) => (
+                <TableRow
+                  key={journal.id}
+                  className={`group hover:bg-blue-50/50 cursor-pointer transition-colors ${selectedId === journal.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
+                  onClick={() => onSelectJournal(journal.id!)}
+                >
+                  <TableCell className="font-mono font-bold text-gray-700">{journal.codeJournal}</TableCell>
+                  <TableCell className="font-medium">{journal.libelle}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
+                      {journal.typeJournal}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={journal.actif ? 'default' : 'secondary'} className={journal.actif ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}>
+                      {journal.actif ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right px-6">
+                    <RowActions journal={journal} onEdit={onEditJournal} onDelete={onDeleteJournal} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

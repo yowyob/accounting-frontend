@@ -14,7 +14,7 @@ export function MainNav({ links }: MainNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="grid gap-1 p-2">
+    <nav className="grid gap-1.5">
       {links.map((link, index) => {
         const isActive = pathname === link.href;
         return (
@@ -22,12 +22,22 @@ export function MainNav({ links }: MainNavProps) {
             key={index}
             href={link.href}
             className={cn(
-              "flex items-center gap-3 rounded-r-full rounded-l-none px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200/50",
-              isActive ? "bg-blue-100 text-blue-800 font-semibold hover:bg-blue-100" : "hover:bg-gray-200"
+              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              isActive
+                ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
+                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
             )}
           >
-            <link.icon className={cn("h-5 w-5", isActive ? "text-blue-700" : "text-gray-600")} />
+            <link.icon
+              className={cn(
+                "h-4 w-4 transition-colors duration-200",
+                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+              )}
+            />
             {link.title}
+            {isActive && (
+              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            )}
           </Link>
         );
       })}

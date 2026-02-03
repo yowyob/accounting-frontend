@@ -11,17 +11,18 @@ import React, { useEffect } from 'react';
 interface CustomerFormProps {
     initialData: Partial<Client> | null;
     onSave: (data: Client) => void;
+    onCancel: () => void;
 }
 
-export function CustomerForm({ initialData, onSave }: CustomerFormProps) {
+export function CustomerForm({ initialData, onSave, onCancel }: CustomerFormProps) {
     const form = useForm<Client>({
         defaultValues: initialData || { companyName: '', code: '', contactPerson: '', phone: '', email: '', isActive: true, isTaxable: true, balance: 0 },
     });
-    
+
     useEffect(() => {
         form.reset(initialData || { companyName: '', code: '', contactPerson: '', phone: '', email: '', isActive: true, isTaxable: true, balance: 0 });
     }, [initialData, form]);
-    
+
     const onSubmit = (data: Client) => {
         onSave(data);
     };
@@ -50,7 +51,7 @@ export function CustomerForm({ initialData, onSave }: CustomerFormProps) {
                     <FormField control={form.control} name="notes" render={({ field }) => (
                         <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>
                     )} />
-                     <div className="flex items-center space-x-8 pt-4">
+                    <div className="flex items-center space-x-8 pt-4">
                         <FormField control={form.control} name="isTaxable" render={({ field }) => (
                             <FormItem className="flex items-center gap-2 space-y-0"><FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Assujeti à la TVA</FormLabel></FormItem>
                         )} />
@@ -60,7 +61,10 @@ export function CustomerForm({ initialData, onSave }: CustomerFormProps) {
                     </div>
                 </div>
 
-                <div className="p-4 border-t bg-gray-50 flex justify-end">
+                <div className="p-4 border-t bg-gray-50 flex justify-end gap-2">
+                    <Button type="button" variant="outline" onClick={onCancel}>
+                        Retour
+                    </Button>
                     <Button type="submit" disabled={form.formState.isSubmitting}>
                         <Save size={16} className="mr-2" />
                         <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>

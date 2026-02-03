@@ -41,6 +41,29 @@ export class AccountingTaxDeclarationsService {
         });
     }
     /**
+     * Auto-generate a tax declaration for a period
+     * @param type
+     * @param start
+     * @param end
+     * @returns ApiResponseWrapperDeclarationFiscaleDto OK
+     * @throws ApiError
+     */
+    public static generate(
+        type: string,
+        start: string,
+        end: string,
+    ): CancelablePromise<ApiResponseWrapperDeclarationFiscaleDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/accounting/tax-declarations/generate',
+            query: {
+                'type': type,
+                'start': start,
+                'end': end,
+            },
+        });
+    }
+    /**
      * Get a tax declaration by ID
      * @param id
      * @returns ApiResponseWrapperDeclarationFiscaleDto OK

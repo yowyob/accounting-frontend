@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { Save, PlusCircle, Trash2, ChevronDown } from 'lucide-react';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+
+import { Save, PlusCircle, Trash2, ChevronDown, Check, Search, AlertCircle } from 'lucide-react';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { CompteDto } from '@/src/lib2/models/CompteDto';
@@ -32,54 +33,31 @@ import {
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { ContrepartieDto } from '@/src/lib2/models/ContrepartieDto';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { AccountAutocomplete } from '../account-autocomplete';
 
 interface OperationFormProps {
   initialData: Partial<OperationComptableDto> | null;
-  onSave: (data: OperationComptableDto) => void;
+  onSave: (data: OperationComptableDto, journalIds: string[]) => void;
   onCancel: () => void;
 }
 
-export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSave, onCancel }) => {
+export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, onSave, onCancel }) => {
   const [journals, setJournals] = useState<JournalComptableDto[]>([]);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [accounts, setAccounts] = useState<CompteDto[]>([]);
-
-  const getAccountNumber = (accountId: string) => {
-    const account = accounts.find(acc => acc.id === accountId || acc.noCompte === accountId);
-    return account ? account.noCompte : accountId;
-  };
-
-  const getAccountId = (accountNo: string) => {
-    const account = accounts.find(acc => acc.noCompte === accountNo || acc.id === accountNo);
-    return account ? account.id : accountNo;
-  };
+  const [selectedJournalId, setSelectedJournalId] = useState<string>('');
+  const isSyncRef = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [journalsRes, accountsRes] = await Promise.all([
-          JournalManagementService.getActiveJournals(),
+          AccountingJournalManagementService.getActiveJournals(),
           AccountingComptesService.getAllComptes()
         ]);
-        const fetchedJournals = Array.isArray(journalsRes.data) ? journalsRes.data : [];
-        const fetchedAccounts = Array.isArray(accountsRes.data) ? accountsRes.data : [];
-
-        setJournals(fetchedJournals);
-        setAccounts(fetchedAccounts);
-
-        // If initialData exists, we might need to update form values once accounts are loaded
-        if (initialData) {
-          if (initialData.comptePrincipal) {
-            const acc = fetchedAccounts.find(a => a.id === initialData.comptePrincipal || a.noCompte === initialData.comptePrincipal);
-            if (acc) form.setValue('comptePrincipal', acc.noCompte);
-          }
-          if (initialData.contreparties) {
-            initialData.contreparties.forEach((cp, index) => {
-              const acc = fetchedAccounts.find(a => a.id === cp.compte || a.noCompte === cp.compte);
-              if (acc) form.setValue(`contreparties.${index}.compte`, acc.noCompte);
-            });
-          }
-        }
+        setJournals(Array.isArray(journalsRes.data) ? journalsRes.data : []);
+        setAccounts(Array.isArray(accountsRes.data) ? accountsRes.data : []);
       } catch (error) {
         console.error("Failed to fetch form dependencies:", error);
       } finally {
@@ -87,24 +65,29 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
       }
     };
     fetchData();
-  }, [initialData]);
+  }, []);
+
+
+
+
 
   const form = useForm<OperationComptableDto>({
     defaultValues: initialData || {
       typeOperation: 'VENTE',
       modeReglement: 'ESPECE',
       sensPrincipal: 'DEBIT',
-      comptePrincipal: '',
+      comptePrincipalId: '',
       estCompteStatique: true,
-      typeMontant: 'Toutes Taxes Comprises',
+      typeMontant: 'TTC',
       journalComptableId: '',
       actif: true,
       contreparties: [{
-        compte: '',
+        compteId: '',
         estCompteTiers: false,
         typeMontant: 'TTC',
         journalComptableId: '',
         sens: 'DEBIT',
+        operationComptableId: '',
       } as ContrepartieDto],
     },
   });
@@ -114,49 +97,57 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
     name: "contreparties"
   });
 
-  const onSubmit = (data: OperationComptableDto) => {
-    // Validation for account existence
-    const invalidAccounts: string[] = [];
-
-    if (data.comptePrincipal && !accounts.some(acc => acc.noCompte === data.comptePrincipal)) {
-      invalidAccounts.push(data.comptePrincipal);
-    }
-
-    data.contreparties?.forEach(cp => {
-      if (cp.compte && !accounts.some(acc => acc.noCompte === cp.compte)) {
-        invalidAccounts.push(cp.compte);
+  useEffect(() => {
+    if (initialData && accounts.length > 0 && !isSyncRef.current) {
+      if (initialData.comptePrincipalId) {
+        const acc = accounts.find(a => a.id === initialData.comptePrincipalId || a.noCompte === initialData.comptePrincipalId);
+        if (acc) form.setValue('comptePrincipalId', acc.noCompte);
       }
-    });
+      if (initialData.contreparties) {
+        initialData.contreparties.forEach((cp, index) => {
+          const acc = accounts.find(a => a.id === cp.compteId || a.noCompte === cp.compteId);
+          if (acc) form.setValue(`contreparties.${index}.compteId`, acc.noCompte);
+        });
+      }
+      if (initialData.journalComptableId) {
+        setSelectedJournalId(initialData.journalComptableId);
+      }
+      isSyncRef.current = true;
+    }
+  }, [initialData, accounts, form]);
 
-    if (invalidAccounts.length > 0) {
-      toast.error(`Le(s) compte(s) suivant(s) n'existe(nt) pas : ${invalidAccounts.join(', ')}`);
+  const onSubmit = (data: OperationComptableDto) => {
+    if (!selectedJournalId) {
+      toast.error("Veuillez sélectionner un journal");
       return;
     }
 
-    const validContreparties = data.contreparties?.filter(cp => cp.compte && cp.compte.trim() !== '');
+    const getAccountId = (accountNo: string) => {
+      const account = accounts.find(acc => acc.noCompte === accountNo || acc.id === accountNo);
+      return account ? account.id : accountNo;
+    };
 
-    const cleanData = {
+    const finalData: OperationComptableDto = {
       ...data,
       id: data.id || undefined,
-      journalComptableId: data.journalComptableId || undefined,
-      contreparties: validContreparties?.map(cp => ({
+      comptePrincipalId: getAccountId(data.comptePrincipalId),
+      journalComptableId: selectedJournalIds[0] || '',
+      contreparties: data.contreparties?.filter(cp => cp.compteId?.trim())?.map(cp => ({
         ...cp,
         id: cp.id || undefined,
-        journalComptableId: cp.journalComptableId || data.journalComptableId || undefined,
-        operationComptableId: cp.operationComptableId || undefined,
-      }))
-    } as any;
+        compteId: getAccountId(cp.compteId),
+        journalComptableId: cp.journalComptableId || selectedJournalId || '',
+        operationComptableId: cp.operationComptableId || '',
+      })) as ContrepartieDto[]
+    };
 
-    onSave(cleanData);
+    onSave(finalData, [selectedJournalId]);
   };
-
-  const contreparties = form.watch('contreparties');
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col rounded-lg shadow-lg bg-white overflow-hidden">
         <div className="flex-1 overflow-y-auto p-8 space-y-6">
-
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-auto rounded-none p-0 mb-8 border-b">
               <TabsTrigger
@@ -174,7 +165,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
             </TabsList>
 
             <TabsContent value="general" className="space-y-6 mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                 <FormField
                   control={form.control}
                   name="typeOperation"
@@ -182,7 +173,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Quand on : <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner" />
@@ -206,7 +197,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Mode de règlement <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner" />
@@ -225,14 +216,14 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                 <FormField
                   control={form.control}
                   name="sensPrincipal"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>On doit<span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner" />
@@ -250,22 +241,38 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 <FormField
                   control={form.control}
                   name="journalComptableId"
-                  rules={{ required: "Requis" }}
+                  rules={{ required: "Le journal est requis" }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Dans le journal <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>Journal <span className="text-red-500">*</span></FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setSelectedJournalId(value);
+                        }}
+                        value={selectedJournalId || field.value || undefined}
+                      >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder={isLoadingJournals ? "Chargement..." : "Sélectionner"} />
+                            <SelectValue placeholder="Sélectionner un journal" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {journals.map((journal) => (
-                            <SelectItem key={journal.id} value={journal.id!}>
-                              {journal.codeJournal} - {journal.libelle}
-                            </SelectItem>
-                          ))}
+                          {isLoadingJournals ? (
+                            <div className="p-2 text-sm text-gray-400 italic">Chargement...</div>
+                          ) : journals.length === 0 ? (
+                            <div className="p-2 text-sm text-gray-400 italic">Aucun journal trouvé</div>
+                          ) : (
+                            journals.map((journal) => (
+                              <SelectItem key={journal.id} value={journal.id!}>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-bold text-xs">{journal.codeJournal}</span>
+                                  <span className="text-gray-500">-</span>
+                                  <span className="text-xs">{journal.libelle}</span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -274,16 +281,21 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 min-w-0">
                 <FormField
                   control={form.control}
-                  name="comptePrincipal"
+                  name="comptePrincipalId"
                   rules={{ required: "Requis" }}
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Compte principal <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="ex. 571100" className="font-mono" />
+                        <AccountAutocomplete
+                          value={field.value}
+                          onChange={field.onChange}
+                          accounts={accounts}
+                          placeholder="ex. 571100"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -295,16 +307,16 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Type de montant <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionner" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="TTC">Montant Toutes Taxes Comprises</SelectItem>
-                          <SelectItem value="HT">Montant Hors Taxes</SelectItem>
-                          <SelectItem value="TVA">Montant Taxe sur la Valeur Ajoutée</SelectItem>
+                          <SelectItem value="TTC">TTC</SelectItem>
+                          <SelectItem value="HT">HT</SelectItem>
+                          <SelectItem value="TVA">TVA</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -317,10 +329,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                 control={form.control}
                 name="estCompteStatique"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-gray-50/30">
                     <div className="space-y-0.5">
                       <FormLabel>Compte statique</FormLabel>
-                      <FormDescription>Cochez pour un compte qui ne varie pas (ex: caisse).</FormDescription>
+                      <FormDescription>Cochez pour un compte qui ne varie pas.</FormDescription>
                     </div>
                     <FormControl>
                       <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -333,9 +345,9 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
             <TabsContent value="comptes" className="space-y-6 mt-0">
               <div className="flex items-center justify-between pb-2 border-b">
                 <h3 className="text-sm font-bold uppercase tracking-wider text-gray-500">Contreparties</h3>
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ compte: '', estCompteTiers: false, typeMontant: 'TTC', journalComptableId: '', sens: 'DEBIT' } as ContrepartieDto)} className="border-blue-500 text-blue-600 hover:bg-blue-50">
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ compteId: '', estCompteTiers: false, typeMontant: 'TTC', journalComptableId: '', sens: 'DEBIT', operationComptableId: '' } as ContrepartieDto)} className="border-blue-500 text-blue-600 hover:bg-blue-50">
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Ajouter un compte
+                  Ajouter
                 </Button>
               </div>
 
@@ -345,7 +357,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                     <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">#{index + 1}</div>
-                        <span className="text-sm font-medium">{contreparties[index]?.compte || "Nouveau compte..."}</span>
+                        <span className="text-sm font-medium">{form.getValues(`contreparties.${index}.compteId`) || "Nouveau..."}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Button
@@ -364,15 +376,19 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <FormField
                           control={form.control}
-                          name={`contreparties.${index}.compte`}
+                          name={`contreparties.${index}.compteId`}
                           rules={{ required: "Requis" }}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Compte contrepartie <span className="text-red-500">*</span></FormLabel>
+                              <FormLabel>Compte <span className="text-red-500">*</span></FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="ex. 411100" className="font-mono" />
+                                <AccountAutocomplete
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  accounts={accounts}
+                                  placeholder="ex. 411100"
+                                />
                               </FormControl>
-                              <FormMessage />
                             </FormItem>
                           )}
                         />
@@ -381,10 +397,8 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           name={`contreparties.${index}.estCompteTiers`}
                           render={({ field }) => (
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-white">
-                              <FormLabel className="text-xs">Compte tiers</FormLabel>
-                              <FormControl>
-                                <Switch checked={field.value} onCheckedChange={field.onChange} />
-                              </FormControl>
+                              <FormLabel className="text-xs">Tiers</FormLabel>
+                              <Switch checked={field.value} onCheckedChange={field.onChange} />
                             </FormItem>
                           )}
                         />
@@ -396,7 +410,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Action</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
                                   <SelectItem value="DEBIT">Débiter</SelectItem>
@@ -412,7 +426,7 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Montant</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                 <SelectContent>
                                   <SelectItem value="TTC">TTC</SelectItem>
@@ -429,10 +443,10 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Journal</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder={isLoadingJournals ? "..." : "Sélectionner"} />
+                                    <SelectValue placeholder="..." />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -453,25 +467,18 @@ export const OperationForm: React.FC<OperationFormProps> = ({ initialData, onSav
               </div>
             </TabsContent>
           </Tabs>
-
         </div>
 
         <div className="p-4 border-t flex justify-end bg-gray-50 rounded-b-lg gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             ANNULER
           </Button>
-          <Button
-            type="submit"
-            className="bg-[#007bff] hover:bg-[#0069d9]"
-            disabled={form.formState.isSubmitting}
-          >
+          <Button type="submit" className="bg-[#007bff] hover:bg-[#0069d9]" disabled={form.formState.isSubmitting}>
             <Save size={16} className="mr-2" />
-            <span>
-              {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
-            </span>
+            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer"}</span>
           </Button>
         </div>
       </form>
     </Form>
   );
-};
+});

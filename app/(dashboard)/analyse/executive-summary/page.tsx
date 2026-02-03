@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,11 +9,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Search } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Download, RefreshCw, AlertCircle, PieChart, TrendingUp, Wallet, ShieldCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { getPeriodeComptables } from '@/lib/api';
-import { PeriodeComptable } from '@/types/accounting';
 
 interface SummaryData {
   section: string;
@@ -23,12 +22,12 @@ interface SummaryData {
 
 const staticSummaryData: SummaryData[] = [
   // Bilan
-  { section: 'Actifs', total: 350000, description: 'Total des actifs' },
-  { section: 'Passifs', total: -1250000, description: 'Total des passifs' },
-  { section: 'Capitaux Propres', total: -1150000, description: 'Total des capitaux propres' },
+  { section: 'Actifs', total: 3500000, description: 'Total des actifs' },
+  { section: 'Passifs', total: 1250000, description: 'Total des passifs' },
+  { section: 'Capitaux Propres', total: 2250000, description: 'Total des capitaux propres' },
   // Compte de Résultat
   { section: 'Produits', total: 2000000, description: 'Total des produits' },
-  { section: 'Charges', total: -700000, description: 'Total des charges' },
+  { section: 'Charges', total: 700000, description: 'Total des charges' },
   { section: 'Résultat Net', total: 1300000, description: 'Résultat net de l\'exercice' },
   // Flux de Trésorerie
   { section: 'Opérationnel', total: 570000, description: 'Flux opérationnels' },
@@ -38,207 +37,208 @@ const staticSummaryData: SummaryData[] = [
 ];
 
 export default function GeneralSummaryPage() {
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
+  const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
+
+  const fetchPeriodesData = useCallback(async () => {
+    setIsLoadingPeriods(true);
+    try {
+      const data = await getPeriodeComptables();
+      setPeriodes(data);
+      if (data.length > 0 && !selectedPeriodeId) {
+        setSelectedPeriodeId(data[0].id || null);
+      }
+    } catch (error) {
+      console.error('Error fetching periods:', error);
+      toast.error("Erreur lors de la récupération des périodes");
+    } finally {
+      setIsLoadingPeriods(false);
+    }
+  }, [selectedPeriodeId]);
 
   useEffect(() => {
-    const fetchPeriodes = async () => {
-      try {
-        const response = await getPeriodeComptables();
-        if (Array.isArray(response.data)) {
-          setPeriodes(response.data);
-          if (response.data.length > 0) setSelectedPeriodeId(response.data[0].id);
-        } else {
-          setPeriodes([]);
-          setError('Données de périodes invalides reçues du serveur.');
-        }
-      } catch (error) {
-        console.error('Error fetching periods:', error);
-        setPeriodes([]);
-        setError('Le serveur est temporairement indisponible. Veuillez réessayer plus tard.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchPeriodes();
-  }, []);
+    fetchPeriodesData();
+  }, [fetchPeriodesData]);
 
   const handleGeneratePDF = () => {
-    const pdfContent = `
-      Résumé Général - ${new Date().toLocaleDateString('fr-FR')}
-      ${staticSummaryData.map(item => `${item.section}: ${item.total.toLocaleString()} XAF - ${item.description}`).join('\n')}
-    `;
-    console.log('PDF Content:', pdfContent);
-    alert('PDF généré - Contenu dans la console');
+    toast.info("L'export PDF sera disponible prochainement");
   };
 
   const handleGenerateXLSX = () => {
-    const xlsxContent = staticSummaryData.map(item => ({
-      Section: item.section,
-      Total: item.total.toLocaleString(),
-      Description: item.description,
-    }));
-    console.log('XLSX Content:', xlsxContent);
-    alert('XLSX généré - Contenu dans la console');
+    toast.info("L'export XLSX sera disponible prochainement");
   };
 
-  const handleRetry = () => {
-    setIsLoading(true);
-    setError(null);
-    setPeriodes([]);
-  };
-
-  if (isLoading) return <div className="text-center py-10 text-gray-500">Chargement...</div>;
+  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Résumé Général</h1>
+    <div className="min-h-screen p-6 bg-gray-50/30">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Résumé Exécutif</h1>
+            <p className="text-gray-500 mt-2">Vue d'ensemble synthétique des indicateurs financiers clés (Mock).</p>
+          </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGeneratePDF}>
+            <Button variant="outline" onClick={handleGeneratePDF} disabled={!selectedPeriodeId}>
               <Download className="h-4 w-4 mr-2" /> PDF
             </Button>
-            <Button variant="outline" onClick={handleGenerateXLSX}>
+            <Button variant="outline" onClick={handleGenerateXLSX} disabled={!selectedPeriodeId}>
               <Download className="h-4 w-4 mr-2" /> XLSX
             </Button>
           </div>
         </div>
 
-        <div className="space-y-4">
-          {error && (
-            <div className="text-center py-4 bg-red-100 text-red-700 rounded-md">
-              {error}
-              <Button variant="link" onClick={handleRetry} className="ml-2 text-blue-600">Réessayer</Button>
-            </div>
-          )}
-          <div className="flex gap-4 items-center">
-            <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId} disabled={!!error}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Sélectionner une période" />
-              </SelectTrigger>
-              <SelectContent>
-                {periodes.map((periode) => (
-                  <SelectItem key={periode.id} value={periode.id!}>
-                    {periode.code} - {periode.cloturee}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="relative w-64">
-              <Input
-                placeholder="Rechercher..."
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={!!error}
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            </div>
-          </div>
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 flex gap-3 text-amber-700 text-sm">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p>
+            <strong>Avertissement :</strong> Ce tableau de bord est en mode prévisualisation. Les indicateurs sont calculés sur la base de données de démonstration (Mock) pour la période sélectionnée.
+          </p>
+        </div>
+
+        <div className="flex gap-4 items-center">
+          <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId}>
+            <SelectTrigger className="w-72">
+              <SelectValue placeholder="Sélectionner une période" />
+            </SelectTrigger>
+            <SelectContent>
+              {periodes.map((periode) => (
+                <SelectItem key={periode.id} value={periode.id!}>
+                  {periode.code} ({new Date(periode.dateDebut).toLocaleDateString()} - {new Date(periode.dateFin).toLocaleDateString()})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button variant="ghost" size="icon" onClick={fetchPeriodesData} title="Rafraîchir les périodes">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-white border-none shadow-sm overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                  <PieChart className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest bg-blue-50/50 px-2 py-1 rounded">Actifs</span>
+              </div>
+              <h3 className="text-2xl font-black text-gray-900">3.5M</h3>
+              <p className="text-xs text-gray-400 mt-1">Valeur totale du patrimoine</p>
+            </CardContent>
+            <div className="h-1 bg-blue-500 w-full" />
+          </Card>
+
+          <Card className="bg-white border-none shadow-sm overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50/50 px-2 py-1 rounded">Chiffre d'affaires</span>
+              </div>
+              <h3 className="text-2xl font-black text-gray-900">2.0M</h3>
+              <p className="text-xs text-gray-400 mt-1">Total des produits générés</p>
+            </CardContent>
+            <div className="h-1 bg-emerald-500 w-full" />
+          </Card>
+
+          <Card className="bg-white border-none shadow-sm overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                  <Wallet className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-bold text-purple-500 uppercase tracking-widest bg-purple-50/50 px-2 py-1 rounded">Trésorerie</span>
+              </div>
+              <h3 className="text-2xl font-black text-gray-900">520K</h3>
+              <p className="text-xs text-gray-400 mt-1">Variation nette de cash</p>
+            </CardContent>
+            <div className="h-1 bg-purple-500 w-full" />
+          </Card>
+
+          <Card className="bg-white border-none shadow-sm overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest bg-indigo-50/50 px-2 py-1 rounded">Résultat Net</span>
+              </div>
+              <h3 className="text-2xl font-black text-gray-900">1.3M</h3>
+              <p className="text-xs text-gray-400 mt-1">Bénéfice net après charges</p>
+            </CardContent>
+            <div className="h-1 bg-indigo-500 w-full" />
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Répartition Bilan</CardTitle>
+              <CardDescription>Comparaison Actif / Passif / Capitaux</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Actifs</span>
+                  <span className="font-bold">3 500 000 XAF</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-blue-500 h-full w-[100%]" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Passifs</span>
+                  <span className="font-bold">1 250 000 XAF</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-red-500 h-full w-[35%]" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Capitaux Propres</span>
+                  <span className="font-bold">2 250 000 XAF</span>
+                </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-indigo-500 h-full w-[65%]" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Résumé Général - Période 2025</span>
-                <span className="text-sm text-gray-500">
-                  {selectedPeriodeId ? `Période: ${periodes.find(p => p.id === selectedPeriodeId)?.code}` : 'Aucune période sélectionnée'}
-                </span>
-              </CardTitle>
+              <CardTitle className="text-lg">Performance Opérationnelle</CardTitle>
+              <CardDescription>Produits vs Charges vs Résultat</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Bilan */}
-                <div>
-                  <h2 className="text-xl font-semibold text-blue-600 border-b-2 border-blue-200 pb-2">Bilan</h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Section</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Description</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {staticSummaryData.filter(item => ['Actifs', 'Passifs', 'Capitaux Propres'].includes(item.section)).map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.section}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.total >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.total.toLocaleString()} XAF
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-right">Total Bilan (Actifs)</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{staticSummaryData.find(item => item.section === 'Actifs')?.total.toLocaleString()} XAF</td>
-                        </tr>
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-right">Total Passifs + Capitaux Propres</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{(staticSummaryData.find(item => item.section === 'Passifs')!.total + staticSummaryData.find(item => item.section === 'Capitaux Propres')!.total).toLocaleString()} XAF</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total Produits</span>
+                  <span className="font-bold">2 000 000 XAF</span>
                 </div>
-
-                {/* Compte de Résultat */}
-                <div>
-                  <h2 className="text-xl font-semibold text-green-600 border-b-2 border-green-200 pb-2">Compte de Résultat</h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Section</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Description</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {staticSummaryData.filter(item => ['Produits', 'Charges', 'Résultat Net'].includes(item.section)).map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.section}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.total >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.total.toLocaleString()} XAF
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-emerald-500 h-full w-[100%]" />
                 </div>
-
-                {/* Flux de Trésorerie */}
-                <div>
-                  <h2 className="text-xl font-semibold text-purple-600 border-b-2 border-purple-200 pb-2">Flux de Trésorerie</h2>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Section</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Description</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {staticSummaryData.filter(item => ['Opérationnel', 'Investissement', 'Financement', 'Flux Net'].includes(item.section)).map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.section}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.total >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.total.toLocaleString()} XAF
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Total Charges</span>
+                  <span className="font-bold">700 000 XAF</span>
                 </div>
+                <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-orange-500 h-full w-[35%]" />
+                </div>
+              </div>
+              <div className="mt-8 p-4 bg-emerald-50 rounded-lg border border-emerald-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold text-emerald-800 uppercase tracking-tighter">Marge Nette</span>
+                </div>
+                <span className="text-2xl font-black text-emerald-900">65%</span>
               </div>
             </CardContent>
           </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Select,
   SelectContent,
@@ -11,9 +11,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Search } from 'lucide-react';
+import { Download, Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import { getPeriodeComptables } from '@/lib/api';
-import { PeriodeComptable } from '@/types/accounting';
 
 interface CashFlowData {
   code: string;
@@ -37,60 +37,38 @@ const staticCashFlowData: CashFlowData[] = [
 ];
 
 export default function CashFlowPage() {
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
+  const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchPeriodesData = useCallback(async () => {
+    setIsLoadingPeriods(true);
+    try {
+      const data = await getPeriodeComptables();
+      setPeriodes(data);
+      if (data.length > 0 && !selectedPeriodeId) {
+        setSelectedPeriodeId(data[0].id || null);
+      }
+    } catch (error) {
+      console.error('Error fetching periods:', error);
+      toast.error("Erreur lors de la récupération des périodes");
+    } finally {
+      setIsLoadingPeriods(false);
+    }
+  }, [selectedPeriodeId]);
 
   useEffect(() => {
-    const fetchPeriodes = async () => {
-      try {
-        const response = await getPeriodeComptables();
-        if (Array.isArray(response.data)) {
-          setPeriodes(response.data);
-          if (response.data.length > 0) setSelectedPeriodeId(response.data[0].id);
-        } else {
-          setPeriodes([]);
-          setError('Données de périodes invalides reçues du serveur.');
-        }
-      } catch (error) {
-        console.error('Error fetching periods:', error);
-        setPeriodes([]);
-        setError('Le serveur est temporairement indisponible. Veuillez réessayer plus tard.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchPeriodes();
-  }, []);
+    fetchPeriodesData();
+  }, [fetchPeriodesData]);
 
   const handleGeneratePDF = () => {
-    const pdfContent = `
-      Tableau des Flux de Trésorerie - ${new Date().toLocaleDateString('fr-FR')}
-      ${staticCashFlowData.map(item => `${item.code} - ${item.description}: ${item.amount.toLocaleString()} XAF`).join('\n')}
-      Flux Net: ${totalFluxNet.toLocaleString()} XAF
-    `;
-    console.log('PDF Content:', pdfContent);
-    alert('PDF généré - Contenu dans la console');
+    toast.info("L'export PDF sera disponible prochainement pour ce rapport");
   };
 
   const handleGenerateXLSX = () => {
-    const xlsxContent = staticCashFlowData.map(item => ({
-      Code: item.code,
-      Description: item.description,
-      Montant: item.amount.toLocaleString(),
-    }));
-    console.log('XLSX Content:', xlsxContent);
-    alert('XLSX généré - Contenu dans la console');
+    toast.info("L'export XLSX sera disponible prochainement");
   };
-
-  const handleRetry = () => {
-    setIsLoading(true);
-    setError(null);
-    setPeriodes([]);
-  };
-
-  if (isLoading) return <div className="text-center py-10 text-gray-500">Chargement...</div>;
 
   const operationnel = staticCashFlowData.filter(item => item.category === 'operationnel');
   const investissement = staticCashFlowData.filter(item => item.category === 'investissement');
@@ -101,37 +79,40 @@ export default function CashFlowPage() {
   const totalFinancement = financement.reduce((sum, item) => sum + item.amount, 0);
   const totalFluxNet = totalOperationnel + totalInvestissement + totalFinancement;
 
+  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+
   return (
     <div className="min-h-screen p-4 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Tableau des Flux de Trésorerie</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Flux de Trésorerie</h1>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGeneratePDF}>
+            <Button variant="outline" onClick={handleGeneratePDF} disabled={!selectedPeriodeId}>
               <Download className="h-4 w-4 mr-2" /> PDF
             </Button>
-            <Button variant="outline" onClick={handleGenerateXLSX}>
+            <Button variant="outline" onClick={handleGenerateXLSX} disabled={!selectedPeriodeId}>
               <Download className="h-4 w-4 mr-2" /> XLSX
             </Button>
           </div>
         </div>
 
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 flex gap-3 text-blue-700 text-sm">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p>
+            <strong>Note :</strong> La génération automatique des flux de trésorerie est en cours de développement. Les données affichées ci-dessous sont des exemples illustratifs (Mock) pour la période sélectionnée.
+          </p>
+        </div>
+
         <div className="space-y-4">
-          {error && (
-            <div className="text-center py-4 bg-red-100 text-red-700 rounded-md">
-              {error}
-              <Button variant="link" onClick={handleRetry} className="ml-2 text-blue-600">Réessayer</Button>
-            </div>
-          )}
           <div className="flex gap-4 items-center">
-            <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId} disabled={!!error}>
+            <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId}>
               <SelectTrigger className="w-64">
                 <SelectValue placeholder="Sélectionner une période" />
               </SelectTrigger>
               <SelectContent>
                 {periodes.map((periode) => (
                   <SelectItem key={periode.id} value={periode.id!}>
-                    {periode.code} - {periode.cloturee}
+                    {periode.code} ({new Date(periode.dateDebut).toLocaleDateString()} - {new Date(periode.dateFin).toLocaleDateString()})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -139,50 +120,50 @@ export default function CashFlowPage() {
             <div className="relative w-64">
               <Input
                 placeholder="Rechercher..."
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                disabled={!!error}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300"
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </div>
+            <Button variant="ghost" size="icon" onClick={fetchPeriodesData} title="Rafraîchir les périodes">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="flex justify-between items-center">
-                <span>Tableau des Flux de Trésorerie - Période 2025</span>
-                <span className="text-sm text-gray-500">
-                  {selectedPeriodeId ? `Période: ${periodes.find(p => p.id === selectedPeriodeId)?.code}` : 'Aucune période sélectionnée'}
-                </span>
+            <CardHeader className="bg-white border-b">
+              <CardTitle className="flex justify-between items-center text-sm font-semibold uppercase tracking-wider text-gray-400">
+                <span>Tableau des flux - État au {selectedPeriodeId ? new Date(periodes.find(p => p.id === selectedPeriodeId)?.dateFin || '').toLocaleDateString('fr-FR') : '...'}</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-8">
+              <div className="space-y-8 mt-6">
                 {/* Activités opérationnelles */}
                 <div>
-                  <h2 className="text-xl font-semibold text-green-600 border-b-2 border-green-200 pb-2">Activités Opérationnelles (Total: {totalOperationnel.toLocaleString()} XAF)</h2>
+                  <h2 className="text-lg font-semibold text-emerald-700 border-b pb-2 mb-4">Activités Opérationnelles</h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Intitulé</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Montant</th>
+                        <tr className="bg-gray-50 border-b">
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Code</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Intitulé</th>
+                          <th className="px-4 py-3 text-right font-medium text-gray-600">Montant</th>
                         </tr>
                       </thead>
                       <tbody>
                         {operationnel.map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.code}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.amount.toLocaleString()} XAF
+                          <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 font-mono text-gray-500">{item.code}</td>
+                            <td className="px-4 py-3 font-medium text-gray-900">{item.description}</td>
+                            <td className={`px-4 py-3 text-right font-bold ${item.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {item.amount.toLocaleString()}
                             </td>
                           </tr>
                         ))}
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-right">Sous-Total Opérationnel</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{totalOperationnel.toLocaleString()} XAF</td>
+                        <tr className="bg-emerald-50/50 font-bold border-t-2 border-emerald-100">
+                          <td colSpan={2} className="px-4 py-3 text-right text-emerald-900 uppercase text-xs tracking-wider">Flux opérationnel net</td>
+                          <td className="px-4 py-3 text-right text-emerald-700">{totalOperationnel.toLocaleString()}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -191,30 +172,29 @@ export default function CashFlowPage() {
 
                 {/* Activités d'investissement */}
                 <div>
-                  <h2 className="text-xl font-semibold text-red-600 border-b-2 border-red-200 pb-2">Activités d&#39;Investissement (Total: {totalInvestissement.toLocaleString()} XAF)</h2>
+                  <h2 className="text-lg font-semibold text-blue-700 border-b pb-2 mb-4">Activités d'Investissement</h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Intitulé</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Montant</th>
+                        <tr className="bg-gray-50 border-b">
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Code</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Intitulé</th>
+                          <th className="px-4 py-3 text-right font-medium text-gray-600">Montant</th>
                         </tr>
                       </thead>
                       <tbody>
                         {investissement.map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.code}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.amount.toLocaleString()} XAF
+                          <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 font-mono text-gray-500">{item.code}</td>
+                            <td className="px-4 py-3 font-medium text-gray-900">{item.description}</td>
+                            <td className={`px-4 py-3 text-right font-bold ${item.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {item.amount.toLocaleString()}
                             </td>
                           </tr>
                         ))}
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-right">Sous-Total Investissement</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{totalInvestissement.toLocaleString()} XAF</td>
+                        <tr className="bg-blue-50/50 font-bold border-t-2 border-blue-100">
+                          <td colSpan={2} className="px-4 py-3 text-right text-blue-900 uppercase text-xs tracking-wider">Flux d'investissement net</td>
+                          <td className="px-4 py-3 text-right text-blue-700">{totalInvestissement.toLocaleString()}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -223,30 +203,29 @@ export default function CashFlowPage() {
 
                 {/* Activités de financement */}
                 <div>
-                  <h2 className="text-xl font-semibold text-purple-600 border-b-2 border-purple-200 pb-2">Activités de Financement (Total: {totalFinancement.toLocaleString()} XAF)</h2>
+                  <h2 className="text-lg font-semibold text-purple-700 border-b pb-2 mb-4">Activités de Financement</h2>
                   <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 mt-2">
+                    <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-100">
-                          <th className="border border-gray-300 px-4 py-2 text-left">Code</th>
-                          <th className="border border-gray-300 px-4 py-2 text-left">Intitulé</th>
-                          <th className="border border-gray-300 px-4 py-2 text-right">Montant</th>
+                        <tr className="bg-gray-50 border-b">
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Code</th>
+                          <th className="px-4 py-3 text-left font-medium text-gray-600">Intitulé</th>
+                          <th className="px-4 py-3 text-right font-medium text-gray-600">Montant</th>
                         </tr>
                       </thead>
                       <tbody>
                         {financement.map((item, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="border border-gray-300 px-4 py-2 font-mono">{item.code}</td>
-                            <td className="border border-gray-300 px-4 py-2">{item.description}</td>
-                            <td className={`border border-gray-300 px-4 py-2 text-right font-bold ${item.amount >= 0 ? 'text-green-600' : 'text-red-600'
-                              }`}>
-                              {item.amount.toLocaleString()} XAF
+                          <tr key={index} className="border-b hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-3 font-mono text-gray-500">{item.code}</td>
+                            <td className="px-4 py-3 font-medium text-gray-900">{item.description}</td>
+                            <td className={`px-4 py-3 text-right font-bold ${item.amount >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              {item.amount.toLocaleString()}
                             </td>
                           </tr>
                         ))}
-                        <tr className="bg-gray-200 font-bold">
-                          <td colSpan={2} className="border border-gray-300 px-4 py-2 text-right">Sous-Total Financement</td>
-                          <td className="border border-gray-300 px-4 py-2 text-right">{totalFinancement.toLocaleString()} XAF</td>
+                        <tr className="bg-purple-50/50 font-bold border-t-2 border-purple-100">
+                          <td colSpan={2} className="px-4 py-3 text-right text-purple-900 uppercase text-xs tracking-wider">Flux de financement net</td>
+                          <td className="px-4 py-3 text-right text-purple-700">{totalFinancement.toLocaleString()}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -254,11 +233,13 @@ export default function CashFlowPage() {
                 </div>
 
                 {/* Résumé */}
-                <div className="mt-4 text-right text-lg font-bold">
-                  <p>Opérationnel: {totalOperationnel.toLocaleString()} XAF</p>
-                  <p>Investissement: {totalInvestissement.toLocaleString()} XAF</p>
-                  <p>Financement: {totalFinancement.toLocaleString()} XAF</p>
-                  <p className="text-purple-600">Flux Net: {totalFluxNet.toLocaleString()} XAF</p>
+                <div className="pt-6 border-t flex flex-col items-end gap-1">
+                  <div className="flex gap-8 text-sm">
+                    <span className="text-gray-500 uppercase tracking-widest text-[10px] font-bold">Variation nette de trésorerie</span>
+                    <span className={`text-xl w-32 text-right font-black ${totalFluxNet >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {totalFluxNet.toLocaleString()} XAF
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>

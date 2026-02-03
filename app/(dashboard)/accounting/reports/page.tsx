@@ -1,142 +1,136 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
-  getPeriodeComptables,
-  generateReport,
-} from '@/lib/api';
-import { PeriodeComptable } from '@/types/accounting';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Download, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+  Download,
+  RefreshCw,
+  FileText,
+  BarChart3,
+  BookOpen,
+  Scale,
+  ShieldCheck,
+  ArrowRight,
+  TrendingUp,
+  Wallet
+} from 'lucide-react';
+import Link from 'next/link';
+
+interface ReportCardProps {
+  title: string;
+  description: string;
+  href: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+function ReportCard({ title, description, href, icon, color }: ReportCardProps) {
+  return (
+    <Link href={href}>
+      <Card className="hover:shadow-md transition-all group border-l-4" style={{ borderLeftColor: color }}>
+        <CardHeader className="flex flex-row items-center gap-4 pb-2">
+          <div className="p-2 rounded-lg bg-gray-50 group-hover:scale-110 transition-transform">
+            {icon}
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-lg">{title}</CardTitle>
+          </div>
+          <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-gray-600 transition-colors" />
+        </CardHeader>
+        <CardContent>
+          <CardDescription className="text-xs leading-relaxed">
+            {description}
+          </CardDescription>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
 
 export default function AccountingReportsPage() {
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
-  const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
-  const [reportType, setReportType] = useState<'BALANCE_SHEET' | 'LEDGER' | 'PERIOD_SUMMARY'>('BALANCE_SHEET');
-  const [isLoading, setIsLoading] = useState(true);
-  const [reportData, setReportData] = useState<string | null>(null);
-
-  const fetchPeriodes = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await getPeriodeComptables();
-      setPeriodes(Array.isArray(response.data) ? response.data : []);
-      if (response.data.length > 0) setSelectedPeriodeId(response.data[0].id);
-    } catch (error) {
-      console.error("Failed to fetch periods:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPeriodes();
-  }, [fetchPeriodes]);
-
-  const handleGenerateReport = async () => {
-    if (!selectedPeriodeId) return;
-    setIsLoading(true);
-    try {
-      const response = await generateReport({
-        periodeId: selectedPeriodeId,
-        reportType,
-      });
-      setReportData(response.data || 'Rapport généré avec succès. Téléchargement simulé.');
-    } catch (error) {
-      console.error("Failed to generate report:", error);
-      setReportData('Erreur lors de la génération du rapport.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Génération de Rapports</h1>
-          <Button onClick={fetchPeriodes} variant="outline" disabled={isLoading}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Rafraîchir
-          </Button>
+    <div className="min-h-screen p-6 bg-gray-50/50">
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Centre de Rapports</h1>
+          <p className="text-gray-500 mt-2">Accédez à l'ensemble de vos états financiers et analyses d'audit.</p>
         </div>
 
-        {isLoading ? (
-          <div className="text-center py-10 text-gray-500">Chargement...</div>
-        ) : (
-          <>
-            <Card>
-              <CardHeader>
-                <CardTitle>Paramètres du Rapport</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Période</label>
-                    <Select
-                      onValueChange={setSelectedPeriodeId}
-                      value={selectedPeriodeId || undefined}
-                      disabled={isLoading || periodes.length === 0}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoading ? "Chargement..." : "Sélectionner une période"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {periodes.map((periode) => (
-                          <SelectItem key={periode.id} value={periode.id!}>
-                            {periode.code} - {periode.cloturee}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Type de Rapport</label>
-                    <Select onValueChange={(value) => setReportType(value as unknown)} value={reportType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="BALANCE_SHEET">Bilan</SelectItem>
-                        <SelectItem value="LEDGER">Grand Livre</SelectItem>
-                        <SelectItem value="PERIOD_SUMMARY">Résumé des Périodes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <Button
-                  onClick={handleGenerateReport}
-                  disabled={isLoading || !selectedPeriodeId}
-                  className="w-full md:w-auto"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Générer le Rapport
-                </Button>
-              </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <ReportCard
+            title="Bilan"
+            description="Visualisez l'état du patrimoine de l'entreprise (Actifs vs Passifs) à un instant T."
+            href="/analyse/balance-sheet"
+            icon={<Scale className="h-6 w-6 text-blue-600" />}
+            color="#2563eb"
+          />
+          <ReportCard
+            title="Compte de Résultat"
+            description="Analysez la performance de votre activité, les produits générés et les charges consommées."
+            href="/analyse/profit-and-loss"
+            icon={<TrendingUp className="h-6 w-6 text-emerald-600" />}
+            color="#059669"
+          />
+          <ReportCard
+            title="Grand Livre"
+            description="Détail exhaustif de tous les mouvements par compte comptable sur une période donnée."
+            href="/analyse/generale-ledger"
+            icon={<BookOpen className="h-6 w-6 text-indigo-600" />}
+            color="#4f46e5"
+          />
+          <ReportCard
+            title="Balance des Comptes"
+            description="Vérification de l'équilibre entre les débits et les crédits pour chaque compte."
+            href="/analyse/generale-balance"
+            icon={<BarChart3 className="h-6 w-6 text-amber-600" />}
+            color="#d97706"
+          />
+          <ReportCard
+            title="Journal d'Audit"
+            description="Tracez toutes les actions effectuées dans le système pour une transparence totale."
+            href="/analyse/audits"
+            icon={<ShieldCheck className="h-6 w-6 text-red-600" />}
+            color="#dc2626"
+          />
+          <ReportCard
+            title="Flux de Trésorerie"
+            description="Suivez les entrées et sorties de cash réelles par nature d'activité."
+            href="/analyse/cache-flow"
+            icon={<Wallet className="h-6 w-6 text-purple-600" />}
+            color="#9333ea"
+          />
+          {/* <ReportCard 
+            title="Tableau de Bord Exécutif"
+            description="Vision synthétique des indicateurs clés de performance (KPI)."
+            href="/analyse/executive-summary"
+            icon={<FileText className="h-6 w-6 text-gray-600" />}
+            color="#4b5563"
+          /> */}
+        </div>
 
-            {reportData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Résultat du Rapport</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <pre className="bg-gray-100 p-4 rounded-lg overflow-auto">
-                    {reportData}
-                  </pre>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        )}
+        <div className="bg-white p-6 rounded-xl border shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">Fonctionnalités avancées</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm text-gray-600">
+            <div className="flex gap-4">
+              <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-blue-50">
+                <Download className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Export Multi-Format</p>
+                <p>Tous les rapports peuvent être exportés en PDF pour vos présentations ou en XLSX pour vos retraitements.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="h-10 w-10 shrink-0 flex items-center justify-center rounded-full bg-emerald-50">
+                <RefreshCw className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Temps Réel</p>
+                <p>Les données sont calculées instantanément lors de la génération pour refléter vos dernières saisies.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

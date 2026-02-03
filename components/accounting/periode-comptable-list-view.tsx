@@ -1,7 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
 import {
   Table,
   TableHeader,
@@ -11,7 +13,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
-import { Edit, Trash2, Plus, Lock, RefreshCw } from 'lucide-react';
+import { Edit, Lock, RefreshCw, Search, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
@@ -21,17 +23,16 @@ interface PeriodeComptableListViewProps {
   isLoading: boolean;
   onSelectPeriode: (id: string) => void;
   onEditPeriode: (id: string) => void;
-  onDeletePeriode: (periode: PeriodeComptableDto) => void;
   onClosePeriode: (id: string) => void;
   onAddNew: () => void;
   onRefresh: () => void;
   exercices?: ExerciceComptableDto[];
+  selectedId?: string;
 }
 
-const RowActions = ({ periode, onEdit, onDelete, onClose }: {
+const RowActions = ({ periode, onEdit, onClose }: {
   periode: PeriodeComptableDto;
   onEdit: (id: string) => void;
-  onDelete: (periode: PeriodeComptableDto) => void;
   onClose: (id: string) => void;
 }) => {
   return (
@@ -57,16 +58,6 @@ const RowActions = ({ periode, onEdit, onDelete, onClose }: {
             <TooltipContent><p>Modifier</p></TooltipContent>
           </Tooltip>
         )}
-        {!periode.cloturee && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(periode); }}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent><p>Supprimer</p></TooltipContent>
-          </Tooltip>
-        )}
       </TooltipProvider>
     </div>
   );
@@ -77,82 +68,118 @@ export const PeriodeComptableListView: React.FC<PeriodeComptableListViewProps> =
   isLoading,
   onSelectPeriode,
   onEditPeriode,
-  onDeletePeriode,
   onClosePeriode,
   onAddNew,
   onRefresh,
   exercices = [],
+  selectedId,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+
   const getExerciceCode = (exerciceId?: string) => {
     if (!exerciceId) return '-';
     const ex = exercices.find(e => e.id === exerciceId);
     return ex ? ex.code : '-';
   };
 
+  // Filter periodes
+  const filteredPeriodes = useMemo(() => {
+    return periodes.filter(periode => {
+      const matchesSearch =
+        periode.code?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      return matchesSearch;
+    });
+  }, [periodes, searchQuery]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Nouvelle Période
-        </Button>
-        <Button onClick={onRefresh} variant="outline" size="icon">
-          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </Button>
+      {/* Toolbar with search, filters, and buttons */}
+      <div className="space-y-4">
+        {/* Top Row: Search */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Rechercher..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Bottom Row: Action buttons (New left, Refresh right) */}
+        <div className="flex items-center justify-between">
+          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouvelle Période
+          </Button>
+          <Button onClick={onRefresh} variant="outline" size="icon">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Code</TableHead>
-            <TableHead>Exercice</TableHead>
-            <TableHead>Date Début</TableHead>
-            <TableHead>Date Fin</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader className="bg-gray-50/50">
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-10 text-gray-400 font-medium italic">Chargement des périodes...</TableCell>
+              <TableHead className="font-bold text-gray-900">Code</TableHead>
+              <TableHead className="font-bold text-gray-900">Exercice</TableHead>
+              <TableHead className="font-bold text-gray-900">Date Début</TableHead>
+              <TableHead className="font-bold text-gray-900">Date Fin</TableHead>
+              <TableHead className="font-bold text-gray-900">Statut</TableHead>
+              <TableHead className="text-right font-bold text-gray-900 px-6">Actions</TableHead>
             </TableRow>
-          ) : periodes.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">Aucune période trouvée.</TableCell>
-            </TableRow>
-          ) : (
-            periodes.map((periode) => (
-              <TableRow
-                key={periode.id}
-                className="group hover:bg-gray-50/50 cursor-pointer"
-                onClick={() => onSelectPeriode(periode.id || '')}
-              >
-                <TableCell className="font-medium text-gray-900">{periode.code}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
-                    {getExerciceCode(periode.exercice_id)}
-                  </Badge>
-                </TableCell>
-                <TableCell>{periode.dateDebut ? new Date(periode.dateDebut).toLocaleDateString('fr-FR') : '-'}</TableCell>
-                <TableCell>{periode.dateFin ? new Date(periode.dateFin).toLocaleDateString('fr-FR') : '-'}</TableCell>
-                <TableCell>
-                  <Badge variant={periode.cloturee ? 'secondary' : 'default'} className={periode.cloturee ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-green-100 text-green-700 hover:bg-green-200 border-none'}>
-                    {periode.cloturee ? 'Clôturée' : 'Ouverte'}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <RowActions
-                    periode={periode}
-                    onEdit={onEditPeriode}
-                    onDelete={onDeletePeriode}
-                    onClose={onClosePeriode}
-                  />
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-gray-400 font-medium italic">
+                  Chargement des périodes...
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : filteredPeriodes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-10 text-gray-400 font-medium italic">Aucune période trouvée.</TableCell>
+              </TableRow>
+            ) : (
+              filteredPeriodes.map((periode) => (
+                <TableRow
+                  key={periode.id}
+                  className={`group hover:bg-blue-50/50 cursor-pointer transition-colors ${selectedId === periode.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
+                  onClick={() => onSelectPeriode(periode.id || '')}
+                >
+                  <TableCell className="font-mono font-bold text-gray-700">{periode.code}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
+                      {getExerciceCode(periode.exercice_id)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-gray-500">{periode.dateDebut ? new Date(periode.dateDebut).toLocaleDateString('fr-FR') : '-'}</TableCell>
+                  <TableCell className="text-gray-500">{periode.dateFin ? new Date(periode.dateFin).toLocaleDateString('fr-FR') : '-'}</TableCell>
+                  <TableCell>
+                    <Badge variant={periode.cloturee ? 'secondary' : 'default'} className={periode.cloturee ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none'}>
+                      {periode.cloturee ? 'Clôturée' : 'Ouverte'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right px-6">
+                    <RowActions
+                      periode={periode}
+                      onEdit={onEditPeriode}
+                      onClose={onClosePeriode}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

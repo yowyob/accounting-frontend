@@ -146,6 +146,8 @@ export interface Devise {
   code: string;      // ex: "EUR"
   symbol: string;    // ex: "€"
   rate: number;      // Taux de change par rapport à votre devise principale
+  estNationale?: boolean;
+  isActive?: boolean;
 }
 
 // Nouveau type pour le menu déroulant "Type d'Opération"

@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Product } from '@/types/core';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,22 +12,22 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { Badge } from '../ui/badge';
 
 interface ProductListViewProps {
-    products: Product[];
+    products: CompteDto[];
     isLoading: boolean;
     onSelectProduct: (id: string) => void;
     onEditProduct: (id: string) => void;
-    onDeleteProduct: (product: Product) => void;
+    onDeleteProduct: (product: CompteDto) => void;
     onAddNew: () => void;
     onRefresh: () => void;
 }
 
-const RowActions = ({ product, onEdit, onDelete }: { product: Product, onEdit: (id: string) => void, onDelete: (product: Product) => void }) => {
+const RowActions = ({ product, onEdit, onDelete }: { product: CompteDto, onEdit: (id: string) => void, onDelete: (product: CompteDto) => void }) => {
     return (
         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <TooltipProvider>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(product.id || '')}>
                             <Edit className="h-4 w-4" />
                         </Button>
                     </TooltipTrigger>
@@ -47,37 +47,31 @@ const RowActions = ({ product, onEdit, onDelete }: { product: Product, onEdit: (
 };
 
 export function ProductListView({ products, isLoading, onSelectProduct, onEditProduct, onDeleteProduct, onAddNew, onRefresh }: ProductListViewProps) {
-    const columns: ColumnDef<Product>[] = [
+    const columns: ColumnDef<CompteDto>[] = [
         {
             id: 'select',
-            header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Tout sélectionner"/>,
-            cell: ({ row }) => <div className="group-hover:opacity-0 transition-opacity"><Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Sélectionner la ligne"/></div>,
+            header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Tout sélectionner" />,
+            cell: ({ row }) => <div className="group-hover:opacity-0 transition-opacity"><Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Sélectionner la ligne" /></div>,
         },
         {
-            accessorKey: 'name',
+            accessorKey: 'libelle',
             header: 'Article',
             cell: ({ row }) => (
-                <div className="font-medium hover:underline cursor-pointer" onClick={() => onSelectProduct(row.original.id)}>
-                    {row.original.name}
+                <div className="font-medium hover:underline cursor-pointer" onClick={() => onSelectProduct(row.original.id || '')}>
+                    {row.original.libelle}
                 </div>
             )
         },
-        { accessorKey: 'code', header: 'Code' },
-        { accessorKey: 'family', header: 'Famille' },
-        { 
-            accessorKey: 'stock', 
-            header: () => <div className="text-right">Stock</div>,
-            cell: ({ row }) => <div className="text-right font-medium">{row.original.stock}</div>,
-        },
-        { 
-            accessorKey: 'salePrice', 
-            header: () => <div className="text-right">Prix Vente</div>,
-            cell: ({ row }) => <div className="text-right">{row.original.salePrice.toLocaleString('fr-FR')}</div> 
+        { accessorKey: 'noCompte', header: 'Code' },
+        {
+            accessorKey: 'solde',
+            header: () => <div className="text-right">Valeur Stock</div>,
+            cell: ({ row }) => <div className="text-right font-medium">{(row.original.solde || 0).toLocaleString('fr-FR')}</div>,
         },
         {
-            accessorKey: 'isActive',
+            accessorKey: 'actif',
             header: 'Statut',
-            cell: ({ row }) => <Badge variant={row.original.isActive ? 'success' : 'secondary'}>{row.original.isActive ? 'Actif' : 'Inactif'}</Badge>
+            cell: ({ row }) => <Badge variant={row.original.actif ? 'success' : 'secondary'}>{row.original.actif ? 'Actif' : 'Inactif'}</Badge>
         },
         {
             id: 'actions',

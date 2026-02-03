@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { EcritureComptableReadView } from '@/components/accounting/ecriture-comptable-read-view';
@@ -35,7 +35,7 @@ export default function AccountingValidationPage() {
     try {
       const [entriesRes, journalsRes, accountsRes] = await Promise.all([
         AccountingEntriesService.getNonValidated(),
-        JournalManagementService.getAllJournals(),
+        AccountingJournalManagementService.getAllJournals(),
         AccountingPlanComptableService.getAllPlanComptables()
       ]);
 

@@ -22,12 +22,25 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
+import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
+import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
+import { EcritureComptableListView } from './ecriture-comptable-list-view';
+import { OperationComptableListView } from './operation-comptable-list-view';
+import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+
+import { JournalComptableReadView } from './journal-comptable-read-view';
+import { Edit } from 'lucide-react';
 
 interface JournalComptableDetailViewProps {
   journal: JournalComptableDto | null;
   onSave: (data: JournalComptableDto) => void;
   onDelete: () => void;
   onBack: () => void;
+  onEdit?: () => void;
+  forceEdit?: boolean;
 }
 
 export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProps> = ({
@@ -35,7 +48,11 @@ export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProp
   onSave,
   onDelete,
   onBack,
+  onEdit,
+  forceEdit = false,
 }) => {
+  const [isEditing, setIsEditing] = useState(forceEdit || !journal);
+
   const form = useForm<JournalComptableDto>({
     defaultValues: journal || {
       codeJournal: '',
@@ -48,139 +65,153 @@ export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProp
 
   const onSubmit = (data: JournalComptableDto) => {
     onSave(data);
+    if (journal) setIsEditing(false);
   };
+
+  if (!isEditing && journal) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center px-1">
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Retour
+          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEdit || (() => setIsEditing(true))}
+              className="text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100"
+            >
+              <Edit className="h-4 w-4 mr-2" /> Modifier
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onDelete}
+              className="text-red-600 border-red-200 bg-red-50 hover:bg-red-100"
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Supprimer
+            </Button>
+          </div>
+        </div>
+
+        <JournalComptableReadView journal={journal} />
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col rounded-lg shadow-lg bg-white overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-8 space-y-6">
-          <Tabs defaultValue="general" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 h-auto rounded-none p-0 mb-8 border-b">
-              <TabsTrigger
-                value="general"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 py-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
-              >
-                GÉNÉRAL
-              </TabsTrigger>
-              <TabsTrigger
-                value="advanced"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-blue-500 py-3 font-semibold text-gray-500 data-[state=active]:text-blue-600"
-              >
-                AUTRES PARAMÈTRES
-              </TabsTrigger>
-            </TabsList>
+        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+          {journal && !forceEdit && (
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} className="mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" /> Retour à la vue lecture
+            </Button>
+          )}
 
-            <TabsContent value="general" className="space-y-6 mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="codeJournal"
-                  rules={{ required: "Le code est requis" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Code Journal <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="EX: ACH" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="libelle"
-                  rules={{ required: "Le libellé est requis" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Libellé <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="EX: Journal des achats" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="typeJournal"
-                  rules={{ required: "Le type est requis" }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Type Journal <span className="text-red-500">*</span></FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sélectionner un type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="ACHAT">Achat</SelectItem>
-                          <SelectItem value="VENTE">Vente</SelectItem>
-                          <SelectItem value="BANQUE">Banque</SelectItem>
-                          <SelectItem value="CAISSE">Caisse</SelectItem>
-                          <SelectItem value="DIVERS">Opérations Diverses</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="actif"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-[68px]">
-                      <div className="space-y-0.5">
-                        <FormLabel>Journal Actif</FormLabel>
-                      </div>
-                      <FormControl>
-                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="advanced" className="space-y-6 mt-0">
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="notes"
+                name="codeJournal"
+                rules={{ required: "Le code est requis" }}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes / Observations</FormLabel>
+                    <FormLabel>Code Journal <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Informations complémentaires..." />
+                      <Input {...field} placeholder="EX: ACH" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </TabsContent>
-          </Tabs>
+              <FormField
+                control={form.control}
+                name="libelle"
+                rules={{ required: "Le libellé est requis" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Libellé <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="EX: Journal des achats" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="typeJournal"
+                rules={{ required: "Le type est requis" }}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type Journal <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Sélectionner un type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ACHAT">Achat</SelectItem>
+                        <SelectItem value="VENTE">Vente</SelectItem>
+                        <SelectItem value="BANQUE">Banque</SelectItem>
+                        <SelectItem value="CAISSE">Caisse</SelectItem>
+                        <SelectItem value="DIVERS">Opérations Diverses</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="actif"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 h-[68px]">
+                    <div className="space-y-0.5">
+                      <FormLabel>Journal Actif</FormLabel>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes / Observations</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Informations complémentaires..." />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <div className="p-4 border-t flex justify-end gap-3 bg-gray-50 rounded-b-lg">
-          <Button variant="outline" type="button" onClick={onBack}>
+          <Button variant="outline" type="button" onClick={journal ? () => setIsEditing(false) : onBack}>
             Annuler
           </Button>
-          {journal && (
-            <Button variant="destructive" type="button" onClick={onDelete}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Supprimer
-            </Button>
-          )}
           <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
             <Save className="mr-2 h-4 w-4" />
-            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
+            <span>{form.formState.isSubmitting ? "Enregistrement..." : (journal ? "Enregistrer les modifications" : "Créer le Journal")}</span>
           </Button>
         </div>
       </form>

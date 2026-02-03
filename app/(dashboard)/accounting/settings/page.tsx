@@ -34,8 +34,6 @@ export default function AccountingSettingsPage() {
   const [ledgerSettings, setLedgerSettings] = useState<LedgerSettings | null>(null);
   const [generalSettings, setGeneralSettings] = useState<GeneralSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [exerciceToDelete, setExerciceToDelete] = useState<ExerciceComptableDto | null>(null);
-  const [periodeToDelete, setPeriodeToDelete] = useState<PeriodeComptableDto | null>(null);
   const [operationToDelete, setOperationToDelete] = useState<OperationComptableDto | null>(null);
   const { onOpen, onClose: closeCompose } = useCompose();
 
@@ -135,7 +133,6 @@ export default function AccountingSettingsPage() {
         exercice={exercice || null}
         onSave={(data) => handleSave(data, AccountingFiscalYearsService.createExercice, AccountingFiscalYearsService.updateExercice, setExercices)}
         onClose={() => handleCloseExercice(exercice?.id || '')}
-        onDelete={() => setExerciceToDelete(exercice || null)}
         onBack={closeCompose}
       />,
     });
@@ -147,7 +144,6 @@ export default function AccountingSettingsPage() {
         periode={periode || null}
         onSave={(data) => handleSave(data, AccountingPeriodsService.createPeriodeComptable, AccountingPeriodsService.updatePeriodeComptable, setPeriodes)}
         onClose={() => handleClosePeriode(periode?.id || '')}
-        onDelete={() => setPeriodeToDelete(periode || null)}
         onBack={closeCompose}
       />,
     });
@@ -182,8 +178,6 @@ export default function AccountingSettingsPage() {
     }
   };
 
-  const handleDeleteExercice = () => handleDelete(exerciceToDelete, AccountingFiscalYearsService.deleteExercice, setExercices, setExerciceToDelete);
-  const handleDeletePeriode = () => handleDelete(periodeToDelete, AccountingPeriodsService.deletePeriodeComptable, setPeriodes, setPeriodeToDelete);
   const handleDeleteOperation = () => handleDelete(operationToDelete, AccountingOperationsService.deleteOperationComptable, setOperations, setOperationToDelete);
 
   return (
@@ -206,7 +200,6 @@ export default function AccountingSettingsPage() {
             isLoading={isLoading}
             onSelectExercice={(id) => handleOpenExerciceCompose(exercices.find((e) => e.id === id))}
             onEditExercice={(id) => handleOpenExerciceCompose(exercices.find((e) => e.id === id))}
-            onDeleteExercice={setExerciceToDelete}
             onCloseExercice={handleCloseExercice}
             onAddNew={() => handleOpenExerciceCompose()}
             onRefresh={fetchData}
@@ -218,7 +211,6 @@ export default function AccountingSettingsPage() {
             isLoading={isLoading}
             onSelectPeriode={(id) => handleOpenPeriodeCompose(periodes.find((p) => p.id === id))}
             onEditPeriode={(id) => handleOpenPeriodeCompose(periodes.find((p) => p.id === id))}
-            onDeletePeriode={setPeriodeToDelete}
             onClosePeriode={handleClosePeriode}
             onAddNew={() => handleOpenPeriodeCompose()}
             onRefresh={fetchData}
@@ -313,24 +305,6 @@ export default function AccountingSettingsPage() {
           </div>
         </TabsContent>
       </Tabs>
-      {exerciceToDelete && (
-        <ConfirmationDialog
-          isOpen={!!exerciceToDelete}
-          onClose={() => setExerciceToDelete(null)}
-          onConfirm={handleDeleteExercice}
-          title={`Supprimer ${exerciceToDelete.code} ?`}
-          description="Cette action est irréversible. L'exercice sera supprimé s'il n'est pas clôturé."
-        />
-      )}
-      {periodeToDelete && (
-        <ConfirmationDialog
-          isOpen={!!periodeToDelete}
-          onClose={() => setPeriodeToDelete(null)}
-          onConfirm={handleDeletePeriode}
-          title={`Supprimer ${periodeToDelete.code} ?`}
-          description="Cette action est irréversible. La période sera supprimée si elle n'est pas clôturée."
-        />
-      )}
       {operationToDelete && (
         <ConfirmationDialog
           isOpen={!!operationToDelete}

@@ -2,23 +2,33 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
-import { AccountingFiscalYearsService } from '@/src/lib2/services/AccountingFiscalYearsService';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
 import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
+import { AccountingFiscalYearsService } from '@/src/lib2/services/AccountingFiscalYearsService';
 import { PeriodeComptableListView } from '@/components/accounting/periode-comptable-list-view';
 import { PeriodeComptableDetailView } from '@/components/accounting/periode-comptable-detail-view';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
-import { useCompose } from '@/hooks/use-compose-store';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function PeriodsPage() {
     const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
     const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedPeriode, setSelectedPeriode] = useState<PeriodeComptableDto | null>(null);
+    const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { onOpen, onClose: closeCompose } = useCompose();
+    const [closeId, setCloseId] = useState<string | null>(null);
 
     const fetchPeriodes = useCallback(async () => {
         setIsLoading(true);
@@ -30,10 +40,14 @@ export default function PeriodsPage() {
             } else {
                 setPeriodes([]);
             }
-        } catch (err) {
+        } catch (err: any) {
+            let reason = "Impossible de charger les périodes.";
+            if (err.body?.message) reason = err.body.message;
+            else if (err.message) reason = err.message;
+
             console.error('Error fetching periods:', err);
             setError('Impossible de charger les périodes comptables. Veuillez vérifier votre connexion au serveur.');
-            toast.error('Erreur lors du chargement des périodes');
+            toast.error('Erreur lors du chargement', { description: reason });
         } finally {
             setIsLoading(false);
         }
@@ -46,7 +60,7 @@ export default function PeriodsPage() {
                 setExercices(response.data);
             }
         } catch (err) {
-            console.error('Error fetching fiscal years:', err);
+            console.error('Error fetching exercices:', err);
         }
     }, []);
 
@@ -54,18 +68,6 @@ export default function PeriodsPage() {
         fetchPeriodes();
         fetchExercices();
     }, [fetchPeriodes, fetchExercices]);
-
-    const handleOpenCompose = (periode?: PeriodeComptableDto) =>
-        onOpen({
-            title: periode ? "Modifier la Période" : "Nouvelle Période",
-            content: <PeriodeComptableDetailView
-                periode={periode || null}
-                onSave={handleSave}
-                onClose={() => handleClose(periode?.id || '')}
-                onDelete={() => handleDelete(periode)}
-                onBack={closeCompose}
-            />,
-        });
 
     const handleSave = async (data: PeriodeComptableDto) => {
         try {
@@ -76,50 +78,84 @@ export default function PeriodsPage() {
                 await AccountingPeriodsService.createPeriodeComptable(data);
                 toast.success('Période créée avec succès');
             }
-            fetchPeriodes();
-            closeCompose();
-        } catch (err) {
-            console.error('Error saving period:', err);
-            toast.error("Erreur lors de l'enregistrement de la période");
+            await fetchPeriodes();
+            setSelectedPeriodeId(null);
+            setIsEditing(false);
+        } catch (err: any) {
+            let reason = "Une erreur inattendue est survenue.";
+            if (err.body?.message) reason = err.body.message;
+            else if (err.message) reason = err.message;
+
+            toast.error("Erreur lors de l'enregistrement", { description: reason });
         }
     };
 
-    const handleDelete = async (periodeToDelete?: PeriodeComptableDto) => {
-        const target = periodeToDelete || selectedPeriode;
-        if (!target || !target.id) return;
-
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette période ?')) return;
-
-        try {
-            await AccountingPeriodsService.deletePeriodeComptable(target.id);
-            toast.success('Période supprimée avec succès');
-            fetchPeriodes();
-            closeCompose();
-        } catch (err) {
-            console.error('Error deleting period:', err);
-            toast.error("Erreur lors de la suppression de la période");
-        }
+    const confirmClose = (id: string) => {
+        setCloseId(id);
     };
 
-    const handleClose = async (id: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir clôturer cette période ?')) return;
+    const handleClosePeriode = async () => {
+        if (!closeId) return;
 
         try {
-            await AccountingPeriodsService.closePeriodeComptable(id);
+            await AccountingPeriodsService.closePeriodeComptable(closeId);
             toast.success('Période clôturée avec succès');
-            fetchPeriodes();
-        } catch (err) {
-            console.error('Error closing period:', err);
-            toast.error("Erreur lors de la clôture de la période");
+            await fetchPeriodes();
+        } catch (err: any) {
+            let reason = "Impossible de clôturer.";
+            if (err.body?.message) reason = err.body.message;
+            else if (err.message) reason = err.message;
+
+            toast.error("Erreur de clôture", { description: reason });
+        } finally {
+            setCloseId(null);
         }
     };
+
+    const handleSelectPeriode = (id: string) => {
+        setSelectedPeriodeId(id);
+        setIsEditing(false);
+    };
+
+    const handleEditPeriode = (id: string) => {
+        setSelectedPeriodeId(id);
+        setIsEditing(true);
+    };
+
+    const handleAddNew = () => {
+        setSelectedPeriodeId('new');
+        setIsEditing(true);
+    };
+
+    const handleBack = () => {
+        setSelectedPeriodeId(null);
+        setIsEditing(false);
+    };
+
+    const selectedPeriode = selectedPeriodeId === 'new' ? null : periodes.find(p => p.id === selectedPeriodeId);
+
+    if (selectedPeriodeId) {
+        return (
+            <div className="min-h-screen p-4 bg-gray-100">
+                <div className="w-full max-w-5xl mx-auto">
+                    <PeriodeComptableDetailView
+                        periode={selectedPeriode || null}
+                        onSave={handleSave}
+                        onClose={handleBack}
+                        onBack={handleBack}
+                    // onEdit prop removed as it is not supported by component
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex flex-col p-4 bg-gray-100">
-            <div className="w-full bg-white p-6 rounded-lg shadow-lg">
+            <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold text-gray-700 mb-1">Périodes Comptables</h2>
-                    <p className="text-sm text-gray-500">Gérez les sous-périodes de vos exercices comptables.</p>
+                    <p className="text-sm text-gray-500">Gérez les périodes comptables (mois) pour chaque exercice.</p>
                 </div>
 
                 {error && (
@@ -134,13 +170,30 @@ export default function PeriodsPage() {
                     periodes={periodes}
                     exercices={exercices}
                     isLoading={isLoading}
-                    onSelectPeriode={(id) => handleOpenCompose(periodes.find(p => p.id === id))}
-                    onEditPeriode={(id) => handleOpenCompose(periodes.find(p => p.id === id))}
-                    onDeletePeriode={handleDelete}
-                    onClosePeriode={handleClose}
-                    onAddNew={() => handleOpenCompose()}
+                    onSelectPeriode={handleSelectPeriode}
+                    onEditPeriode={handleEditPeriode}
+                    onClosePeriode={confirmClose}
+                    onAddNew={handleAddNew}
                     onRefresh={fetchPeriodes}
+                    selectedId={selectedPeriodeId || undefined}
                 />
+
+                <AlertDialog open={!!closeId} onOpenChange={(open) => !open && setCloseId(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Voulez-vous vraiment clôturer cette période ? Cette action peut être irréversible.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleClosePeriode} className="bg-orange-600 hover:bg-orange-700">
+                                Clôturer
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </div>
     );

@@ -15,13 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TaxeDto } from '@/src/lib2/models/TaxeDto';
-import {
-  Plus,
-  RefreshCw,
-  Search,
-  Edit,
-  Trash2,
-} from 'lucide-react';
+import { Edit, Trash2, Plus, RefreshCw, Search, Loader2 } from 'lucide-react';
 
 interface TaxeListViewProps {
   taxes: TaxeDto[];
@@ -82,18 +76,23 @@ export const TaxeListView: React.FC<TaxeListViewProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Rechercher par libellé, code ou compte..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 h-10 border-gray-200"
-          />
+      <div className="space-y-4">
+        {/* Top Row: Search */}
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Rechercher par libellé, code ou compte..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-10 border-gray-200"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Button onClick={onAddNew} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700">
+
+        {/* Bottom Row: Action buttons (New left, Refresh right) */}
+        <div className="flex items-center justify-between w-full">
+          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="mr-2 h-4 w-4" />
             Nouvelle Taxe
           </Button>
@@ -118,13 +117,15 @@ export const TaxeListView: React.FC<TaxeListViewProps> = ({
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-gray-400 italic font-medium">
-                  Chargement des taxes...
+                <TableCell colSpan={6} className="text-center py-10">
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : filteredTaxes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-gray-400 italic font-medium border-2 border-dashed m-4 rounded-lg">
+                <TableCell colSpan={6} className="text-center py-10 text-gray-400 font-medium italic">
                   Aucune taxe trouvée.
                 </TableCell>
               </TableRow>

@@ -60,7 +60,7 @@ export const modules: Record<ModuleKey, Module> = {
   clients: {
     name: "Clients",
     icon: Users,
-    composeActionLabel: "Nouveau",
+    composeActionLabel: "",
     sidebarLinks: [
       { title: "Factures Clients", icon: Receipt, href: "/invoices" },
       { title: "Avoirs", icon: PenSquare, href: "/sales/new-order" },
@@ -73,7 +73,7 @@ export const modules: Record<ModuleKey, Module> = {
   fournisseurs: {
     name: "Fournisseurs",
     icon: Truck,
-    composeActionLabel: "Nouveau",
+    composeActionLabel: "",
     sidebarLinks: [
       { title: "Factures Fournisseurs", icon: Receipt, href: "/invoices" },
       { title: "Remboursements", icon: Coins, href: "/stock/entries" },
@@ -85,7 +85,7 @@ export const modules: Record<ModuleKey, Module> = {
   analyse: {
     name: "Analyse",
     icon: BarChart3,
-    composeActionLabel: "Bilan",
+    composeActionLabel: "",
     sidebarLinks: [
       { title: "Bilan", icon: Scale, href: "/analyse/balance-sheet" },
       { title: "Compte de Résultat", icon: BookOpen, href: "/analyse/profit-and-loss" },
@@ -100,7 +100,7 @@ export const modules: Record<ModuleKey, Module> = {
   comptabilite: {
     name: "Comptabilité",
     icon: BookOpen,
-    composeActionLabel: "Nouvelle Écriture",
+    composeActionLabel: "",
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
       { title: "Écritures Comptables", icon: FileClock, href: "/accounting/entries" },
@@ -112,17 +112,16 @@ export const modules: Record<ModuleKey, Module> = {
   configuration: {
     name: "Configuration",
     icon: Settings,
-    composeActionLabel: "Ajouter",
+    composeActionLabel: "",
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
+      { title: "Comptes Comptables", icon: Landmark, href: "/accounting/accounts" },
       { title: "Exercices Comptables", icon: FileClock, href: "/accounting/fiscal-years" },
       { title: "Périodes Comptables", icon: ListChecks, href: "/accounting/periods" },
       { title: "Journaux", icon: Notebook, href: "/accounting/journals" },
       { title: "Opérations Comptables", icon: FileClock, href: "/accounting/operations" },
       { title: "Taxes", icon: Coins, href: "/accounting/taxes" },
       { title: "Devises", icon: Globe, href: "/accounting/devises" },
-      { title: "Positions Fiscales", icon: Scale, href: "/accounting/positionsfiscales" },
-      { title: "Modes de Paiement", icon: CreditCard, href: "/accounting/modes-paiement" },
     ],
   },
 };
