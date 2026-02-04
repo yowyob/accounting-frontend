@@ -15,8 +15,9 @@ import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
-import { EcritureComptableListView } from './ecriture-comptable-list-view';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { OperationComptableListView } from './operation-comptable-list-view';
+import { JournalEntriesAnalysisTable } from './journal-entries-analysis-table';
 import { toast } from 'sonner';
 
 interface JournalComptableReadViewProps {
@@ -34,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
 export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> = ({ journal }) => {
     const [operations, setOperations] = useState<OperationComptableDto[]>([]);
     const [entries, setEntries] = useState<EcritureComptableDto[]>([]);
+    const [accountMap, setAccountMap] = useState<Record<string, string>>({});
     const [isLoadingOperations, setIsLoadingOperations] = useState(false);
     const [isLoadingEntries, setIsLoadingEntries] = useState(false);
 
@@ -46,9 +48,10 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                 setIsLoadingOperations(true);
                 setIsLoadingEntries(true);
                 try {
-                    const [opsRes, entriesRes] = await Promise.all([
+                    const [opsRes, entriesRes, accountsRes] = await Promise.all([
                         AccountingOperationsService.getAllOperationsComptables(),
-                        AccountingEntriesService.search(undefined, undefined, journal.id)
+                        AccountingEntriesService.search(undefined, undefined, journal.id),
+                        AccountingComptesService.getAllComptes()
                     ]);
 
                     if (opsRes.success && opsRes.data) {
@@ -56,6 +59,13 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                     }
                     if (entriesRes.success && entriesRes.data) {
                         setEntries(entriesRes.data);
+                    }
+                    if (accountsRes.success && accountsRes.data) {
+                        const map: Record<string, string> = {};
+                        accountsRes.data.forEach(acc => {
+                            if (acc.id) map[acc.id] = acc.noCompte;
+                        });
+                        setAccountMap(map);
                     }
                 } catch (error) {
                     console.error("Failed to fetch journal related data:", error);
@@ -128,7 +138,7 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
             </div>
 
             {/* Tabs for Related Data */}
-            <Tabs defaultValue="operations" className="w-full">
+            <Tabs defaultValue="entries" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 h-auto rounded-xl p-1 bg-gray-100/50 border mb-6">
                     <TabsTrigger
                         value="operations"
@@ -162,18 +172,11 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                 </TabsContent>
 
                 <TabsContent value="entries">
-                    <div className="bg-white border rounded-xl overflow-hidden shadow-sm p-4">
-                        <EcritureComptableListView
-                            ecritures={entries}
-                            isLoading={isLoadingEntries}
-                            onSelectEcriture={(id) => setSelectedEcritureId(id)}
-                            onEditEcriture={() => { }}
-                            onDeleteEcriture={() => { }}
-                            onValidateEcriture={() => { }}
-                            selectedId={selectedEcritureId || undefined}
-                            readOnly={true}
-                        />
-                    </div>
+                    <JournalEntriesAnalysisTable
+                        ecritures={entries}
+                        isLoading={isLoadingEntries}
+                        accountMap={accountMap}
+                    />
                 </TabsContent>
             </Tabs>
 

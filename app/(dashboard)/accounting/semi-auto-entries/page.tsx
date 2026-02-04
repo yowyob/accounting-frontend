@@ -38,7 +38,7 @@ export default function AccountingSemiAutoEntryPage() {
   const form = useForm<EcritureComptable>({
     defaultValues: {
       libelle: '',
-      dateEcriture: new Date().toISOString().split('T')[0],
+      dateEcriture: new Date().toISOString().split('T')[0] as any,
       journalComptableId: '',
       periodeComptableId: '',
       montantTotalDebit: 0,
@@ -58,9 +58,9 @@ export default function AccountingSemiAutoEntryPage() {
         getPeriodeComptables(),
         getJounalComptables(),
       ]);
-      setOperations(Array.isArray(operationsResponse.data) ? operationsResponse.data : []);
-      setPeriodes(Array.isArray(periodesResponse.data) ? periodesResponse.data : []);
-      setJournals(Array.isArray(journalsResponse.data) ? journalsResponse.data.map(j => ({ id: j.id!, libelle: j.libelle })) : []);
+      setOperations(Array.isArray(operationsResponse) ? (operationsResponse as any) : []);
+      setPeriodes(Array.isArray(periodesResponse) ? (periodesResponse as any) : []);
+      setJournals(Array.isArray(journalsResponse) ? (journalsResponse as any).map((j: any) => ({ id: j.id!, libelle: j.libelle })) : []);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -109,19 +109,19 @@ export default function AccountingSemiAutoEntryPage() {
     const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
     const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
     if (totalDebit !== totalCredit) {
-      toast({ title: "Erreur", description: "Les montants de débit et de crédit doivent être égaux.", variant: "destructive" });
+      toast.error("Erreur", { description: "Les montants de débit et de crédit doivent être égaux." });
       return;
     }
 
     setIsLoading(true);
     try {
-      await createEcritureComptable({ ...data, montantTotalDebit: totalDebit, montantTotalCredit: totalCredit });
-      toast({ title: "Succès", description: "Écriture créée avec succès." });
+      await createEcritureComptable({ ...data, dateEcriture: new Date(data.dateEcriture) as any, montantTotalDebit: totalDebit, montantTotalCredit: totalCredit });
+      toast.success("Succès", { description: "Écriture créée avec succès." });
       form.reset();
       setSelectedOperation(null);
     } catch (error) {
       console.error("Failed to create ecriture:", error);
-      toast({ title: "Erreur", description: "Échec de la création de l'écriture.", variant: "destructive" });
+      toast.error("Erreur", { description: "Échec de la création de l'écriture." });
     } finally {
       setIsLoading(false);
     }
@@ -215,7 +215,7 @@ export default function AccountingSemiAutoEntryPage() {
                 <h3 className="text-lg font-semibold mb-2">Détails de l&#39;Écriture</h3>
                 {form.watch('detailsEcriture')?.map((detail, index) => (
                   <div key={detail.compteId} className="grid grid-cols-5 gap-5 mb-4 p-2 bg-gray-50 rounded-lg">
-                       <Input
+                    <Input
                       {...form.register(`detailsEcriture.${index}.compteId` as const)}
                       placeholder="Compte"
                       className="col-span-1"

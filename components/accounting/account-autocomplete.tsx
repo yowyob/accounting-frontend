@@ -79,7 +79,7 @@ export const AccountAutocomplete = memo(({
                                 >
                                     <div className="flex flex-col">
                                         <span className="font-mono font-bold text-sm text-gray-900 group-hover:text-blue-700">{acc.noCompte}</span>
-                                        <span className="text-xs text-gray-500 truncate max-w-[200px]">{acc.libelle}</span>
+                                        <span className="text-xs text-gray-500 truncate max-w-[300px]">{acc.libelle}</span>
                                     </div>
                                     <Check size={14} className="text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
                                 </div>

@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
+import { AccountingOrganizationsService } from '@/src/lib2/services/AccountingOrganizationsService';
 import { AccountListView } from '@/components/accounting/account-list-view';
 import { AccountDetailView } from '@/components/accounting/account-detail-view';
 import { toast } from 'sonner';
@@ -108,6 +109,35 @@ export default function ChartOfAccountsPage() {
       });
     } finally {
       setDeleteId(null);
+    }
+  };
+
+  const handleInitPlan = async () => {
+    setIsLoading(true);
+    try {
+      // Try to get organizations to find a tenantId
+      const orgsRes = await AccountingOrganizationsService.getAllOrganizations();
+      const tenantId = orgsRes.data?.[0]?.id;
+
+      if (!tenantId) {
+        toast.error("Impossible d'identifier l'organisation (Tenant ID manquant)");
+        return;
+      }
+
+      await AccountingPlanComptableService.initPlanComptable(tenantId);
+      toast.success('Le plan comptable OHADA 2025 a été initialisé avec succès');
+      await fetchAccounts();
+    } catch (err: any) {
+      let reason = "Erreur lors de l'initialisation du plan comptable.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
+
+      toast.error("Échec de l'initialisation", {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -217,6 +247,7 @@ export default function ChartOfAccountsPage() {
           onDeleteAccount={confirmDelete}
           onAddNew={handleAddNew}
           onRefresh={fetchAccounts}
+          onInitPlan={handleInitPlan}
           selectedId={selectedAccountId || undefined}
         />
 

@@ -11,6 +11,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Info, Tag, User, Briefcase, CreditCard, Building2 } from 'lucide-react';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
@@ -18,6 +19,7 @@ import { CompteDto } from '@/src/lib2/models/CompteDto';
 
 interface OperationComptableReadViewProps {
     operation: OperationComptableDto;
+    onBack?: () => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -35,7 +37,10 @@ const MODE_LABELS: Record<string, string> = {
     "MOBILE": "Mobile Money",
 };
 
-export const OperationComptableReadView: React.FC<OperationComptableReadViewProps> = ({ operation }) => {
+export const OperationComptableReadView: React.FC<OperationComptableReadViewProps> = ({
+    operation,
+    onBack
+}) => {
     const [accounts, setAccounts] = useState<CompteDto[]>([]);
 
     useEffect(() => {
@@ -55,47 +60,46 @@ export const OperationComptableReadView: React.FC<OperationComptableReadViewProp
 
     return (
         <div className="space-y-6 p-1">
-            {/* Summary Header */}
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6">
-                <div className="flex justify-between items-start mb-4">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-blue-600 text-white border-none px-3">
+            {/* Header Info (Blue Summary Box) */}
+            <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 shadow-sm space-y-6">
+                <div className="flex items-center justify-between border-b border-blue-100 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-600 p-2 rounded-lg text-white">
+                            <Briefcase className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-blue-900 uppercase tracking-tight">
                                 {TYPE_LABELS[operation.typeOperation] || operation.typeOperation}
-                            </Badge>
-                            <span className="text-sm font-medium text-gray-500 font-mono">#{operation.id?.slice(0, 8)}</span>
+                            </h3>
+                            <p className="text-sm text-blue-600/70 font-medium font-mono">#{operation.id?.slice(0, 8)}</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white rounded-lg border shadow-sm text-blue-600">
-                            <CreditCard className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Mode de règlement</p>
-                            <p className="font-semibold text-gray-900">{MODE_LABELS[operation.modeReglement] || operation.modeReglement}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Mode de règlement</p>
+                        <div className="flex items-center gap-2">
+                            <CreditCard className="h-4 w-4 text-blue-500" />
+                            <p className="text-sm font-semibold text-blue-900">{MODE_LABELS[operation.modeReglement] || operation.modeReglement}</p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white rounded-lg border shadow-sm text-indigo-600">
-                            <Building2 className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Compte Principal ({operation.sensPrincipal})</p>
-                            <p className="font-semibold text-gray-900 font-mono text-sm">{getAccountLabel(operation.comptePrincipalId)}</p>
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Compte Principal</p>
+                        <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-indigo-500" />
+                            <p className="text-sm font-semibold text-blue-900 font-mono italic">
+                                {getAccountLabel(operation.comptePrincipalId)} ({operation.sensPrincipal})
+                            </p>
                         </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 bg-white rounded-lg border shadow-sm text-emerald-600">
-                            <Tag className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Type de Montant</p>
-                            <p className="font-semibold text-gray-900">{operation.typeMontant}</p>
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Type de Montant</p>
+                        <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-emerald-500" />
+                            <p className="text-sm font-semibold text-blue-900">{operation.typeMontant}</p>
                         </div>
                     </div>
                 </div>
@@ -151,6 +155,14 @@ export const OperationComptableReadView: React.FC<OperationComptableReadViewProp
             <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-dashed text-xs text-gray-400">
                 <Info className="h-3.5 w-3.5" />
                 Cette opération sera utilisée comme modèle pour générer automatiquement des écritures comptables lors des transactions.
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t">
+                {onBack && (
+                    <Button variant="outline" type="button" onClick={onBack} className="min-w-[100px]">
+                        Fermer
+                    </Button>
+                )}
             </div>
         </div>
     );

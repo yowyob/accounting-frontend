@@ -130,6 +130,7 @@ export default function PeriodsPage() {
     const handleOpenCompose = (periode: PeriodeComptableDto | null = null, isEditing: boolean = false) => {
         onOpen({
             title: isEditing ? (periode ? "Modifier la Période" : "Nouvelle Période") : "Détails de la Période",
+            isMaximized: false,
             content: (
                 <PeriodeComptableDetailView
                     periode={periode}

@@ -142,6 +142,7 @@ export default function JournalComptablePage() {
   const handleOpenCompose = (journal: JournalComptableDto | null = null, isEditing: boolean = false) => {
     onOpen({
       title: isEditing ? (journal ? "Modifier le Journal" : "Nouveau Journal") : "Détails du Journal",
+      isMaximized: false,
       content: (
         <JournalComptableDetailView
           journal={journal}

@@ -51,7 +51,6 @@ export default function EcritureComptableDetailsPage() {
                         const acc = accounts.find(a => a.id === detail.compteComptableId);
                         return {
                             ...detail,
-                            // Use casting to add the property efficiently
                             compteComptableNo: acc?.noCompte || detail.compteComptableId
                         } as any;
                     });
@@ -76,7 +75,6 @@ export default function EcritureComptableDetailsPage() {
 
     const handleSave = async (data: EcritureComptableDto) => {
         try {
-            // Manual PUT
             await __request(OpenAPI, {
                 method: 'PUT',
                 url: `/api/accounting/entries/${data.id}`,
@@ -144,8 +142,8 @@ export default function EcritureComptableDetailsPage() {
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-6 md:p-8">
             <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={() => router.back()} className="gap-2">
-                    <ArrowLeft className="h-4 w-4" /> Retour à la liste
+                <Button variant="ghost" onClick={() => router.back()} className="text-gray-600 hover:text-blue-600">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Retour
                 </Button>
 
                 {!ecriture.validee && (
