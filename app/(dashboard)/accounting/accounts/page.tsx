@@ -8,6 +8,7 @@ import { CompteComptableDetailView } from '@/components/accounting/compte-compta
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,8 +24,10 @@ export default function AccountsPage() {
     const [comptes, setComptes] = useState<CompteDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCompteId, setSelectedCompteId] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [deleteId, setDeleteId] = useState<CompteDto | null>(null);
+
+    const { onOpen, onClose: closeCompose } = useCompose();
 
     const fetchComptes = useCallback(async () => {
         setIsLoading(true);
@@ -54,9 +57,6 @@ export default function AccountsPage() {
         fetchComptes();
     }, [fetchComptes]);
 
-    const [deleteId, setDeleteId] = useState<string | null>(null);
-
-    // ... existing fetchComptes ...
 
     const handleSave = async (data: CompteDto) => {
         try {
@@ -74,8 +74,6 @@ export default function AccountsPage() {
                 });
             }
             await fetchComptes();
-            setSelectedCompteId(null);
-            setIsEditing(false);
         } catch (err: any) {
             let reason = "Une erreur inattendue est survenue.";
             if (err.body?.message) reason = err.body.message;
@@ -85,18 +83,20 @@ export default function AccountsPage() {
                 description: reason,
                 className: "bg-red-50 border-red-200 text-red-800"
             });
+            throw err; // Re-throw to allow form to handle errors if needed
         }
     };
 
     const confirmDelete = (id: string) => {
-        setDeleteId(id);
+        const compte = comptes.find(c => c.id === id);
+        if (compte) setDeleteId(compte);
     };
 
     const handleDelete = async () => {
-        if (!deleteId) return;
+        if (!deleteId || !deleteId.id) return;
 
         try {
-            await AccountingComptesService.deleteCompte(deleteId);
+            await AccountingComptesService.deleteCompte(deleteId.id);
             toast.success('Compte supprimé', {
                 description: 'Le compte a été retiré avec succès.',
                 className: "bg-green-50 border-green-200 text-green-800"
@@ -117,42 +117,35 @@ export default function AccountsPage() {
     };
 
     const handleSelectCompte = (id: string) => {
-        setSelectedCompteId(id);
-        setIsEditing(false);
+        const compte = comptes.find(c => c.id === id);
+        if (compte) handleOpenCompose(compte, false);
     };
 
     const handleEditCompte = (id: string) => {
-        setSelectedCompteId(id);
-        setIsEditing(true);
+        const compte = comptes.find(c => c.id === id);
+        if (compte) handleOpenCompose(compte, true);
     };
 
     const handleAddNew = () => {
-        setSelectedCompteId('new');
-        setIsEditing(true);
+        handleOpenCompose(null, true);
     };
 
-    const handleBack = () => {
-        setSelectedCompteId(null);
-        setIsEditing(false);
+    const handleOpenCompose = (compte: CompteDto | null = null, isEditing: boolean = false) => {
+        onOpen({
+            title: isEditing ? (compte ? "Modifier le Compte" : "Nouveau Compte") : "Détails du Compte",
+            content: (
+                <CompteComptableDetailView
+                    compte={compte}
+                    onSave={async (data) => {
+                        await handleSave(data);
+                        closeCompose();
+                    }}
+                    onBack={closeCompose}
+                    isEditing={isEditing}
+                />
+            )
+        });
     };
-
-    const selectedCompte = selectedCompteId === 'new' ? null : comptes.find(c => c.id === selectedCompteId);
-
-    // Show detail view if a compte is selected
-    if (selectedCompteId) {
-        return (
-            <div className="min-h-screen p-4 bg-gray-100">
-                <div className="w-full max-w-5xl mx-auto">
-                    <CompteComptableDetailView
-                        compte={selectedCompte || null}
-                        onSave={handleSave}
-                        onBack={handleBack}
-                        isEditing={isEditing}
-                    />
-                </div>
-            </div>
-        );
-    }
 
     // Show list view
     return (

@@ -10,6 +10,7 @@ import { PeriodeComptableDetailView } from '@/components/accounting/periode-comp
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,9 +27,10 @@ export default function PeriodsPage() {
     const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [closeId, setCloseId] = useState<string | null>(null);
+
+    const { onOpen, onClose: closeCompose } = useCompose();
 
     const fetchPeriodes = useCallback(async () => {
         setIsLoading(true);
@@ -80,7 +82,6 @@ export default function PeriodsPage() {
             }
             await fetchPeriodes();
             setSelectedPeriodeId(null);
-            setIsEditing(false);
         } catch (err: any) {
             let reason = "Une erreur inattendue est survenue.";
             if (err.body?.message) reason = err.body.message;
@@ -113,42 +114,36 @@ export default function PeriodsPage() {
     };
 
     const handleSelectPeriode = (id: string) => {
-        setSelectedPeriodeId(id);
-        setIsEditing(false);
+        const periode = periodes.find(p => p.id === id);
+        if (periode) handleOpenCompose(periode, false);
     };
 
     const handleEditPeriode = (id: string) => {
-        setSelectedPeriodeId(id);
-        setIsEditing(true);
+        const periode = periodes.find(p => p.id === id);
+        if (periode) handleOpenCompose(periode, true);
     };
 
     const handleAddNew = () => {
-        setSelectedPeriodeId('new');
-        setIsEditing(true);
+        handleOpenCompose(null, true);
     };
 
-    const handleBack = () => {
-        setSelectedPeriodeId(null);
-        setIsEditing(false);
+    const handleOpenCompose = (periode: PeriodeComptableDto | null = null, isEditing: boolean = false) => {
+        onOpen({
+            title: isEditing ? (periode ? "Modifier la Période" : "Nouvelle Période") : "Détails de la Période",
+            content: (
+                <PeriodeComptableDetailView
+                    periode={periode}
+                    onSave={async (data) => {
+                        await handleSave(data);
+                        closeCompose();
+                    }}
+                    onClose={closeCompose}
+                    onBack={closeCompose}
+                />
+            )
+        });
     };
 
-    const selectedPeriode = selectedPeriodeId === 'new' ? null : periodes.find(p => p.id === selectedPeriodeId);
-
-    if (selectedPeriodeId) {
-        return (
-            <div className="min-h-screen p-4 bg-gray-100">
-                <div className="w-full max-w-5xl mx-auto">
-                    <PeriodeComptableDetailView
-                        periode={selectedPeriode || null}
-                        onSave={handleSave}
-                        onClose={handleBack}
-                        onBack={handleBack}
-                    // onEdit prop removed as it is not supported by component
-                    />
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen flex flex-col p-4 bg-gray-100">

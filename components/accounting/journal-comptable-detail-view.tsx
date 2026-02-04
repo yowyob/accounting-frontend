@@ -210,8 +210,7 @@ export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProp
             Annuler
           </Button>
           <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-            <Save className="mr-2 h-4 w-4" />
-            <span>{form.formState.isSubmitting ? "Enregistrement..." : (journal ? "Enregistrer les modifications" : "Créer le Journal")}</span>
+            <span>{form.formState.isSubmitting ? "Enregistrement..." : (journal?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
           </Button>
         </div>
       </form>

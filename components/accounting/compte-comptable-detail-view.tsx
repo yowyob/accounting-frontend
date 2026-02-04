@@ -51,6 +51,17 @@ export const CompteComptableDetailView: React.FC<CompteComptableDetailViewProps>
         },
     });
 
+    const noCompte = form.watch('noCompte');
+
+    React.useEffect(() => {
+        if (noCompte && noCompte.length > 0) {
+            const firstDigit = parseInt(noCompte.charAt(0));
+            if (!isNaN(firstDigit) && firstDigit >= 1 && firstDigit <= 9) {
+                form.setValue('classe', firstDigit);
+            }
+        }
+    }, [noCompte, form]);
+
     const onSubmit = (data: CompteDto) => {
         onSave(data);
     };
@@ -64,10 +75,6 @@ export const CompteComptableDetailView: React.FC<CompteComptableDetailViewProps>
                         <h2 className="text-2xl font-bold text-gray-800">Détails du Compte</h2>
                         <p className="text-sm text-gray-500 mt-1">Informations en lecture seule</p>
                     </div>
-                    <Button variant="ghost" onClick={onBack}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Retour
-                    </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -163,10 +170,6 @@ export const CompteComptableDetailView: React.FC<CompteComptableDetailViewProps>
                             {compte ? 'Modifiez les informations du compte' : 'Créez un nouveau compte comptable'}
                         </p>
                     </div>
-                    <Button variant="ghost" type="button" onClick={onBack}>
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Retour
-                    </Button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -309,8 +312,7 @@ export const CompteComptableDetailView: React.FC<CompteComptableDetailViewProps>
                         Annuler
                     </Button>
                     <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-                        <Save className="mr-2 h-4 w-4" />
-                        <span>{form.formState.isSubmitting ? "Enregistrement..." : (compte ? "Enregistrer les modifications" : "Créer le Compte")}</span>
+                        <span>{form.formState.isSubmitting ? "Enregistrement..." : (compte?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
                     </Button>
                 </div>
             </form>

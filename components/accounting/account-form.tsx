@@ -236,8 +236,7 @@ export function AccountingForm({ initialData, onSave, onCancel }: AccountingForm
             ANNULER
           </Button>
           <Button type="submit" disabled={form.formState.isSubmitting}>
-            <Save size={16} className="mr-2" />
-            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
+            <span>{form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
           </Button>
         </div>
       </form>

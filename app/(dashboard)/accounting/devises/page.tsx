@@ -10,6 +10,7 @@ import { DeviseForm } from '@/components/accounting/settings/devise-form';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +26,10 @@ export default function DevisesPage() {
   const [devises, setDevises] = useState<Devise[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDeviseId, setSelectedDeviseId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchDevises = useCallback(async () => {
     setIsLoading(true);
@@ -105,7 +107,6 @@ export default function DevisesPage() {
       }
       await fetchDevises();
       setSelectedDeviseId(null);
-      setIsEditing(false);
     } catch (err: any) {
       let reason = "Une erreur inattendue est survenue.";
       if (err.body?.message) reason = err.body.message;
@@ -143,44 +144,31 @@ export default function DevisesPage() {
   };
 
   const handleEditDevise = (id: string) => {
-    setSelectedDeviseId(id);
-    setIsEditing(true);
+    const devise = devises.find(d => d.id === id);
+    if (devise) handleOpenCompose(devise);
   };
 
   const handleAddNew = () => {
-    setSelectedDeviseId('new');
-    setIsEditing(true);
+    handleOpenCompose(null);
   };
 
-  const handleBack = () => {
-    setSelectedDeviseId(null);
-    setIsEditing(false);
+  const handleOpenCompose = (devise: Devise | null = null) => {
+    onOpen({
+      title: devise ? "Modifier la Devise" : "Nouvelle Devise",
+      content: (
+        <DeviseForm
+          initialData={devise}
+          onSave={async (data) => {
+            await handleSave(data);
+            closeCompose();
+          }}
+          onCancel={closeCompose}
+          isNationalDisabled={devises.some(d => d.estNationale && d.id !== devise?.id)}
+        />
+      )
+    });
   };
 
-  const selectedDevise = selectedDeviseId === 'new' ? null : devises.find(d => d.id === selectedDeviseId);
-
-  const handleUpdateRate = (id: string) => {
-    // Placeholder for update rate logic if needed, or if it should redirect.
-    // For now, selecting the devise for edit might be the main way,
-    // but if there is a specific rate update flow, we can stick it here.
-    // Assuming we just edit the devise for now as no separate rate form is currently integrated in this page flow.
-    handleEditDevise(id);
-  };
-
-  if (selectedDeviseId) {
-    return (
-      <div className="min-h-screen p-4 bg-gray-100">
-        <div className="w-full max-w-5xl mx-auto">
-          <DeviseForm
-            initialData={selectedDevise || null}
-            onSave={handleSave}
-            onCancel={handleBack}
-            isNationalDisabled={devises.some(d => d.estNationale && d.id !== selectedDeviseId)}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">
@@ -205,7 +193,7 @@ export default function DevisesPage() {
           onDelete={confirmDelete}
           onAddNew={handleAddNew}
           onRefresh={fetchDevises}
-          onUpdateRate={handleUpdateRate}
+          onUpdateRate={handleEditDevise}
         />
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

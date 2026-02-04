@@ -8,6 +8,7 @@ import { TaxeForm } from '@/components/accounting/settings/taxes-form';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,10 +23,10 @@ import {
 export default function TaxesPage() {
   const [taxes, setTaxes] = useState<TaxeDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTaxeId, setSelectedTaxeId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchTaxes = useCallback(async () => {
     setIsLoading(true);
@@ -69,12 +70,10 @@ export default function TaxesPage() {
         await AccountingTaxManagementService.createTaxe(data);
         toast.success('Taxe créée avec succès', {
           description: `La nouvelle taxe ${data.code} a été ajoutée.`,
-          className: "bg-green-50 border-green-200 text-green-800"
+          className: "bg-green-50 border-green-200 text-red-800"
         });
       }
       await fetchTaxes();
-      setSelectedTaxeId(null);
-      setIsEditing(false);
     } catch (err: any) {
       let reason = "Une erreur inattendue est survenue.";
       if (err.body?.message) reason = err.body.message;
@@ -84,6 +83,7 @@ export default function TaxesPage() {
         description: reason,
         className: "bg-red-50 border-red-200 text-red-800"
       });
+      throw err; // Re-throw to allow form to handle error if needed
     }
   };
 
@@ -101,10 +101,6 @@ export default function TaxesPage() {
         className: "bg-green-50 border-green-200 text-green-800"
       });
       await fetchTaxes();
-      if (selectedTaxeId === deleteId) {
-        setSelectedTaxeId(null);
-        setIsEditing(false);
-      }
     } catch (err: any) {
       let reason = "Impossible de supprimer cette taxe.";
       if (err.body?.message) reason = err.body.message;
@@ -120,35 +116,29 @@ export default function TaxesPage() {
   };
 
   const handleEditTaxe = (id: string) => {
-    setSelectedTaxeId(id);
-    setIsEditing(true);
+    const taxe = taxes.find(t => t.id === id);
+    if (taxe) handleOpenCompose(taxe);
   };
 
   const handleAddNew = () => {
-    setSelectedTaxeId('new');
-    setIsEditing(true);
+    handleOpenCompose(null);
   };
 
-  const handleBack = () => {
-    setSelectedTaxeId(null);
-    setIsEditing(false);
+  const handleOpenCompose = (taxe: TaxeDto | null = null) => {
+    onOpen({
+      title: taxe ? "Modifier la Taxe" : "Nouvelle Taxe",
+      content: (
+        <TaxeForm
+          initialData={taxe}
+          onSave={async (data) => {
+            await handleSave(data);
+            closeCompose();
+          }}
+          onCancel={closeCompose}
+        />
+      )
+    });
   };
-
-  const selectedTaxe = selectedTaxeId === 'new' ? null : taxes.find(t => t.id === selectedTaxeId);
-
-  if (selectedTaxeId) {
-    return (
-      <div className="min-h-screen p-4 bg-gray-100">
-        <div className="w-full max-w-5xl mx-auto">
-          <TaxeForm
-            initialData={selectedTaxe || null}
-            onSave={handleSave}
-            onCancel={handleBack}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">

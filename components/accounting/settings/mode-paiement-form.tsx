@@ -113,8 +113,7 @@ export const ModePaiementForm: React.FC<ModePaiementFormProps> = ({
             ANNULER
           </Button>
           <Button type="submit">
-            <Save className="mr-2 h-4 w-4" />
-            ENREGISTRER
+            {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}
           </Button>
         </div>
       </form>
