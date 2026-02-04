@@ -72,6 +72,7 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
 
 
   const form = useForm<OperationComptableDto>({
+    mode: 'onChange',
     defaultValues: initialData || {
       typeOperation: 'VENTE',
       modeReglement: 'ESPECE',
@@ -353,7 +354,7 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
 
               <div className="space-y-4">
                 {fields.map((field, index) => (
-                  <Collapsible key={field.id} defaultOpen className="rounded-lg border bg-white shadow-sm overflow-hidden">
+                  <Collapsible key={field.id} defaultOpen className="rounded-lg border bg-white shadow-sm">
                     <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 bg-gray-50/50 hover:bg-gray-50 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">#{index + 1}</div>
@@ -445,14 +446,18 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
                               <FormLabel>Journal</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value || undefined}>
                                 <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="..." />
+                                  <SelectTrigger className="text-xs">
+                                    <SelectValue placeholder="Journal..." />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                   {journals.map((journal) => (
                                     <SelectItem key={journal.id} value={journal.id!}>
-                                      {journal.codeJournal}
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-mono font-bold text-xs">{journal.codeJournal}</span>
+                                        <span className="text-gray-400">-</span>
+                                        <span className="text-[10px] truncate max-w-[120px]">{journal.libelle}</span>
+                                      </div>
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -473,7 +478,14 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
           <Button type="button" variant="outline" onClick={onCancel}>
             ANNULER
           </Button>
-          <Button type="submit" className="bg-[#007bff] hover:bg-[#0069d9]" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            className={cn(
+              "shadow-sm font-semibold px-6 text-white",
+              form.formState.isValid ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+            )}
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
+          >
             <span>{form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
           </Button>
         </div>

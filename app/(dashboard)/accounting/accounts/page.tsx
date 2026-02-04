@@ -116,9 +116,15 @@ export default function AccountsPage() {
         }
     };
 
+    const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+    const [viewData, setViewData] = useState<CompteDto | null>(null);
+
     const handleSelectCompte = (id: string) => {
         const compte = comptes.find(c => c.id === id);
-        if (compte) handleOpenCompose(compte, false);
+        if (compte) {
+            setViewData(compte);
+            setViewMode('detail');
+        }
     };
 
     const handleEditCompte = (id: string) => {
@@ -146,6 +152,22 @@ export default function AccountsPage() {
             )
         });
     };
+
+    if (viewMode === 'detail' && viewData) {
+        return (
+            <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+                <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
+                    <CompteComptableDetailView
+                        compte={viewData}
+                        onSave={handleSave}
+                        onBack={() => setViewMode('list')}
+                        onEdit={() => handleOpenCompose(viewData, true)}
+                        isEditing={false}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     // Show list view
     return (

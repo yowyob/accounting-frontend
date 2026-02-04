@@ -5,6 +5,7 @@ import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
 import { OperationComptableListView } from '@/components/accounting/operation-comptable-list-view';
 import { OperationForm } from '@/components/accounting/settings/operation-form';
+import { OperationComptableReadView } from '@/components/accounting/operation-comptable-read-view';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,6 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 
 export default function OperationComptablePage() {
   const [operations, setOperations] = useState<OperationComptableDto[]>([]);
@@ -130,9 +137,15 @@ export default function OperationComptablePage() {
     }
   };
 
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [viewData, setViewData] = useState<OperationComptableDto | null>(null);
+
   const handleSelectOperation = (id: string) => {
     const operation = operations.find(o => o.id === id);
-    if (operation) handleOpenCompose(operation);
+    if (operation) {
+      setViewData(operation);
+      setViewMode('detail');
+    }
   };
 
   const handleEditOperation = (id: string) => {
@@ -160,8 +173,46 @@ export default function OperationComptablePage() {
     });
   };
 
-  const selectedOperation = selectedOperationId === 'new' ? null : operations.find(o => o.id === selectedOperationId);
+  if (viewMode === 'detail' && viewData) {
+    return (
+      <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+        <div className="w-full max-w-7xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+          <Tabs defaultValue="details" className="w-full">
+            <div className="flex items-center justify-between mb-8 border-b pb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
+                <h2 className="text-2xl font-bold text-gray-800 tracking-tight uppercase">Détails dOpération</h2>
+              </div>
 
+              <TabsList className="bg-gray-100/80 p-1">
+                <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 font-semibold px-6">DÉTAILS</TabsTrigger>
+                <TabsTrigger value="modifier" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 font-semibold px-6">MODIFIER</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="details" className="mt-0">
+              <OperationComptableReadView
+                operation={viewData}
+                onBack={() => setViewMode('list')}
+              />
+            </TabsContent>
+
+            <TabsContent value="modifier" className="mt-0">
+              <OperationForm
+                initialData={viewData}
+                onSave={async (data, journalIds) => {
+                  await handleSave(data, journalIds);
+                  setViewData(data); // Refresh view data
+                  // Optionally stay on modifier or switch to details
+                }}
+                onCancel={() => setViewMode('list')}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">

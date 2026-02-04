@@ -25,6 +25,7 @@ interface TaxeFormProps {
 
 export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCancel }) => {
   const form = useForm<TaxeDto>({
+    mode: 'onChange',
     defaultValues: initialData || {
       code: '',
       libelle: '',
@@ -212,8 +213,8 @@ export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCance
           </Button>
           <Button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 shadow-sm font-semibold px-6"
-            disabled={form.formState.isSubmitting}
+            className={`${form.formState.isValid ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-400 hover:bg-gray-400 cursor-not-allowed"} shadow-sm font-semibold px-6 text-white`}
+            disabled={!form.formState.isValid || form.formState.isSubmitting}
           >
             <Save size={16} className="mr-2" />
             {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}

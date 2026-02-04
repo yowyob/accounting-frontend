@@ -7,7 +7,7 @@ interface ComposeState {
     isMaximized: boolean;
     title: string;
     content: React.ReactNode | null;
-    onOpen: (props: { title: string; content: React.ReactNode }) => void;
+    onOpen: (props: { title: string; content: React.ReactNode; isMaximized?: boolean }) => void;
     onClose: () => void;
     onToggleMinimize: () => void;
     onToggleMaximize: () => void;
@@ -19,10 +19,10 @@ export const useCompose = create<ComposeState>((set) => ({
     isMaximized: false,
     title: '',
     content: null,
-    onOpen: ({ title, content }) => set({
+    onOpen: ({ title, content, isMaximized = true }) => set({
         isOpen: true,
         isMinimized: false,
-        isMaximized: true,
+        isMaximized,
         title,
         content
     }),

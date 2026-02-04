@@ -17,7 +17,9 @@ import {
   Save
 } from 'lucide-react';
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import {
   Table,
   TableHeader,
@@ -52,8 +54,8 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
   onEdit,
   forceEdit = false,
 }) => {
-  const [subAccounts, setSubAccounts] = useState<PlanComptableDto[]>([]);
-  const [isLoadingSubAccounts, setIsLoadingSubAccounts] = useState(false);
+  const [comptesCrees, setComptesCrees] = useState<CompteDto[]>([]);
+  const [isLoadingComptes, setIsLoadingComptes] = useState(false);
   const [isEditing, setIsEditing] = useState(forceEdit || !account);
 
   const form = useForm<PlanComptableDto>({
@@ -64,23 +66,24 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
     setIsEditing(forceEdit || !account);
     if (account) {
       form.reset(account);
-      fetchSubAccounts();
+      fetchComptesAssocies();
     }
   }, [account, forceEdit]);
 
-  const fetchSubAccounts = async () => {
-    if (!account?.noCompte) return;
-    setIsLoadingSubAccounts(true);
+  const fetchComptesAssocies = async () => {
+    if (!account?.classe) return;
+    setIsLoadingComptes(true);
     try {
-      const res = await AccountingPlanComptableService.getPlanComptablesByPrefix(account.noCompte);
+      const res = await AccountingComptesService.getAllComptes();
       if (res && res.data) {
-        // Filtrer pour ne garder que les vrais sous-comptes (plus longs que le compte actuel)
-        setSubAccounts(res.data.filter(a => a.noCompte !== account.noCompte));
+        // Ne garder que les comptes créés appartenant à la même classe
+        const filtered = res.data.filter(c => c.classe === account.classe);
+        setComptesCrees(filtered);
       }
     } catch (error) {
-      console.error("Failed to fetch sub-accounts:", error);
+      console.error("Failed to fetch related accounting accounts:", error);
     } finally {
-      setIsLoadingSubAccounts(false);
+      setIsLoadingComptes(false);
     }
   };
 
@@ -145,15 +148,15 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
             )}
           </div>
 
-          {/* Sub-accounts Table */}
+          {/* Related Created Accounts Table */}
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-4">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
-                <h3 className="text-xl font-bold text-gray-800 tracking-tight">Sous-comptes liés</h3>
+                <h3 className="text-xl font-bold text-gray-800 tracking-tight">Comptes comptables  (Classe {account.classe})</h3>
               </div>
               <div className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                {subAccounts.length} Compte(s) fils
+                {comptesCrees.length} Compte(s) trouvé(s)
               </div>
             </div>
 
@@ -163,35 +166,39 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
                   <TableRow>
                     <TableHead className="font-bold text-gray-700">N° Compte</TableHead>
                     <TableHead className="font-bold text-gray-700">Libellé</TableHead>
-                    <TableHead className="font-bold text-gray-700">Classe</TableHead>
+                    <TableHead className="font-bold text-gray-700">Type</TableHead>
+                    <TableHead className="font-bold text-gray-700 text-right">Solde</TableHead>
                     <TableHead className="font-bold text-gray-700">Statut</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingSubAccounts ? (
+                  {isLoadingComptes ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-12">
+                      <TableCell colSpan={5} className="text-center py-12">
                         <div className="flex flex-col items-center gap-3">
                           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                          <p className="text-sm text-gray-500 font-medium">Chargement des sous-comptes...</p>
+                          <p className="text-sm text-gray-500 font-medium">Chargement des comptes...</p>
                         </div>
                       </TableCell>
                     </TableRow>
-                  ) : subAccounts.length === 0 ? (
+                  ) : comptesCrees.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-12 text-gray-400">
+                      <TableCell colSpan={5} className="text-center py-12 text-gray-400">
                         <div className="flex flex-col items-center gap-2">
                           <Activity className="h-10 w-10 text-gray-200" />
-                          <p className="font-medium">Aucun sous-compte trouvé.</p>
+                          <p className="font-medium">Aucun compte créé pour cette classe.</p>
                         </div>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    subAccounts.map((a) => (
+                    comptesCrees.map((a) => (
                       <TableRow key={a.id} className="hover:bg-gray-50/80 transition-colors">
                         <TableCell className="font-mono font-bold text-blue-700">{a.noCompte}</TableCell>
                         <TableCell className="text-gray-900 font-medium">{a.libelle}</TableCell>
-                        <TableCell className="text-gray-600">{a.classe}</TableCell>
+                        <TableCell className="text-gray-600 text-xs">{a.typeCompte || '-'}</TableCell>
+                        <TableCell className={`text-right font-mono font-semibold ${(a.solde || 0) < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                          {(a.solde || 0).toLocaleString('fr-FR')}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={a.actif ? "success" : "secondary"} className="px-2 py-0 text-[10px]">
                             {a.actif ? 'Actif' : 'Inactif'}

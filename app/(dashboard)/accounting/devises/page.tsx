@@ -7,6 +7,7 @@ import { ExchangeRateManagementService } from '@/src/lib2/services/ExchangeRateM
 import { DeviseDto } from '@/src/lib2/models/DeviseDto';
 import { DeviseListView } from '@/components/accounting/devise-list-view';
 import { DeviseForm } from '@/components/accounting/settings/devise-form';
+import { DeviseRateForm } from '@/components/accounting/settings/devise-rate-form';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -143,6 +144,46 @@ export default function DevisesPage() {
     */
   };
 
+  const handleUpdateRate = (id: string) => {
+    const devise = devises.find(d => d.id === id);
+    const nationalCurrency = devises.find(d => d.estNationale);
+
+    if (devise && nationalCurrency) {
+      onOpen({
+        title: `Mise à jour du taux : ${devise.code} / ${nationalCurrency.code}`,
+        isMaximized: false,
+        content: (
+          <DeviseRateForm
+            initialRate={devise.rate || 0}
+            currencyCode={devise.code}
+            nationalCurrencyCode={nationalCurrency.code}
+            onSave={(rate) => handleSaveRate(devise.id, nationalCurrency.id, rate)}
+            onCancel={closeCompose}
+          />
+        )
+      });
+    } else if (!nationalCurrency) {
+      toast.error("Aucune devise nationale définie pour la référence.");
+    }
+  };
+
+  const handleSaveRate = async (sourceId: string, targetId: string, rate: number) => {
+    try {
+      await ExchangeRateManagementService.createTauxChange({
+        devise_source_id: sourceId,
+        devise_cible_id: targetId,
+        taux: rate,
+        date_effet: new Date().toISOString()
+      });
+      toast.success("Taux de change mis à jour");
+      await fetchDevises();
+      closeCompose();
+    } catch (err: any) {
+      console.error("Failed to update rate:", err);
+      toast.error("Erreur lors de la mise à jour du taux");
+    }
+  };
+
   const handleEditDevise = (id: string) => {
     const devise = devises.find(d => d.id === id);
     if (devise) handleOpenCompose(devise);
@@ -155,6 +196,7 @@ export default function DevisesPage() {
   const handleOpenCompose = (devise: Devise | null = null) => {
     onOpen({
       title: devise ? "Modifier la Devise" : "Nouvelle Devise",
+      isMaximized: false,
       content: (
         <DeviseForm
           initialData={devise}
@@ -193,7 +235,7 @@ export default function DevisesPage() {
           onDelete={confirmDelete}
           onAddNew={handleAddNew}
           onRefresh={fetchDevises}
-          onUpdateRate={handleEditDevise}
+          onUpdateRate={handleUpdateRate}
         />
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

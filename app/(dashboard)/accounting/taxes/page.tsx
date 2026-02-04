@@ -127,6 +127,7 @@ export default function TaxesPage() {
   const handleOpenCompose = (taxe: TaxeDto | null = null) => {
     onOpen({
       title: taxe ? "Modifier la Taxe" : "Nouvelle Taxe",
+      isMaximized: false,
       content: (
         <TaxeForm
           initialData={taxe}

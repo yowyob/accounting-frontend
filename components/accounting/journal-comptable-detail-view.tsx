@@ -16,17 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
-import { EcritureComptableListView } from './ecriture-comptable-list-view';
 import { OperationComptableListView } from './operation-comptable-list-view';
 import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
@@ -71,10 +64,7 @@ export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProp
   if (!isEditing && journal) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center px-1">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" /> Retour
-          </Button>
+        <div className="flex justify-end items-center px-1">
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -96,6 +86,16 @@ export const JournalComptableDetailView: React.FC<JournalComptableDetailViewProp
         </div>
 
         <JournalComptableReadView journal={journal} />
+
+        <div className="flex justify-end pt-4 border-t px-1">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="bg-white hover:bg-gray-50 text-gray-800 border-gray-300 px-10 font-semibold shadow-sm"
+          >
+            Fermer
+          </Button>
+        </div>
       </div>
     );
   }

@@ -31,6 +31,7 @@ interface AccountListViewProps {
   onAddNew: () => void;
   onRefresh: () => void;
   selectedId?: string;
+  onInitPlan?: () => void;
 }
 
 const RowActions = ({ account, onEdit, onDelete }: { account: PlanComptableDto, onEdit: (id: string) => void, onDelete: (account: PlanComptableDto) => void }) => {
@@ -67,6 +68,7 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
   onAddNew,
   onRefresh,
   selectedId,
+  onInitPlan,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -135,10 +137,27 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
 
         {/* Bottom Row: Action buttons (New left, Refresh right) */}
         <div className="flex items-center justify-between">
-          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau Compte
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={onAddNew}
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={accounts.length === 0}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau Compte
+            </Button>
+
+            {accounts.length === 0 && !isLoading && onInitPlan && (
+              <Button
+                onClick={onInitPlan}
+                variant="outline"
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Initialiser le Plan Comptable (OHADA 2025)
+              </Button>
+            )}
+          </div>
           <Button onClick={onRefresh} variant="outline" size="icon">
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
