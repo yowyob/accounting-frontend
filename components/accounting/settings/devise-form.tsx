@@ -134,8 +134,7 @@ export const DeviseForm: React.FC<DeviseFormProps> = ({ initialData, onSave, onC
             ANNULER
           </Button>
           <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-            <Save className="mr-2 h-4 w-4" />
-            {form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}
+            {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}
           </Button>
         </div>
       </form>

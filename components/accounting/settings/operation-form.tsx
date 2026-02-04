@@ -131,7 +131,7 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
       ...data,
       id: data.id || undefined,
       comptePrincipalId: getAccountId(data.comptePrincipalId),
-      journalComptableId: selectedJournalIds[0] || '',
+      journalComptableId: selectedJournalId || '',
       contreparties: data.contreparties?.filter(cp => cp.compteId?.trim())?.map(cp => ({
         ...cp,
         id: cp.id || undefined,
@@ -474,8 +474,7 @@ export const OperationForm: React.FC<OperationFormProps> = memo(({ initialData, 
             ANNULER
           </Button>
           <Button type="submit" className="bg-[#007bff] hover:bg-[#0069d9]" disabled={form.formState.isSubmitting}>
-            <Save size={16} className="mr-2" />
-            <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer"}</span>
+            <span>{form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
           </Button>
         </div>
       </form>

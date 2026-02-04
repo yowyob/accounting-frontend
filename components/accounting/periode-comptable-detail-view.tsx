@@ -223,8 +223,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
           )}
           {!periode?.cloturee && (
             <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
-              <Save className="mr-2 h-4 w-4" />
-              <span>{form.formState.isSubmitting ? "Enregistrement..." : "Enregistrer les modifications"}</span>
+              <span>{form.formState.isSubmitting ? "Enregistrement..." : (periode?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
             </Button>
           )}
         </div>

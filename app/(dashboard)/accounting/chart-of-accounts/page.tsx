@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { AccountListView } from '@/components/accounting/account-list-view';
-import { AccountDetailView } from '@/components/accounting/account-detail-view'; // Assuming this exists or using Form if not
-import { AccountingForm } from '@/components/accounting/account-form'; // Fallback if DetailView is read-only or we want to use Form
+import { AccountDetailView } from '@/components/accounting/account-detail-view';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -19,14 +18,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useCompose } from '@/hooks/use-compose-store';
 
 export default function ChartOfAccountsPage() {
   const [accounts, setAccounts] = useState<PlanComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchAccounts = useCallback(async () => {
     setIsLoading(true);
@@ -70,7 +71,6 @@ export default function ChartOfAccountsPage() {
       }
       await fetchAccounts();
       setSelectedAccountId(null);
-      setIsEditing(false);
     } catch (err: any) {
       let reason = "Une erreur inattendue est survenue.";
       if (err.body?.message) reason = err.body.message;
@@ -96,7 +96,6 @@ export default function ChartOfAccountsPage() {
       await fetchAccounts();
       if (selectedAccountId === deleteId) {
         setSelectedAccountId(null);
-        setIsEditing(false);
       }
     } catch (err: any) {
       let reason = "Impossible de supprimer ce compte.";
@@ -112,83 +111,87 @@ export default function ChartOfAccountsPage() {
     }
   };
 
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [viewData, setViewData] = useState<PlanComptableDto | null>(null);
+
   const handleSelectAccount = (id: string) => {
-    setSelectedAccountId(id);
-    setIsEditing(false);
+    const account = accounts.find(a => a.id === id);
+    if (account) {
+      setViewData(account);
+      setViewMode('detail');
+    }
   };
 
   const handleEditAccount = (id: string) => {
-    setSelectedAccountId(id);
-    setIsEditing(true);
+    const account = accounts.find(a => a.id === id);
+    if (account) handleOpenCompose(account, true);
   };
 
   const handleAddNew = () => {
-    setSelectedAccountId('new');
-    setIsEditing(true);
+    handleOpenCompose(null, true);
   };
 
-  const handleBack = () => {
-    setSelectedAccountId(null);
-    setIsEditing(false);
+  const handleOpenCompose = (account: PlanComptableDto | null = null, isEditing: boolean = false) => {
+    onOpen({
+      title: isEditing ? (account ? "Modifier le Compte" : "Nouveau Compte") : "Détails du Compte",
+      content: (
+        <AccountDetailView
+          account={account}
+          onSave={async (data) => {
+            await handleSave(data);
+            closeCompose();
+          }}
+          onDelete={() => {
+            if (account) confirmDelete(account);
+            closeCompose();
+          }}
+          onBack={closeCompose}
+          forceEdit={isEditing}
+          onEdit={() => {
+            closeCompose();
+            handleOpenCompose(account, true);
+          }}
+        />
+      )
+    });
   };
 
-  const selectedAccount = selectedAccountId === 'new' ? null : accounts.find(a => a.id === selectedAccountId);
-
-  if (selectedAccountId) {
-    // Note: Assuming AccountingForm is the editor and AccountDetailView is the viewer.
-    // If AccountDetailView handles both (like CompteComptableDetailView), use that.
-    // Let's use AccountingForm for editing/new and AccountDetailView for view?
-    // Actually, to match AccountsPage perfectly, it's usually `DetailView` that handles both states via `isEditing` prop.
-    // But here we see `AccountForm` separate in original file.
-    // Let's check if AccountDetailView supports edit. The `view_file` will tell us. 
-    // For now, I'll Assume WRAPPING logic similar to others:
-
+  if (viewMode === 'detail' && viewData) {
     return (
-      <div className="min-h-screen p-4 bg-gray-100">
-        <div className="w-full max-w-5xl mx-auto">
-          {/* If isEditing, show Form. If not, show Detail.
-                        Or if AccountDetailView supports both, use it. */
-            isEditing ? (
-              <div className="space-y-6">
-                <AccountingForm
-                  initialData={selectedAccount || null}
-                  onSave={handleSave}
-                  onCancel={handleBack}
-                />
-              </div>
-            ) : (
-              <div className="space-y-6 bg-white p-6 rounded-lg shadow">
-                <AccountDetailView
-                  account={selectedAccount!}
-                  onSave={handleSave}
-                  onDelete={() => {
-                    if (selectedAccount) confirmDelete(selectedAccount);
-                  }}
-                  onBack={handleBack}
-                />
-              </div>
-            )
-          }
+      <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+        <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+          <AccountDetailView
+            account={viewData}
+            onSave={handleSave}
+            onDelete={() => confirmDelete(viewData)}
+            onBack={() => setViewMode('list')}
+            onEdit={() => handleOpenCompose(viewData, true)}
+          />
+
+          <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action désactivera le compte.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={async () => {
+                  await handleDelete();
+                  setViewMode('list');
+                }} className="bg-red-600 hover:bg-red-700">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">

@@ -8,6 +8,7 @@ import { ExerciceComptableDetailView } from '@/components/accounting/exercice-co
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -23,9 +24,10 @@ export default function FiscalYearsPage() {
     const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedExerciceId, setSelectedExerciceId] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [closeId, setCloseId] = useState<string | null>(null);
+
+    const { onOpen, onClose: closeCompose } = useCompose();
 
     const fetchExercices = useCallback(async () => {
         setIsLoading(true);
@@ -74,7 +76,6 @@ export default function FiscalYearsPage() {
             }
             await fetchExercices();
             setSelectedExerciceId(null);
-            setIsEditing(false);
         } catch (err: any) {
             let reason = "Une erreur inattendue est survenue.";
             if (err.body?.message) reason = err.body.message;
@@ -115,49 +116,86 @@ export default function FiscalYearsPage() {
         }
     };
 
+    const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+    const [viewData, setViewData] = useState<ExerciceComptableDto | null>(null);
+
     const handleSelectExercice = (id: string) => {
-        setSelectedExerciceId(id);
-        setIsEditing(false);
+        const exercice = exercices.find(e => e.id === id);
+        if (exercice) {
+            setViewData(exercice);
+            setViewMode('detail');
+        }
     };
 
     const handleEditExercice = (id: string) => {
-        setSelectedExerciceId(id);
-        setIsEditing(true);
+        const exercice = exercices.find(e => e.id === id);
+        if (exercice) handleOpenCompose(exercice, true);
     };
 
     const handleAddNew = () => {
-        setSelectedExerciceId('new');
-        setIsEditing(true);
+        handleOpenCompose(null, true);
     };
 
-    const handleBack = () => {
-        setSelectedExerciceId(null);
-        setIsEditing(false);
+    const handleOpenCompose = (exercice: ExerciceComptableDto | null = null, isEditing: boolean = false) => {
+        onOpen({
+            title: isEditing ? (exercice ? "Modifier l'Exercice" : "Nouvel Exercice") : "Détails de l'Exercice",
+            content: (
+                <ExerciceComptableDetailView
+                    exercice={exercice}
+                    onSave={async (data) => {
+                        await handleSave(data);
+                        closeCompose();
+                    }}
+                    onBack={closeCompose}
+                    onClose={() => {
+                        if (exercice) confirmClose(exercice.id!);
+                        closeCompose();
+                    }}
+                    forceEdit={isEditing}
+                    onEdit={() => {
+                        closeCompose();
+                        handleOpenCompose(exercice, true);
+                    }}
+                />
+            )
+        });
     };
 
-    const selectedExercice = selectedExerciceId === 'new' ? null : exercices.find(e => e.id === selectedExerciceId);
-
-    if (selectedExerciceId) {
+    if (viewMode === 'detail' && viewData) {
         return (
-            <div className="min-h-screen p-4 bg-gray-100">
-                <div className="w-full max-w-5xl mx-auto">
+            <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+                <div className="w-full max-w-7xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden">
                     <ExerciceComptableDetailView
-                        exercice={selectedExercice || null}
+                        exercice={viewData}
                         onSave={handleSave}
-                        onBack={handleBack}
-                        onClose={() => selectedExercice && confirmClose(selectedExercice.id!)}
-                        forceEdit={isEditing}
-                        onEdit={() => setIsEditing(true)}
+                        onBack={() => setViewMode('list')}
+                        onClose={() => {
+                            if (viewData.id) confirmClose(viewData.id);
+                        }}
+                        onEdit={() => handleOpenCompose(viewData, true)}
                     />
                 </div>
+
+                <AlertDialog open={!!closeId} onOpenChange={(open) => !open && setCloseId(null)}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                La clôture d'un exercice est une opération importante.
+                                Assurez-vous d'avoir vérifié toutes les écritures avant de procéder.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCloseExercice} className="bg-orange-600 hover:bg-orange-700">
+                                Clôturer l'exercice
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         );
     }
-
-
-
-
-    // ... (rest of fetch logic)
 
     return (
         <div className="min-h-screen flex flex-col p-4 bg-gray-100">

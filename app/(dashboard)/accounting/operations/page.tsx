@@ -8,6 +8,7 @@ import { OperationForm } from '@/components/accounting/settings/operation-form';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +24,10 @@ export default function OperationComptablePage() {
   const [operations, setOperations] = useState<OperationComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedOperationId, setSelectedOperationId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchOperations = useCallback(async () => {
     setIsLoading(true);
@@ -88,7 +90,6 @@ export default function OperationComptablePage() {
       }
       await fetchOperations();
       setSelectedOperationId(null);
-      setIsEditing(false);
     } catch (err: any) {
       let reason = "Une erreur inattendue est survenue.";
       if (err.body?.message) reason = err.body.message;
@@ -114,7 +115,6 @@ export default function OperationComptablePage() {
       await fetchOperations();
       if (selectedOperationId === deleteId) {
         setSelectedOperationId(null);
-        setIsEditing(false);
       }
     } catch (err: any) {
       let reason = "Impossible de supprimer cette opération.";
@@ -131,40 +131,37 @@ export default function OperationComptablePage() {
   };
 
   const handleSelectOperation = (id: string) => {
-    setSelectedOperationId(id);
-    setIsEditing(false);
+    const operation = operations.find(o => o.id === id);
+    if (operation) handleOpenCompose(operation);
   };
 
   const handleEditOperation = (id: string) => {
-    setSelectedOperationId(id);
-    setIsEditing(true);
+    const operation = operations.find(o => o.id === id);
+    if (operation) handleOpenCompose(operation);
   };
 
   const handleAddNew = () => {
-    setSelectedOperationId('new');
-    setIsEditing(true);
+    handleOpenCompose(null);
   };
 
-  const handleBack = () => {
-    setSelectedOperationId(null);
-    setIsEditing(false);
+  const handleOpenCompose = (operation: OperationComptableDto | null = null) => {
+    onOpen({
+      title: operation ? "Modifier le Modèle d'Opération" : "Nouveau Modèle d'Opération",
+      content: (
+        <OperationForm
+          initialData={operation}
+          onSave={async (data, journalIds) => {
+            await handleSave(data, journalIds);
+            closeCompose();
+          }}
+          onCancel={closeCompose}
+        />
+      )
+    });
   };
 
   const selectedOperation = selectedOperationId === 'new' ? null : operations.find(o => o.id === selectedOperationId);
 
-  if (selectedOperationId) {
-    return (
-      <div className="min-h-screen p-4 bg-gray-100">
-        <div className="w-full max-w-5xl mx-auto">
-          <OperationForm
-            initialData={selectedOperation || null}
-            onSave={handleSave}
-            onCancel={handleBack}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">

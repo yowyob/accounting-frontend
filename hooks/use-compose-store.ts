@@ -19,19 +19,19 @@ export const useCompose = create<ComposeState>((set) => ({
     isMaximized: false,
     title: '',
     content: null,
-    onOpen: ({ title, content }) => set({ 
-        isOpen: true, 
-        isMinimized: false, 
-        isMaximized: false, 
-        title, 
-        content 
+    onOpen: ({ title, content }) => set({
+        isOpen: true,
+        isMinimized: false,
+        isMaximized: true,
+        title,
+        content
     }),
-    onClose: () => set({ 
-        isOpen: false, 
-        isMinimized: false, 
-        isMaximized: false, 
-        title: '', 
-        content: null 
+    onClose: () => set({
+        isOpen: false,
+        isMinimized: false,
+        isMaximized: false,
+        title: '',
+        content: null
     }),
     onToggleMinimize: () => set((state) => ({ isMinimized: !state.isMinimized })),
     onToggleMaximize: () => set((state) => ({ isMaximized: !state.isMaximized })),

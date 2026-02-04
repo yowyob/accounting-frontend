@@ -216,9 +216,7 @@ export const TaxeForm: React.FC<TaxeFormProps> = ({ initialData, onSave, onCance
             disabled={form.formState.isSubmitting}
           >
             <Save size={16} className="mr-2" />
-            <span>
-              {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Mettre à jour la taxe" : "Créer la taxe")}
-            </span>
+            {form.formState.isSubmitting ? "Enregistrement..." : (initialData?.id ? "Enregistrer les modifications" : "Enregistrer")}
           </Button>
         </div>
       </form>

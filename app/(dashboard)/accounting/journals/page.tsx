@@ -8,6 +8,7 @@ import { JournalComptableDetailView } from '@/components/accounting/journal-comp
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,9 +24,10 @@ export default function JournalComptablePage() {
   const [journals, setJournals] = useState<JournalComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedJournalId, setSelectedJournalId] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchJournals = useCallback(async () => {
     setIsLoading(true);
@@ -74,7 +76,6 @@ export default function JournalComptablePage() {
       }
       await fetchJournals();
       setSelectedJournalId(null);
-      setIsEditing(false);
     } catch (err: any) {
       let reason = "Une erreur inattendue est survenue.";
       if (err.body?.message) reason = err.body.message;
@@ -103,7 +104,6 @@ export default function JournalComptablePage() {
       await fetchJournals();
       if (selectedJournalId === deleteId) {
         setSelectedJournalId(null);
-        setIsEditing(false);
       }
     } catch (err: any) {
       let reason = "Impossible de supprimer ce journal.";
@@ -119,62 +119,88 @@ export default function JournalComptablePage() {
     }
   };
 
+  const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [viewData, setViewData] = useState<JournalComptableDto | null>(null);
+
   const handleSelectJournal = (id: string) => {
-    setSelectedJournalId(id);
-    setIsEditing(false);
+    const journal = journals.find(j => j.id === id);
+    if (journal) {
+      setViewData(journal);
+      setViewMode('detail');
+    }
   };
 
   const handleEditJournal = (id: string) => {
-    setSelectedJournalId(id);
-    setIsEditing(true);
+    const journal = journals.find(j => j.id === id);
+    if (journal) handleOpenCompose(journal, true);
   };
 
   const handleAddNew = () => {
-    setSelectedJournalId('new');
-    setIsEditing(true);
+    handleOpenCompose(null, true);
   };
 
-  const handleBack = () => {
-    setSelectedJournalId(null);
-    setIsEditing(false);
+  const handleOpenCompose = (journal: JournalComptableDto | null = null, isEditing: boolean = false) => {
+    onOpen({
+      title: isEditing ? (journal ? "Modifier le Journal" : "Nouveau Journal") : "Détails du Journal",
+      content: (
+        <JournalComptableDetailView
+          journal={journal}
+          onSave={async (data) => {
+            await handleSave(data);
+            closeCompose();
+          }}
+          onBack={closeCompose}
+          onDelete={() => {
+            if (journal) confirmDelete(journal);
+            closeCompose();
+          }}
+          forceEdit={isEditing}
+          onEdit={() => {
+            closeCompose();
+            handleOpenCompose(journal, true);
+          }}
+        />
+      )
+    });
   };
 
-  const selectedJournal = selectedJournalId === 'new' ? null : journals.find(j => j.id === selectedJournalId);
-
-  if (selectedJournalId) {
+  if (viewMode === 'detail' && viewData) {
     return (
-      <div className="min-h-screen p-4 bg-gray-100">
-        <div className="w-full max-w-5xl mx-auto">
+      <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+        <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
           <JournalComptableDetailView
-            journal={selectedJournal || null}
+            journal={viewData}
             onSave={handleSave}
-            onBack={handleBack}
-            onDelete={() => selectedJournal && confirmDelete(selectedJournal)}
-            forceEdit={isEditing}
-            onEdit={() => setIsEditing(true)}
+            onDelete={() => confirmDelete(viewData)}
+            onBack={() => setViewMode('list')}
+            onEdit={() => handleOpenCompose(viewData, true)}
           />
-        </div>
 
-        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Cette action est irréversible. Cela supprimera définitivement le journal
-                et pourrait affecter les écritures associées.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Annuler</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                Supprimer
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Cette action est irréversible. Cela supprimera définitivement le journal
+                  et pourrait affecter les écritures associées.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuler</AlertDialogCancel>
+                <AlertDialogAction onClick={() => {
+                  handleDelete();
+                  setViewMode('list');
+                }} className="bg-red-600 hover:bg-red-700">
+                  Supprimer
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">
