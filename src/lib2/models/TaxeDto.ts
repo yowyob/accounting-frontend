@@ -7,6 +7,7 @@ export type TaxeDto = {
     code: string;
     libelle: string;
     taux: number;
+    type_taxe?: string;
     compte_collecte?: string;
     compte_deductible?: string;
     pays?: string;

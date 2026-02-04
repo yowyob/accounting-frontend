@@ -7,6 +7,8 @@ export type EcritureComptableDto = {
     id?: string;
     libelle: string;
     validee?: boolean;
+    statut?: string;
+    actif?: boolean;
     notes?: string;
     numeroEcriture?: string;
     dateEcriture: string;

@@ -3,13 +3,13 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ComptableObject = {
-    get_journal_comptable_id?: string;
-    get_date?: string;
+    get_debit_account?: string;
+    get_credit_account?: string;
     get_montant?: number;
     get_description?: string;
     get_source_type?: ComptableObject.get_source_type;
-    get_debit_account?: string;
-    get_credit_account?: string;
+    get_journal_comptable_id?: string;
+    get_date?: string;
     get_id?: string;
     get_tenant_id?: string;
     get_periode_comptable_id?: string;

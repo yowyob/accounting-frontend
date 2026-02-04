@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApiResponseWrapperExerciceComptableDto } from '../models/ApiResponseWrapperExerciceComptableDto';
 import type { ApiResponseWrapperListExerciceComptableDto } from '../models/ApiResponseWrapperListExerciceComptableDto';
+import type { ApiResponseWrapperListPeriodeComptableDto } from '../models/ApiResponseWrapperListPeriodeComptableDto';
 import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { ExerciceComptableDto } from '../models/ExerciceComptableDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -104,6 +105,40 @@ export class AccountingFiscalYearsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/accounting/exercices/{id}/close',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * Deactivate a fiscal year (soft delete)
+     * @param id
+     * @returns ApiResponseWrapperObject OK
+     * @throws ApiError
+     */
+    public static deactivateExercice(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperObject> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/accounting/exercices/{id}/deactivate',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * Get all periods for a fiscal year
+     * @param id
+     * @returns ApiResponseWrapperListPeriodeComptableDto OK
+     * @throws ApiError
+     */
+    public static getPeriodes(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperListPeriodeComptableDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/exercices/{id}/periodes',
             path: {
                 'id': id,
             },

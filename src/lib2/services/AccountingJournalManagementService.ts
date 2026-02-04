@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResponseWrapperJournalComptableDto } from '../models/ApiResponseWrapperJournalComptableDto';
+import type { ApiResponseWrapperListCompteDto } from '../models/ApiResponseWrapperListCompteDto';
 import type { ApiResponseWrapperListJournalComptableDto } from '../models/ApiResponseWrapperListJournalComptableDto';
 import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { JournalComptableDto } from '../models/JournalComptableDto';
@@ -90,6 +91,23 @@ export class AccountingJournalManagementService {
             url: '/api/accounting/journals',
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * Get distinct accounts used in a journal
+     * @param id
+     * @returns ApiResponseWrapperListCompteDto OK
+     * @throws ApiError
+     */
+    public static getComptes(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperListCompteDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/journals/{id}/comptes',
+            path: {
+                'id': id,
+            },
         });
     }
     /**

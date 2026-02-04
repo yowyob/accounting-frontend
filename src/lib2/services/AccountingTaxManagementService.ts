@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApiResponseWrapperListTaxeDto } from '../models/ApiResponseWrapperListTaxeDto';
+import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { ApiResponseWrapperTaxeDto } from '../models/ApiResponseWrapperTaxeDto';
-import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
 import type { TaxeDto } from '../models/TaxeDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -51,12 +51,12 @@ export class AccountingTaxManagementService {
     /**
      * Delete a tax
      * @param id
-     * @returns ApiResponseWrapperVoid OK
+     * @returns ApiResponseWrapperObject OK
      * @throws ApiError
      */
     public static deleteTaxe(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperVoid> {
+    ): CancelablePromise<ApiResponseWrapperObject> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/accounting/taxes/{id}',

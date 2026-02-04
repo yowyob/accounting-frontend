@@ -77,6 +77,45 @@ export class AccountingEntriesService {
         });
     }
     /**
+     * Deactivate an accounting entry (soft delete)
+     * @param id
+     * @returns ApiResponseWrapperObject OK
+     * @throws ApiError
+     */
+    public static deactivate(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperObject> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/accounting/ecritures/{id}/deactivate',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * Cancel an accounting entry
+     * @param id
+     * @param user
+     * @returns ApiResponseWrapperEcritureComptableDto OK
+     * @throws ApiError
+     */
+    public static cancel(
+        id: string,
+        user?: string,
+    ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/api/accounting/ecritures/{id}/cancel',
+            path: {
+                'id': id,
+            },
+            query: {
+                'user': user,
+            },
+        });
+    }
+    /**
      * Get an entry by its ID
      * @param id
      * @returns ApiResponseWrapperEcritureComptableDto OK

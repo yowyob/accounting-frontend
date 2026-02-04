@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { ApiResponseWrapperDeviseDto } from '../models/ApiResponseWrapperDeviseDto';
 import type { ApiResponseWrapperListDeviseDto } from '../models/ApiResponseWrapperListDeviseDto';
-import type { ApiResponseWrapperVoid } from '../models/ApiResponseWrapperVoid';
+import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { DeviseDto } from '../models/DeviseDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -51,12 +51,12 @@ export class CurrencyManagementService {
     /**
      * Delete a currency
      * @param id
-     * @returns ApiResponseWrapperVoid OK
+     * @returns ApiResponseWrapperObject OK
      * @throws ApiError
      */
     public static deleteDevise(
         id: string,
-    ): CancelablePromise<ApiResponseWrapperVoid> {
+    ): CancelablePromise<ApiResponseWrapperObject> {
         return __request(OpenAPI, {
             method: 'DELETE',
             url: '/api/accounting/currencies/{id}',

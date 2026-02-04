@@ -10,6 +10,8 @@ export type ExerciceComptableDto = {
     date_debut?: string;
     date_fin?: string;
     cloture?: boolean;
+    statut?: string;
+    actif?: boolean;
     created_at?: string;
     updated_at?: string;
     created_by?: string;

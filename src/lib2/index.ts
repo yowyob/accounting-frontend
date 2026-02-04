@@ -9,6 +9,7 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 
 export type { AccountGenerationRequestDto } from './models/AccountGenerationRequestDto';
 export type { AgenceDto } from './models/AgenceDto';
+export type { ApiResponseCashRegisterAccountingResponse } from './models/ApiResponseCashRegisterAccountingResponse';
 export type { ApiResponseWrapperAgenceDto } from './models/ApiResponseWrapperAgenceDto';
 export type { ApiResponseWrapperBalanceDesComptesDto } from './models/ApiResponseWrapperBalanceDesComptesDto';
 export type { ApiResponseWrapperCompteDto } from './models/ApiResponseWrapperCompteDto';
@@ -46,6 +47,8 @@ export type { ApiResponseWrapperTauxChangeDto } from './models/ApiResponseWrappe
 export type { ApiResponseWrapperTaxeDto } from './models/ApiResponseWrapperTaxeDto';
 export type { ApiResponseWrapperVoid } from './models/ApiResponseWrapperVoid';
 export type { BalanceDesComptesDto } from './models/BalanceDesComptesDto';
+export type { CashRegisterAccountingResponse } from './models/CashRegisterAccountingResponse';
+export type { CashRegisterMovementDto } from './models/CashRegisterMovementDto';
 export { ComptableObject } from './models/ComptableObject';
 export type { CompteDto } from './models/CompteDto';
 export type { ContrepartieDto } from './models/ContrepartieDto';
@@ -64,10 +67,12 @@ export type { OperationComptableDto } from './models/OperationComptableDto';
 export type { OrganizationDto } from './models/OrganizationDto';
 export type { PeriodeComptableDto } from './models/PeriodeComptableDto';
 export type { PlanComptableDto } from './models/PlanComptableDto';
+export type { ReleveBancaireDto } from './models/ReleveBancaireDto';
 export type { TauxChangeDto } from './models/TauxChangeDto';
 export type { TaxeDto } from './models/TaxeDto';
 
 export { AccountingAgencesService } from './services/AccountingAgencesService';
+export { AccountingAuditService } from './services/AccountingAuditService';
 export { AccountingComptesService } from './services/AccountingComptesService';
 export { AccountingEntriesService } from './services/AccountingEntriesService';
 export { AccountingFinancialReportsService } from './services/AccountingFinancialReportsService';
@@ -81,10 +86,13 @@ export { AccountingPlanComptableService } from './services/AccountingPlanComptab
 export { AccountingPointageBancaireService } from './services/AccountingPointageBancaireService';
 export { AccountingTaxDeclarationsService } from './services/AccountingTaxDeclarationsService';
 export { AccountingTaxManagementService } from './services/AccountingTaxManagementService';
+export { BankReconciliationService } from './services/BankReconciliationService';
+export { CashRegisterAccountingService } from './services/CashRegisterAccountingService';
 export { ClTureMensuelleService } from './services/ClTureMensuelleService';
 export { CurrencyManagementService } from './services/CurrencyManagementService';
 export { DebugControllerService } from './services/DebugControllerService';
 export { ExchangeRateManagementService } from './services/ExchangeRateManagementService';
+export { FixedAssetManagementService } from './services/FixedAssetManagementService';
 export { HealthControllerService } from './services/HealthControllerService';
 export { LettrageService } from './services/LettrageService';
 export { MouvementsDeStockService } from './services/MouvementsDeStockService';
