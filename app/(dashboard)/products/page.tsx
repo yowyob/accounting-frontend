@@ -1,32 +1,37 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Product } from '@/types/core';
-import { getProducts, createProduct, updateProduct, deleteProduct } from '@/lib/api';
+import { CompteDto } from '@/src/lib2/models/CompteDto';
+import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { useCompose } from '@/hooks/use-compose-store';
 import { ProductForm } from '@/components/products/product-form';
 import { ProductListView } from '@/components/products/product-list-view';
 import { ProductDetailView } from '@/components/products/product-detail-view';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
+import { toast } from 'sonner';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CompteDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<CompteDto | null>(null);
 
   const { onOpen, onClose } = useCompose();
 
   const fetchAndSetProducts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getProducts();
-      setProducts(data);
-      if (selectedProductId && !data.some(p => p.id === selectedProductId)) {
+      // Using 'STOCK' as the type for products as requested by the pattern api/accounting/comptes/type/{type}
+      const res = await AccountingComptesService.getAccountsByType('STOCK');
+      if (res.success && res.data) {
+        setProducts(res.data);
+      }
+      if (selectedProductId && res.data && !res.data.some(p => p.id === selectedProductId)) {
         setSelectedProductId(null);
       }
     } catch (error) {
       console.error("Failed to fetch products:", error);
+      toast.error("Erreur lors de la récupération des articles");
     } finally {
       setIsLoading(false);
     }
@@ -36,31 +41,38 @@ export default function ProductsPage() {
     fetchAndSetProducts();
   }, [fetchAndSetProducts]);
 
-  const handleSave = async (data: Product) => {
-    const isNew = !data.id;
+  const handleSave = async (data: CompteDto) => {
     try {
-      if (isNew) {
-        await createProduct(data);
-        onClose();
+      if (data.id) {
+        await AccountingComptesService.updateCompte(data.id, data);
+        toast.success("Article mis à jour");
       } else {
-        await updateProduct(data.id, data);
+        await AccountingComptesService.createCompte({
+          ...data,
+          typeCompte: 'STOCK'
+        });
+        toast.success("Article créé");
+        onClose();
       }
       await fetchAndSetProducts();
     } catch (error) {
       console.error("Failed to save product", error);
+      toast.error("Erreur lors de l'enregistrement");
     }
   };
 
   const confirmDelete = async () => {
     if (!productToDelete) return;
     try {
-      await deleteProduct(productToDelete.id);
+      await AccountingComptesService.deleteCompte(productToDelete.id || '');
+      toast.success("Article supprimé");
       await fetchAndSetProducts();
       if (selectedProductId === productToDelete.id) {
         setSelectedProductId(null);
       }
     } catch (error) {
       console.error("Failed to delete product :", error);
+      toast.error("Erreur lors de la suppression");
     } finally {
       setProductToDelete(null);
     }
@@ -69,11 +81,13 @@ export default function ProductsPage() {
   const handleDelete = async (id: string) => {
     if (window.confirm("Êtes-vous sûr de vouloir supprimer cet article ?")) {
       try {
-        await deleteProduct(id);
+        await AccountingComptesService.deleteCompte(id);
+        toast.success("Article supprimé");
         handleBackToList();
         await fetchAndSetProducts();
       } catch (error) {
         console.error("Failed to delete product:", error);
+        toast.error("Erreur lors de la suppression");
       }
     }
   };
@@ -81,7 +95,7 @@ export default function ProductsPage() {
   const handleOpenCompose = () => {
     onOpen({
       title: "Nouvel Article",
-      content: <ProductForm onSave={handleSave} onCancel={onClose} initialData={null} />
+      content: <ProductForm onSave={handleSave} initialData={null} />
     });
   };
 
@@ -118,8 +132,8 @@ export default function ProductsPage() {
           isOpen={!!productToDelete}
           onClose={() => setProductToDelete(null)}
           onConfirm={confirmDelete}
-          title={`Supprimer ${productToDelete?.name} ?`}
-          description="Cette action est irréversible. Toutes les données associées à ce client seront perdues."
+          title={`Supprimer ${productToDelete?.libelle} ?`}
+          description="Cette action est irréversible. Toutes les données associées à cet article seront perdues."
         />)}
     </>
   );

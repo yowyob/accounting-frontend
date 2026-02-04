@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PositionFiscale, OperationType } from '@/types/accounting';
-import { Edit, Trash2, Plus, RefreshCw, Search, Receipt, ShoppingCart, Upload, Download, Percent } from 'lucide-react';
+import { Edit, Trash2, Plus, RefreshCw, Search, Receipt, ShoppingCart, Upload, Download, Percent, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
@@ -152,9 +152,8 @@ export const PositionFiscaleListView: React.FC<PositionFiscaleListViewProps> = (
             <div className="divide-y divide-gray-100">
               {isLoading ? (
                 <div className="h-40 flex items-center justify-center py-8">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mb-2"></div>
-                    <p className="text-gray-700 font-medium text-sm">Chargement...</p>
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                   </div>
                 </div>
               ) : filteredPositions.length === 0 ? (

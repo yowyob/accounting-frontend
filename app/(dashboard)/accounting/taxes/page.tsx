@@ -2,32 +2,52 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { TaxeDto } from '@/src/lib2/models/TaxeDto';
-import { TaxManagementService } from '@/src/lib2/services/TaxManagementService';
+import { AccountingTaxManagementService } from '@/src/lib2/services/AccountingTaxManagementService';
 import { TaxeListView } from '@/components/accounting/taxe-list-view';
 import { TaxeForm } from '@/components/accounting/settings/taxes-form';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { useCompose } from '@/hooks/use-compose-store';
-import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function TaxesPage() {
   const [taxes, setTaxes] = useState<TaxeDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [taxeToDelete, setTaxeToDelete] = useState<TaxeDto | null>(null);
-  const { onOpen, onClose: closeCompose } = useCompose();
+  const [selectedTaxeId, setSelectedTaxeId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchTaxes = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const response = await TaxManagementService.getAllTaxes();
-      if (response.success && response.data) {
+      const response = await AccountingTaxManagementService.getAllTaxes();
+      if (response && response.data) {
         setTaxes(response.data);
       } else {
-        toast.error(response.message || "Erreur lors du chargement des taxes");
+        setTaxes([]);
       }
-    } catch (error) {
-      console.error("Error fetching taxes:", error);
-      toast.error("Une erreur est survenue lors de la récupération des taxes");
+    } catch (err: any) {
+      let reason = "Impossible de charger les taxes.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
+
+      console.error("Failed to fetch taxes:", err);
+      toast.error('Erreur lors du chargement', {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+      setError('Impossible de charger les taxes. Veuillez vérifier votre connexion internet.');
     } finally {
       setIsLoading(false);
     }
@@ -39,105 +59,139 @@ export default function TaxesPage() {
 
   const handleSave = async (data: TaxeDto) => {
     try {
-      let response;
       if (data.id) {
-        response = await TaxManagementService.updateTaxe(data.id, data);
+        await AccountingTaxManagementService.updateTaxe(data.id, data);
+        toast.success('Taxe mise à jour avec succès', {
+          description: `La taxe ${data.code} a été modifiée.`,
+          className: "bg-green-50 border-green-200 text-green-800"
+        });
       } else {
-        response = await TaxManagementService.createTaxe(data);
+        await AccountingTaxManagementService.createTaxe(data);
+        toast.success('Taxe créée avec succès', {
+          description: `La nouvelle taxe ${data.code} a été ajoutée.`,
+          className: "bg-green-50 border-green-200 text-green-800"
+        });
       }
+      await fetchTaxes();
+      setSelectedTaxeId(null);
+      setIsEditing(false);
+    } catch (err: any) {
+      let reason = "Une erreur inattendue est survenue.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
 
-      if (response.success) {
-        toast.success(data.id ? "Taxe mise à jour avec succès" : "Taxe créée avec succès");
-        fetchTaxes();
-        closeCompose();
-      } else {
-        toast.error(response.message || "Erreur lors de l'enregistrement");
-      }
-    } catch (error) {
-      console.error("Error saving tax:", error);
-      toast.error("Une erreur est survenue lors de l'enregistrement");
+      toast.error("Erreur lors de l'enregistrement", {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
     }
   };
 
-  const confirmDelete = async () => {
-    if (!taxeToDelete?.id) return;
+  const confirmDelete = (taxe: TaxeDto) => {
+    if (taxe.id) setDeleteId(taxe.id);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+
     try {
-      const response = await TaxManagementService.deleteTaxe(taxeToDelete.id);
-      if (response.success) {
-        toast.success("Taxe supprimée avec succès");
-        fetchTaxes();
-        setTaxeToDelete(null);
-      } else {
-        toast.error(response.message || "Erreur lors de la suppression");
+      await AccountingTaxManagementService.deleteTaxe(deleteId);
+      toast.success('Taxe supprimée', {
+        description: 'La taxe a été retirée avec succès.',
+        className: "bg-green-50 border-green-200 text-green-800"
+      });
+      await fetchTaxes();
+      if (selectedTaxeId === deleteId) {
+        setSelectedTaxeId(null);
+        setIsEditing(false);
       }
-    } catch (error) {
-      console.error("Error deleting tax:", error);
-      toast.error("Une erreur est survenue lors de la suppression");
+    } catch (err: any) {
+      let reason = "Impossible de supprimer cette taxe.";
+      if (err.body?.message) reason = err.body.message;
+      else if (err.message) reason = err.message;
+
+      toast.error("Erreur de suppression", {
+        description: reason,
+        className: "bg-red-50 border-red-200 text-red-800"
+      });
+    } finally {
+      setDeleteId(null);
     }
+  };
+
+  const handleEditTaxe = (id: string) => {
+    setSelectedTaxeId(id);
+    setIsEditing(true);
   };
 
   const handleAddNew = () => {
-    onOpen({
-      title: "Nouvelle Taxe",
-      content: <TaxeForm
-        initialData={null}
-        onSave={handleSave}
-        onCancel={closeCompose}
-      />
-    });
+    setSelectedTaxeId('new');
+    setIsEditing(true);
   };
 
-  const handleEdit = (id: string) => {
-    const taxeToEdit = taxes.find(t => t.id === id);
-    if (!taxeToEdit) return;
-
-    onOpen({
-      title: "Modifier la Taxe",
-      content: <TaxeForm
-        initialData={taxeToEdit}
-        onSave={handleSave}
-        onCancel={closeCompose}
-      />
-    });
+  const handleBack = () => {
+    setSelectedTaxeId(null);
+    setIsEditing(false);
   };
 
-  const handleDeleteClick = (taxe: TaxeDto) => {
-    setTaxeToDelete(taxe);
-  };
+  const selectedTaxe = selectedTaxeId === 'new' ? null : taxes.find(t => t.id === selectedTaxeId);
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900 border-b-4 border-blue-600 pb-2 inline-block">Gestion des Taxes</h1>
-          <p className="text-muted-foreground mt-2">
-            Configurez et gérez les différentes taxes applicables dans votre comptabilité
-          </p>
+  if (selectedTaxeId) {
+    return (
+      <div className="min-h-screen p-4 bg-gray-100">
+        <div className="w-full max-w-5xl mx-auto">
+          <TaxeForm
+            initialData={selectedTaxe || null}
+            onSave={handleSave}
+            onCancel={handleBack}
+          />
         </div>
       </div>
+    );
+  }
 
-      <Separator className="bg-gray-200" />
+  return (
+    <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Gestion des Taxes</h2>
+          <p className="text-sm text-gray-500">Configurez et gérez les différentes taxes applicables dans votre comptabilité.</p>
+        </div>
 
-      <TaxeListView
-        taxes={taxes}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDeleteClick}
-        onAddNew={handleAddNew}
-        onRefresh={fetchTaxes}
-      />
+        {error && (
+          <Alert variant="destructive" className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {taxeToDelete && (
-        <ConfirmationDialog
-          isOpen={!!taxeToDelete}
-          onClose={() => setTaxeToDelete(null)}
-          onConfirm={confirmDelete}
-          title={`Supprimer la taxe "${taxeToDelete.libelle}" ?`}
-          description={`Code: ${taxeToDelete.code} | Taux: ${taxeToDelete.taux}%
-
-Cette action est irréversible. Vérifiez qu'aucune transaction n'utilise cette taxe avant suppression.`}
+        <TaxeListView
+          taxes={taxes}
+          isLoading={isLoading}
+          onEdit={handleEditTaxe}
+          onDelete={confirmDelete}
+          onAddNew={handleAddNew}
+          onRefresh={fetchTaxes}
         />
-      )}
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action est irréversible. Vérifiez qu'aucune transaction n'utilise cette taxe avant suppression.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

@@ -50,7 +50,7 @@ export function CustomerListView({ clients, isLoading, onSelectClient, onEditCli
     const columns: ColumnDef<Client>[] = [
         {
             id: 'select',
-            header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Tout sélectionner"/>,
+            header: ({ table }) => <Checkbox checked={table.getIsAllPageRowsSelected()} onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)} aria-label="Tout sélectionner" />,
             cell: ({ row }) => <div className="group-hover:opacity-0 transition-opacity"><Checkbox checked={row.getIsSelected()} onCheckedChange={(value) => row.toggleSelected(!!value)} aria-label="Sélectionner la ligne" /></div>,
         },
         {
@@ -82,20 +82,19 @@ export function CustomerListView({ clients, isLoading, onSelectClient, onEditCli
     ];
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm h-full flex flex-col">
-            <div className="p-4 border-b">
-                <h1 className="text-xl font-semibold">Clients</h1>
-            </div>
-            <div className="p-2 border-b flex items-center gap-2">
-                <Checkbox />
-                <Button variant="ghost" size="icon" onClick={onRefresh}><RefreshCw className="h-5 w-5" /></Button>
-                <Button variant="ghost" size="icon"><Archive className="h-5 w-5" /></Button>
-                <div className="flex-1" />
-                <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-5 py-2">
-                    <PenSquare className="mr-2 h-4 w-4" /> Nouveau Client
+        <div className="space-y-4">
+            <div className="flex justify-between items-center">
+                <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+                    <PenSquare className="mr-2 h-4 w-4" />
+                    Nouveau Client
                 </Button>
+                <div className="flex gap-2">
+                    <Button onClick={onRefresh} variant="outline" size="icon">
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                </div>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="rounded-md border">
                 {isLoading ? (
                     <div className="p-4 space-y-4">
                         {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}

@@ -1,7 +1,15 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   Table,
   TableHeader,
@@ -11,7 +19,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
-import { Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Edit, Trash2, RefreshCw, Search, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AccountListViewProps {
@@ -22,15 +30,16 @@ interface AccountListViewProps {
   onDeleteAccount: (account: PlanComptableDto) => void;
   onAddNew: () => void;
   onRefresh: () => void;
+  selectedId?: string;
 }
 
 const RowActions = ({ account, onEdit, onDelete }: { account: PlanComptableDto, onEdit: (id: string) => void, onDelete: (account: PlanComptableDto) => void }) => {
   return (
-    <div className="w-10 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(account.id || '')}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(account.id || ''); }}>
               <Edit className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -38,7 +47,7 @@ const RowActions = ({ account, onEdit, onDelete }: { account: PlanComptableDto, 
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(account)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(account); }}>
               <Trash2 className="h-4 w-4 text-destructive" />
             </Button>
           </TooltipTrigger>
@@ -57,51 +66,139 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
   onDeleteAccount,
   onAddNew,
   onRefresh,
+  selectedId,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+
+  // Filter and sort accounts
+  const filteredAccounts = useMemo(() => {
+    return accounts
+      .filter(account => {
+        const matchesSearch =
+          account.noCompte?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          account.libelle?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        const matchesClass = !classFilter || classFilter === 'all' || account.noCompte?.startsWith(classFilter);
+        const matchesType = !typeFilter || typeFilter === 'all' || (account as any).type === typeFilter;
+
+        return matchesSearch && matchesClass && matchesType;
+      })
+      .sort((a, b) => (a.noCompte || '').localeCompare(b.noCompte || ''));
+  }, [accounts, searchQuery, classFilter, typeFilter]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <Button onClick={onAddNew}>Nouveau</Button>
-        <Button onClick={onRefresh} variant="outline">
-          <RefreshCw className="h-4 w-4" />
-        </Button>
+      {/* Toolbar with search, filters, and buttons */}
+      <div className="space-y-4">
+        {/* Top Row: Search + Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Rechercher par numero, libellé..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <Select value={classFilter} onValueChange={setClassFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Toutes les classes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Toutes les classes</SelectItem>
+              <SelectItem value="1">Classe 1</SelectItem>
+              <SelectItem value="2">Classe 2</SelectItem>
+              <SelectItem value="3">Classe 3</SelectItem>
+              <SelectItem value="4">Classe 4</SelectItem>
+              <SelectItem value="5">Classe 5</SelectItem>
+              <SelectItem value="6">Classe 6</SelectItem>
+              <SelectItem value="7">Classe 7</SelectItem>
+              <SelectItem value="8">Classe 8</SelectItem>
+              <SelectItem value="9">Classe 9</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Tous les types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les types</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Bottom Row: Action buttons (New left, Refresh right) */}
+        <div className="flex items-center justify-between">
+          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Nouveau Compte
+          </Button>
+          <Button onClick={onRefresh} variant="outline" size="icon">
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Code</TableHead>
-            <TableHead>Nom du compte</TableHead>
-            <TableHead>Actif</TableHead>
-            <TableHead>Autoriser l&#39;écriture</TableHead>
-            <TableHead>Vue</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
+
+      {/* Table */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader className="bg-gray-50/50">
             <TableRow>
-              <TableCell colSpan={6}>Chargement...</TableCell>
+              <TableHead className="font-bold text-gray-900">N° Compte</TableHead>
+              <TableHead className="font-bold text-gray-900">Libellé</TableHead>
+              <TableHead className="font-bold text-gray-900">Type</TableHead>
+              <TableHead className="font-bold text-gray-900">Classe</TableHead>
+              <TableHead className="font-bold text-gray-900">Solde</TableHead>
+              <TableHead className="font-bold text-gray-900">Statut</TableHead>
+              <TableHead className="text-right font-bold text-gray-900 px-6">Actions</TableHead>
             </TableRow>
-          ) : accounts.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={6}>Aucun compte trouvé.</TableCell>
-            </TableRow>
-          ) : (
-            accounts.map((account) => (
-              <TableRow key={account.id} className="group">
-                <TableCell>{account.noCompte}</TableCell>
-                <TableCell>{account.libelle}</TableCell>
-                <TableCell>{account.actif ? 'Oui' : 'Non'}</TableCell>
-                <TableCell>{(account as any).allowEntry ? 'Oui' : 'Non'}</TableCell>
-                <TableCell>{(account as any).view || '-'}</TableCell>
-                <TableCell>
-                  <RowActions account={account} onEdit={onEditAccount} onDelete={onDeleteAccount} />
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-gray-400 font-medium italic">
+                  Chargement des comptes...
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+            ) : filteredAccounts.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-10 text-gray-400 border-2 border-dashed rounded-lg">
+                  Aucun compte disponible.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredAccounts.map((account) => (
+                <TableRow
+                  key={account.id}
+                  className={`group hover:bg-blue-50/50 cursor-pointer transition-colors ${selectedId === account.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
+                  onClick={() => onSelectAccount(account.id || '')}
+                >
+                  <TableCell className="font-mono font-bold text-gray-700">{account.noCompte}</TableCell>
+                  <TableCell className="font-medium">{account.libelle}</TableCell>
+                  <TableCell className="text-gray-500">{(account as any).type || '-'}</TableCell>
+                  <TableCell className="text-gray-500">{account.classe || '-'}</TableCell>
+                  <TableCell className="text-gray-500">-</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${account.actif ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                      {account.actif ? 'Actif' : 'Inactif'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right px-6">
+                    <RowActions account={account} onEdit={onEditAccount} onDelete={onDeleteAccount} />
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };

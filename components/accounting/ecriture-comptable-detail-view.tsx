@@ -31,10 +31,11 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { toast } from 'sonner';
+import { AccountAutocomplete } from './account-autocomplete';
 
 interface EcritureComptableDetailViewProps {
   ecriture: EcritureComptableDto | null;
@@ -132,7 +133,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     const fetchData = async () => {
       try {
         const [journalsRes, periodsRes, accountsRes] = await Promise.all([
-          JournalManagementService.getAllJournals(),
+          AccountingJournalManagementService.getAllJournals(),
           AccountingPeriodsService.getAllPeriodeComptables(),
           AccountingComptesService.getAllComptes()
         ]);
@@ -335,7 +336,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                 )}
               </div>
 
-              <div className="bg-gray-50 rounded-2xl border p-1 overflow-hidden shadow-inner">
+              <div className="bg-gray-50 rounded-2xl border p-1 shadow-inner">
                 <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
                   <div className="col-span-3 text-center">N° Compte</div>
                   <div className="col-span-5">Libellé de la ligne</div>
@@ -355,11 +356,13 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                             <FormItem className="space-y-0">
                               <FormLabel className="md:hidden font-semibold">Compte</FormLabel>
                               <FormControl>
-                                <Input
-                                  {...field}
+                                <AccountAutocomplete
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  accounts={accounts}
                                   placeholder="N° Compte"
-                                  className="font-mono md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
                                   disabled={ecriture?.validee}
+                                  className="md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -515,7 +518,16 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
               Fermer
             </Button>
             {!ecriture?.validee && (
-              <Button type="submit" disabled={form.formState.isSubmitting} className="bg-blue-600 hover:bg-blue-700 text-white min-w-[150px]">
+              <Button
+                type="submit"
+                disabled={form.formState.isSubmitting || liveTotalDebit !== liveTotalCredit || liveTotalDebit === 0}
+                className={cn(
+                  "text-white min-w-[150px] transition-all duration-300",
+                  (liveTotalDebit === liveTotalCredit && liveTotalDebit > 0)
+                    ? "bg-blue-600 hover:bg-blue-700 shadow-md"
+                    : "bg-gray-400 cursor-not-allowed grayscale"
+                )}
+              >
                 <Save className="mr-2 h-4 w-4" />
                 Enregistrer
               </Button>

@@ -66,7 +66,7 @@ export class AccountingEntriesService {
      * @returns ApiResponseWrapperEcritureComptableDto OK
      * @throws ApiError
      */
-    public static generate(
+    public static generate1(
         requestBody: ComptableObject,
     ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
         return __request(OpenAPI, {

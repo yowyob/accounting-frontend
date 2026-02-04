@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ModePaiement, ModePaiementType } from '@/types/accounting';
-import { Edit, Trash2, Plus, RefreshCw, Landmark, Wallet, Smartphone, CreditCard, Search, BarChart3 } from 'lucide-react';
+import { Edit, Trash2, Plus, RefreshCw, Landmark, Wallet, Smartphone, CreditCard, Search, BarChart3, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 
@@ -55,23 +55,7 @@ export const ModePaiementListView: React.FC<ModePaiementListViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec titre et bouton Actualiser */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold text-gray-900">Modes de Paiement</h2>
-          <p className="text-gray-600">Gérez les différents moyens de paiement acceptés</p>
-        </div>
-        <Button
-          variant="outline"
-          onClick={onRefresh}
-          className="border-gray-300 hover:bg-gray-50"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
-        </Button>
-      </div>
-
-      {/* Barre de recherche et bouton Nouveau Mode */}
+      {/* Barre de recherche et actions */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative max-w-xl">
@@ -85,13 +69,22 @@ export const ModePaiementListView: React.FC<ModePaiementListViewProps> = ({
           </div>
         </div>
 
-        <Button
-          onClick={onAddNew}
-          className="bg-blue-600 hover:bg-blue-700 shadow-sm sm:w-auto w-full"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nouveau Mode
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={onRefresh}
+            className="border-gray-300 hover:bg-gray-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            onClick={onAddNew}
+            className="bg-blue-600 hover:bg-blue-700 shadow-sm sm:w-auto w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nouveau Mode
+          </Button>
+        </div>
       </div>
 
       {/* Statistiques */}
@@ -142,9 +135,8 @@ export const ModePaiementListView: React.FC<ModePaiementListViewProps> = ({
             <div className="divide-y divide-gray-100">
               {isLoading ? (
                 <div className="h-48 flex items-center justify-center">
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
-                    <p className="text-gray-700 font-medium">Chargement des modes...</p>
+                  <div className="flex justify-center items-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                   </div>
                 </div>
               ) : filteredModes.length === 0 ? (

@@ -10,7 +10,7 @@ export type OperationComptableDto = {
     contreparties?: Array<ContrepartieDto>;
     typeOperation: string;
     modeReglement: string;
-    comptePrincipal: string;
+    comptePrincipalId: string;
     estCompteStatique: boolean;
     sensPrincipal: string;
     journalComptableId: string;

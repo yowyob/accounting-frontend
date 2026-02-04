@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
-import { JournalManagementService } from '@/src/lib2/services/JournalManagementService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
 import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { EcritureComptableListView } from '@/components/accounting/ecriture-comptable-list-view';
@@ -33,7 +33,7 @@ export default function EcritureComptablePage() {
     try {
       const [entriesRes, journalsRes, accountsRes] = await Promise.all([
         AccountingEntriesService.getAll1(),
-        JournalManagementService.getAllJournals(),
+        AccountingJournalManagementService.getAllJournals(),
         AccountingPlanComptableService.getAllPlanComptables()
       ]);
 
@@ -152,27 +152,34 @@ export default function EcritureComptablePage() {
   };
 
   return (
-    <>
-      <EcritureComptableListView
-        ecritures={ecritures}
-        isLoading={isLoading}
-        onSelectEcriture={handleViewEcriture} // Row click -> Navigate to Details Page
-        onEditEcriture={handleEditEcriture}   // Edit click -> Edit Mode
-        onDeleteEcriture={setEcritureToDelete}
-        onValidateEcriture={handleValidate}
-        onAddNew={() => handleOpenCompose()}
-        onRefresh={fetchAndSetEcritures}
-      />
+    <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Écritures Comptables</h2>
+          <p className="text-sm text-gray-500">Gérez et consultez vos écritures comptables.</p>
+        </div>
 
-      {ecritureToDelete && (
-        <ConfirmationDialog
-          isOpen={!!ecritureToDelete}
-          onClose={() => setEcritureToDelete(null)}
-          onConfirm={confirmDelete}
-          title={`Supprimer ${ecritureToDelete.libelle} ?`}
-          description="Cette action est irréversible. L'écriture sera supprimée si elle n'est pas validée."
+        <EcritureComptableListView
+          ecritures={ecritures}
+          isLoading={isLoading}
+          onSelectEcriture={handleViewEcriture} // Row click -> Navigate to Details Page
+          onEditEcriture={handleEditEcriture}   // Edit click -> Edit Mode
+          onDeleteEcriture={setEcritureToDelete}
+          onValidateEcriture={handleValidate}
+          onAddNew={() => handleOpenCompose()}
+          onRefresh={fetchAndSetEcritures}
         />
-      )}
-    </>
+
+        {ecritureToDelete && (
+          <ConfirmationDialog
+            isOpen={!!ecritureToDelete}
+            onClose={() => setEcritureToDelete(null)}
+            onConfirm={confirmDelete}
+            title={`Supprimer ${ecritureToDelete.libelle} ?`}
+            description="Cette action est irréversible. L'écriture sera supprimée si elle n'est pas validée."
+          />
+        )}
+      </div>
+    </div>
   );
 }
