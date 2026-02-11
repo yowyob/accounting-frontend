@@ -40,6 +40,12 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
         return account ? account.noCompte : accountId;
     };
 
+    const calculatedTotals = React.useMemo(() => {
+        const totalDebit = ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0;
+        const totalCredit = ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0;
+        return { totalDebit, totalCredit };
+    }, [ecriture.detailsEcriture]);
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Main Info Card */}
@@ -159,7 +165,7 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                                     <div className="flex flex-col items-end">
                                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Débit</span>
                                         <span className="font-mono font-bold text-lg text-emerald-400">
-                                            {ecriture.montantTotalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                            {calculatedTotals.totalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 </TableCell>
@@ -167,7 +173,7 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                                     <div className="flex flex-col items-end">
                                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Crédit</span>
                                         <span className="font-mono font-bold text-lg text-rose-400">
-                                            {ecriture.montantTotalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                                            {calculatedTotals.totalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
                                         </span>
                                     </div>
                                 </TableCell>

@@ -12,8 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { RefreshCw, DollarSign, CreditCard, Clock, Calendar } from 'lucide-react';
 import Chart from 'chart.js/auto';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 export default function AccountingDashboard() {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [kpis, setKpis] = useState({
     totalDebit: 1500000,
     totalCredit: 1450000,
@@ -106,7 +109,7 @@ export default function AccountingDashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpis.totalDebit.toLocaleString('fr-FR')} XAF</div>
+              <div className="text-2xl font-bold">{kpis.totalDebit.toLocaleString('fr-FR')} {currencyCode}</div>
               <p className="text-xs text-muted-foreground">+5% vs mois dernier</p>
             </CardContent>
           </Card>
@@ -116,7 +119,7 @@ export default function AccountingDashboard() {
               <CreditCard className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpis.totalCredit.toLocaleString('fr-FR')} XAF</div>
+              <div className="text-2xl font-bold">{kpis.totalCredit.toLocaleString('fr-FR')} {currencyCode}</div>
               <p className="text-xs text-muted-foreground">+3% vs mois dernier</p>
             </CardContent>
           </Card>
@@ -160,7 +163,7 @@ export default function AccountingDashboard() {
               {recentOperations.map((op) => (
                 <div key={op.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                   <span className="font-medium">{op.type}</span>
-                  <span>{op.amount.toLocaleString('fr-FR')} XAF</span>
+                  <span>{op.amount.toLocaleString('fr-FR')} {currencyCode}</span>
                   <span className="text-sm text-gray-500">{op.date}</span>
                 </div>
               ))}
@@ -175,15 +178,15 @@ export default function AccountingDashboard() {
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-green-50 rounded-lg">
               <p className="font-medium">Chiffre d'Affaires</p>
-              <p className="text-2xl font-bold">{periodSummary.totalRevenue.toLocaleString('fr-FR')} XAF</p>
+              <p className="text-2xl font-bold">{periodSummary.totalRevenue.toLocaleString('fr-FR')} {currencyCode}</p>
             </div>
             <div className="p-4 bg-red-50 rounded-lg">
               <p className="font-medium">Dépenses Totales</p>
-              <p className="text-2xl font-bold">{periodSummary.totalExpenses.toLocaleString('fr-FR')} XAF</p>
+              <p className="text-2xl font-bold">{periodSummary.totalExpenses.toLocaleString('fr-FR')} {currencyCode}</p>
             </div>
             <div className="p-4 bg-blue-50 rounded-lg">
               <p className="font-medium">Bénéfice Net</p>
-              <p className="text-2xl font-bold">{periodSummary.netProfit.toLocaleString('fr-FR')} XAF</p>
+              <p className="text-2xl font-bold">{periodSummary.netProfit.toLocaleString('fr-FR')} {currencyCode}</p>
             </div>
           </CardContent>
         </Card>

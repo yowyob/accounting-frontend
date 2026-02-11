@@ -14,6 +14,7 @@ import {
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { OperationComptableDto } from '@/src/lib2/models/OperationComptableDto';
 import { AccountingOperationsService } from '@/src/lib2/services/AccountingOperationsService';
+import { AccountingJournalManagementService } from '@/src/lib2/services/AccountingJournalManagementService';
 import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesService';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { OperationComptableListView } from './operation-comptable-list-view';
@@ -50,7 +51,7 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                 try {
                     const [opsRes, entriesRes, accountsRes] = await Promise.all([
                         AccountingOperationsService.getAllOperationsComptables(),
-                        AccountingEntriesService.search(undefined, undefined, journal.id),
+                        AccountingJournalManagementService.getJournalEntries(journal.id!),
                         AccountingComptesService.getAllComptes()
                     ]);
 
@@ -58,7 +59,12 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                         setOperations(opsRes.data.filter(op => op.journalComptableId === journal.id));
                     }
                     if (entriesRes.success && entriesRes.data) {
-                        setEntries(entriesRes.data);
+                        // Si le point de terminaison renvoie l'objet journal au lieu d'une liste d'écritures
+                        // on extrait les écritures de la propriété ecritureComptable
+                        const entriesData = Array.isArray(entriesRes.data)
+                            ? entriesRes.data
+                            : (entriesRes.data as any).ecritureComptable || [];
+                        setEntries(entriesData);
                     }
                     if (accountsRes.success && accountsRes.data) {
                         const map: Record<string, string> = {};
