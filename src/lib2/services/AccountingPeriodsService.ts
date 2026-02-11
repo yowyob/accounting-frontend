@@ -95,7 +95,7 @@ export class AccountingPeriodsService {
     }
     /**
      * Create an accounting period
-     * Adds a new accounting period for the current tenant.
+     * Adds a new accounting period for the current organization.
      * @param requestBody
      * @returns PeriodeComptableDto Period created successfully
      * @throws ApiError

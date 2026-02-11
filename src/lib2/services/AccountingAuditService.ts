@@ -8,115 +8,8 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingAuditService {
     /**
-     * Get all audits for a tenant
-     * @param tenantId
-     * @param limit
-     * @returns ApiResponseWrapperListJournalAuditDto OK
-     * @throws ApiError
-     */
-    public static getAllByTenant(
-        tenantId: string,
-        limit: number = 100,
-    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/audit/tenant/{tenantId}',
-            path: {
-                'tenantId': tenantId,
-            },
-            query: {
-                'limit': limit,
-            },
-        });
-    }
-    /**
-     * Get audits by user
-     * @param tenantId
-     * @param utilisateur
-     * @returns ApiResponseWrapperListJournalAuditDto OK
-     * @throws ApiError
-     */
-    public static getByUtilisateur(
-        tenantId: string,
-        utilisateur: string,
-    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/audit/tenant/{tenantId}/utilisateur/{utilisateur}',
-            path: {
-                'tenantId': tenantId,
-                'utilisateur': utilisateur,
-            },
-        });
-    }
-    /**
-     * Get audits by time period
-     * @param tenantId
-     * @param debut
-     * @param fin
-     * @returns ApiResponseWrapperListJournalAuditDto OK
-     * @throws ApiError
-     */
-    public static getByPeriode(
-        tenantId: string,
-        debut: string,
-        fin: string,
-    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/audit/tenant/{tenantId}/periode',
-            path: {
-                'tenantId': tenantId,
-            },
-            query: {
-                'debut': debut,
-                'fin': fin,
-            },
-        });
-    }
-    /**
-     * Get audits by accounting entry ID
-     * @param tenantId
-     * @param ecritureId
-     * @returns ApiResponseWrapperListJournalAuditDto OK
-     * @throws ApiError
-     */
-    public static getByEcriture(
-        tenantId: string,
-        ecritureId: string,
-    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/audit/tenant/{tenantId}/ecriture/{ecritureId}',
-            path: {
-                'tenantId': tenantId,
-                'ecritureId': ecritureId,
-            },
-        });
-    }
-    /**
-     * Get audits by action type
-     * @param tenantId
-     * @param action
-     * @returns ApiResponseWrapperListJournalAuditDto OK
-     * @throws ApiError
-     */
-    public static getByAction(
-        tenantId: string,
-        action: string,
-    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/audit/tenant/{tenantId}/action/{action}',
-            path: {
-                'tenantId': tenantId,
-                'action': action,
-            },
-        });
-    }
-    /**
      * Advanced search for audit logs
-     * @param tenantId
+     * @param organizationId
      * @param utilisateur
      * @param action
      * @param debut
@@ -125,7 +18,7 @@ export class AccountingAuditService {
      * @throws ApiError
      */
     public static rechercher(
-        tenantId: string,
+        organizationId: string,
         utilisateur?: string,
         action?: string,
         debut?: string,
@@ -135,11 +28,118 @@ export class AccountingAuditService {
             method: 'GET',
             url: '/api/accounting/audit/rechercher',
             query: {
-                'tenantId': tenantId,
+                'organizationId': organizationId,
                 'utilisateur': utilisateur,
                 'action': action,
                 'debut': debut,
                 'fin': fin,
+            },
+        });
+    }
+    /**
+     * Get all audits for a organization
+     * @param organizationId
+     * @param limit
+     * @returns ApiResponseWrapperListJournalAuditDto OK
+     * @throws ApiError
+     */
+    public static getAllByOrganization(
+        organizationId: string,
+        limit: number = 100,
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/audit/organization/{organizationId}',
+            path: {
+                'organizationId': organizationId,
+            },
+            query: {
+                'limit': limit,
+            },
+        });
+    }
+    /**
+     * Get audits by user
+     * @param organizationId
+     * @param utilisateur
+     * @returns ApiResponseWrapperListJournalAuditDto OK
+     * @throws ApiError
+     */
+    public static getByUtilisateur(
+        organizationId: string,
+        utilisateur: string,
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/audit/organization/{organizationId}/utilisateur/{utilisateur}',
+            path: {
+                'organizationId': organizationId,
+                'utilisateur': utilisateur,
+            },
+        });
+    }
+    /**
+     * Get audits by time period
+     * @param organizationId
+     * @param debut
+     * @param fin
+     * @returns ApiResponseWrapperListJournalAuditDto OK
+     * @throws ApiError
+     */
+    public static getByPeriode(
+        organizationId: string,
+        debut: string,
+        fin: string,
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/audit/organization/{organizationId}/periode',
+            path: {
+                'organizationId': organizationId,
+            },
+            query: {
+                'debut': debut,
+                'fin': fin,
+            },
+        });
+    }
+    /**
+     * Get audits by accounting entry ID
+     * @param organizationId
+     * @param ecritureId
+     * @returns ApiResponseWrapperListJournalAuditDto OK
+     * @throws ApiError
+     */
+    public static getByEcriture(
+        organizationId: string,
+        ecritureId: string,
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/audit/organization/{organizationId}/ecriture/{ecritureId}',
+            path: {
+                'organizationId': organizationId,
+                'ecritureId': ecritureId,
+            },
+        });
+    }
+    /**
+     * Get audits by action type
+     * @param organizationId
+     * @param action
+     * @returns ApiResponseWrapperListJournalAuditDto OK
+     * @throws ApiError
+     */
+    public static getByAction(
+        organizationId: string,
+        action: string,
+    ): CancelablePromise<ApiResponseWrapperListJournalAuditDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/audit/organization/{organizationId}/action/{action}',
+            path: {
+                'organizationId': organizationId,
+                'action': action,
             },
         });
     }

@@ -9,9 +9,10 @@ export type CompteDto = {
     solde?: number;
     classe?: number;
     actif?: boolean;
+    externalId?: string;
     noCompte: string;
     typeCompte?: string;
-    tenantId?: string;
+    organizationId?: string;
     createdAt?: string;
     updatedAt?: string;
 };

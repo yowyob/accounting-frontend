@@ -52,7 +52,7 @@ export class RelevBancaireService {
     }
     /**
      * Liste des relevés importés
-     * Retourne la liste des relevés bancaires uploadés pour le tenant
+     * Retourne la liste des relevés bancaires uploadés pour le organization
      * @returns ApiResponseWrapperListMapStringObject OK
      * @throws ApiError
      */

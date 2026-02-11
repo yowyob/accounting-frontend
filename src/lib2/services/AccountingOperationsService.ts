@@ -82,7 +82,7 @@ export class AccountingOperationsService {
     }
     /**
      * Create an accounting operation
-     * Creates a new accounting operation for the current tenant.
+     * Creates a new accounting operation for the current organization.
      * @param requestBody
      * @returns OperationComptableDto Operation created successfully
      * @throws ApiError

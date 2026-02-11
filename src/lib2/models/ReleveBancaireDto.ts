@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type ReleveBancaireDto = {
     id?: string;
-    tenantId?: string;
+    organizationId?: string;
     compteId?: string;
     dateOperation?: string;
     dateValeur?: string;

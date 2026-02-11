@@ -66,7 +66,7 @@ export class AccountingAgencesService {
         });
     }
     /**
-     * Get all agencies for current tenant
+     * Get all agencies for current organization
      * @returns ApiResponseWrapperListAgenceDto OK
      * @throws ApiError
      */

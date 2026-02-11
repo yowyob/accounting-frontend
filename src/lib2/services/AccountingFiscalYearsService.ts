@@ -67,7 +67,7 @@ export class AccountingFiscalYearsService {
         });
     }
     /**
-     * Get all fiscal years for current tenant
+     * Get all fiscal years for current organization
      * @returns ApiResponseWrapperListExerciceComptableDto OK
      * @throws ApiError
      */

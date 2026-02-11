@@ -11,11 +11,11 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ExchangeRateManagementService {
     /**
-     * List all exchange rates for the current tenant
+     * List all exchange rates for the current organization
      * @returns ApiResponseWrapperListTauxChangeDto OK
      * @throws ApiError
      */
-    public static getTenantRates(): CancelablePromise<ApiResponseWrapperListTauxChangeDto> {
+    public static getOrganizationRates(): CancelablePromise<ApiResponseWrapperListTauxChangeDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/exchange-rates',

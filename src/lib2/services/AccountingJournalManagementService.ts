@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { ApiResponseWrapperJournalComptableDto } from '../models/ApiResponseWrapperJournalComptableDto';
 import type { ApiResponseWrapperListCompteDto } from '../models/ApiResponseWrapperListCompteDto';
-import type { ApiResponseWrapperListEcritureComptableDto } from '../models/ApiResponseWrapperListEcritureComptableDto';
 import type { ApiResponseWrapperListJournalComptableDto } from '../models/ApiResponseWrapperListJournalComptableDto';
 import type { ApiResponseWrapperObject } from '../models/ApiResponseWrapperObject';
 import type { JournalComptableDto } from '../models/JournalComptableDto';
@@ -68,7 +67,7 @@ export class AccountingJournalManagementService {
         });
     }
     /**
-     * List all journals for the current tenant
+     * List all journals for the current organization
      * @returns ApiResponseWrapperListJournalComptableDto OK
      * @throws ApiError
      */
@@ -120,24 +119,6 @@ export class AccountingJournalManagementService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/accounting/journals/active',
-        });
-    }
-
-    /**
-     * Get entries for a specific journal
-     * @param id Journal ID
-     * @returns ApiResponseWrapperListEcritureComptableDto OK
-     * @throws ApiError
-     */
-    public static getJournalEntries(
-        id: string,
-    ): CancelablePromise<ApiResponseWrapperListEcritureComptableDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/journals/{id}',
-            path: {
-                'id': id,
-            },
         });
     }
 }

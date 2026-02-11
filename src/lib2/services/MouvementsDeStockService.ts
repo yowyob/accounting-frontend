@@ -32,7 +32,7 @@ export class MouvementsDeStockService {
     }
     /**
      * Liste des mouvements de stock
-     * Retourne tous les mouvements de stock du tenant
+     * Retourne tous les mouvements de stock du organization
      * @param type
      * @param produitId
      * @returns ApiResponseWrapperListMapStringObject Liste récupérée

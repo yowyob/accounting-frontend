@@ -26,7 +26,7 @@ export class LettrageService {
     }
     /**
      * Obtenir le statut du lettrage
-     * Retourne les statistiques de lettrage pour le tenant
+     * Retourne les statistiques de lettrage pour le organization
      * @returns ApiResponseWrapperString Statut récupéré
      * @throws ApiError
      */

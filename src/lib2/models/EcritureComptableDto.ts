@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DetailEcritureDto } from './DetailEcritureDto';
+import type { JsonNode } from './JsonNode';
 export type EcritureComptableDto = {
     id?: string;
     libelle: string;
@@ -21,6 +22,7 @@ export type EcritureComptableDto = {
     dateValidation?: string;
     validatedBy?: string;
     referenceExterne?: string;
+    attachmentIds?: JsonNode;
     detailsEcriture?: Array<DetailEcritureDto>;
     createdAt?: string;
     updatedAt?: string;

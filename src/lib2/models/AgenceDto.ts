@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type AgenceDto = {
     id?: string;
-    tenant_id?: string;
+    organization_id?: string;
     name?: string;
     code?: string;
     address?: string;

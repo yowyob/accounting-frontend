@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { JsonNode } from './JsonNode';
 export type FactureComptable = {
     id?: string;
-    tenant_id?: string;
+    organization_id?: string;
     montant_ht?: number;
     taux_tva?: number;
     date?: string;
@@ -14,15 +15,16 @@ export type FactureComptable = {
     client_id?: string;
     get_debit_account?: string;
     get_credit_account?: string;
+    get_journal_comptable_id?: string;
     get_montant?: number;
     get_description?: string;
     get_source_type?: FactureComptable.get_source_type;
-    get_journal_comptable_id?: string;
     is_achat?: boolean;
     get_date?: string;
-    get_id?: string;
-    get_tenant_id?: string;
+    get_organization_id?: string;
     get_periode_comptable_id?: string;
+    get_id?: string;
+    get_attachment_ids?: JsonNode;
 };
 export namespace FactureComptable {
     export enum get_source_type {

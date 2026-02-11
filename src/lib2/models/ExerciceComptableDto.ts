@@ -4,7 +4,7 @@
 /* eslint-disable */
 export type ExerciceComptableDto = {
     id?: string;
-    tenant_id?: string;
+    organization_id?: string;
     code?: string;
     libelle?: string;
     date_debut?: string;

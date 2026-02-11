@@ -66,7 +66,7 @@ export class AccountingTaxManagementService {
         });
     }
     /**
-     * List all taxes for the current tenant
+     * List all taxes for the current organization
      * @param onlyActive
      * @returns ApiResponseWrapperListTaxeDto OK
      * @throws ApiError

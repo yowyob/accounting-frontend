@@ -63,10 +63,10 @@ export class DebugControllerService {
      * @returns ApiResponseWrapperMapStringObject OK
      * @throws ApiError
      */
-    public static getTenantInfo(): CancelablePromise<ApiResponseWrapperMapStringObject> {
+    public static getOrganizationInfo(): CancelablePromise<ApiResponseWrapperMapStringObject> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/api/debug/tenant/info',
+            url: '/api/debug/organization/info',
         });
     }
     /**

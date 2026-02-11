@@ -79,7 +79,7 @@ export class AccountingPlanComptableService {
     }
     /**
      * Create an accounting account
-     * Creates a new account for the current tenant.
+     * Creates a new account for the current organization.
      * @param requestBody
      * @returns PlanComptableDto Account created successfully
      * @throws ApiError
@@ -99,22 +99,22 @@ export class AccountingPlanComptableService {
     }
     /**
      * Initialize accounting plan
-     * Creates a default set of accounts for the given tenant.
-     * @param tenantId
+     * Creates a default set of accounts for the given organization.
+     * @param organizationId
      * @returns ApiResponseWrapperString Plan initialized successfully
      * @throws ApiError
      */
     public static initPlanComptable(
-        tenantId: string,
+        organizationId: string,
     ): CancelablePromise<ApiResponseWrapperString> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/api/accounting/plan-comptable/admin/tenants/{tenantId}/plan-comptable/init-ohada-2025',
+            url: '/api/accounting/plan-comptable/admin/organizations/{organizationId}/plan-comptable/init-ohada-2025',
             path: {
-                'tenantId': tenantId,
+                'organizationId': organizationId,
             },
             errors: {
-                400: `Validation error or tenant already initialized`,
+                400: `Validation error or organization already initialized`,
             },
         });
     }

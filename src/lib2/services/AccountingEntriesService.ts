@@ -12,7 +12,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingEntriesService {
     /**
-     * List all entries for the current tenant
+     * List all entries for the current organization
      * @returns ApiResponseWrapperListEcritureComptableDto OK
      * @throws ApiError
      */

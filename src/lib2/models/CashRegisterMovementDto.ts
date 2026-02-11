@@ -17,6 +17,7 @@ export type CashRegisterMovementDto = {
     create_by?: string;
     emitter_accounting_account?: string;
     recipient_accounting_account?: string;
+    attachmentIds?: Array<string>;
     is_deleted?: boolean;
 };
 

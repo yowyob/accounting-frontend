@@ -6,5 +6,6 @@ export type AccountGenerationRequestDto = {
     name: string;
     type: string;
     notes?: string;
+    externalId?: string;
 };
 

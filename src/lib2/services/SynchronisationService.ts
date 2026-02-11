@@ -10,7 +10,7 @@ import { request as __request } from '../core/request';
 export class SynchronisationService {
     /**
      * Vider le cache Redis
-     * Supprime tous les caches Redis du tenant (Admin uniquement)
+     * Supprime tous les caches Redis du organization (Admin uniquement)
      * @returns ApiResponseWrapperString Cache vidé
      * @throws ApiError
      */
