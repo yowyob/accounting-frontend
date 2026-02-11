@@ -4,6 +4,7 @@ import React, { Suspense } from "react";
 import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { NavigationLoader } from "@/components/navigation-loader";
 import { Toaster } from "sonner";
+import { AuthInitializer } from "@/components/auth-initializer";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="fr">
 
       <body className={inter.className}>
+        <AuthInitializer />
         <LoadingOverlay />
         <Suspense fallback={null}>
           <NavigationLoader />
