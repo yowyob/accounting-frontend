@@ -26,8 +26,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 export default function AccountingSettingsPage() {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [exercices, setExercices] = useState<ExerciceComptableDto[]>([]);
   const [periodes, setPeriodes] = useState<PeriodeComptableDto[]>([]);
   const [operations, setOperations] = useState<OperationComptableDto[]>([]);
@@ -282,7 +285,7 @@ export default function AccountingSettingsPage() {
             >
               <div>
                 <label className="block text-sm font-medium text-gray-700">Devise par défaut</label>
-                <Input name="defaultCurrency" defaultValue={generalSettings?.defaultCurrency || 'XAF'} className="mt-1" />
+                <Input name="defaultCurrency" defaultValue={generalSettings?.defaultCurrency || currencyCode} className="mt-1" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Année fiscale par défaut</label>

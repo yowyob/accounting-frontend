@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPeriodeComptables } from '@/lib/api';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface CashFlowData {
   code: string;
@@ -37,6 +38,8 @@ const staticCashFlowData: CashFlowData[] = [
 ];
 
 export default function CashFlowPage() {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
@@ -135,6 +138,7 @@ export default function CashFlowPage() {
             <CardHeader className="bg-white border-b">
               <CardTitle className="flex justify-between items-center text-sm font-semibold uppercase tracking-wider text-gray-400">
                 <span>Tableau des flux - État au {selectedPeriodeId ? new Date(periodes.find(p => p.id === selectedPeriodeId)?.dateFin || '').toLocaleDateString('fr-FR') : '...'}</span>
+                <span className="text-sm font-normal normal-case">Devise: <span className="font-semibold text-gray-900">{currencyCode}</span></span>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -237,7 +241,7 @@ export default function CashFlowPage() {
                   <div className="flex gap-8 text-sm">
                     <span className="text-gray-500 uppercase tracking-widest text-[10px] font-bold">Variation nette de trésorerie</span>
                     <span className={`text-xl w-32 text-right font-black ${totalFluxNet >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                      {totalFluxNet.toLocaleString()} XAF
+                      {totalFluxNet.toLocaleString()} {currencyCode}
                     </span>
                   </div>
                 </div>

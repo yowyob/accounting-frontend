@@ -15,6 +15,7 @@ import { Download, Search, RefreshCw } from 'lucide-react';
 import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 import { toast } from 'sonner';
 import { getPeriodeComptables } from '@/lib/api';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface ResultatItem {
   code: string;
@@ -25,6 +26,8 @@ interface ResultatItem {
 }
 
 export default function ProfitAndLossPage() {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<{
@@ -174,7 +177,7 @@ export default function ProfitAndLossPage() {
               <CardTitle className="flex justify-between items-center">
                 <span>Période du {selectedPeriodeId ? new Date(periodes.find(p => p.id === selectedPeriodeId)?.dateDebut || '').toLocaleDateString('fr-FR') : '...'} au {selectedPeriodeId ? new Date(periodes.find(p => p.id === selectedPeriodeId)?.dateFin || '').toLocaleDateString('fr-FR') : '...'}</span>
                 <span className="text-sm text-gray-500 font-normal">
-                  Devise: <span className="font-semibold text-gray-900">XAF</span>
+                  Devise: <span className="font-semibold text-gray-900">{currencyCode}</span>
                 </span>
               </CardTitle>
             </CardHeader>

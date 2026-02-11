@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Select,
   SelectContent,
@@ -10,12 +10,29 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Search, RefreshCw, ChevronDown, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Download,
+  Search,
+  RefreshCw,
+  Printer,
+  Filter,
+  ChevronRight,
+  LayoutGrid,
+  List,
+  ArrowRight,
+  FileText,
+  Calendar,
+  Layers
+} from 'lucide-react';
 import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { GrandLivreDto } from '@/src/lib2/models/GrandLivreDto';
 import { toast } from 'sonner';
-import { getPeriodeComptables } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+type FilterMode = 'tous' | 'plage' | 'groupe' | 'selection';
 
 export default function GeneralLedgerPage() {
   const [periodes, setPeriodes] = useState<any[]>([]);
@@ -23,16 +40,23 @@ export default function GeneralLedgerPage() {
   const [ledgerData, setLedgerData] = useState<GrandLivreDto[]>([]);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Advanced Filters
+  const [filterMode, setFilterMode] = useState<FilterMode>('tous');
+  const [accountStart, setAccountStart] = useState('');
+  const [accountEnd, setAccountEnd] = useState('');
+  const [accountGroup, setAccountGroup] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedAccounts, setExpandedAccounts] = useState<Set<string>>(new Set());
 
   const fetchPeriodesData = useCallback(async () => {
     setIsLoadingPeriods(true);
     try {
-      const data = await getPeriodeComptables();
-      setPeriodes(data);
-      if (data.length > 0 && !selectedPeriodeId) {
-        setSelectedPeriodeId(data[0].id || null);
+      const response = await AccountingPeriodsService.getAllPeriodeComptables();
+      if (response.success && Array.isArray(response.data)) {
+        setPeriodes(response.data);
+        if (response.data.length > 0 && !selectedPeriodeId) {
+          setSelectedPeriodeId(response.data[0].id || null);
+        }
       }
     } catch (error) {
       console.error('Error fetching periods:', error);
@@ -77,13 +101,6 @@ export default function GeneralLedgerPage() {
     }
   }, [selectedPeriodeId, generateReport]);
 
-  const toggleAccount = (accNo: string) => {
-    const newSet = new Set(expandedAccounts);
-    if (newSet.has(accNo)) newSet.delete(accNo);
-    else newSet.add(accNo);
-    setExpandedAccounts(newSet);
-  };
-
   const handleGeneratePDF = async () => {
     if (!selectedPeriodeId) return;
     const periode = periodes.find(p => p.id === selectedPeriodeId);
@@ -99,144 +116,314 @@ export default function GeneralLedgerPage() {
     }
   };
 
-  const handleGenerateXLSX = () => {
-    toast.info("L'export XLSX sera disponible prochainement");
-  };
+  const filteredData = useMemo(() => {
+    let data = ledgerData;
 
-  const filteredData = ledgerData.filter(acc =>
-    acc.noCompte?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    acc.libelleCompte?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    // Apply main filter modes
+    if (filterMode === 'plage') {
+      if (accountStart) data = data.filter(acc => (acc.noCompte || '') >= accountStart);
+      if (accountEnd) data = data.filter(acc => (acc.noCompte || '') <= accountEnd);
+    } else if (filterMode === 'groupe') {
+      if (accountGroup) data = data.filter(acc => (acc.noCompte || '').startsWith(accountGroup));
+    }
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+    // Apply search query
+    if (searchQuery) {
+      data = data.filter(acc =>
+        acc.noCompte?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        acc.libelleCompte?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    return data;
+  }, [ledgerData, filterMode, accountStart, accountEnd, accountGroup, searchQuery]);
+
+  // Calculate Running Balances
+  const processedData = useMemo(() => {
+    let cumulativeTotal = 0;
+
+    return filteredData.map(account => {
+      let runningBalance = account.soldeOuverture || 0;
+      const lignesWithBalances = (account.lignes || []).map(line => {
+        runningBalance += (line.debit || 0) - (line.credit || 0);
+        cumulativeTotal += (line.debit || 0) - (line.credit || 0);
+        return {
+          ...line,
+          soldeLigne: runningBalance,
+          soldeCumule: cumulativeTotal
+        };
+      });
+
+      return {
+        ...account,
+        lignesWithBalances
+      };
+    });
+  }, [filteredData]);
+
+  const grandTotals = useMemo(() => {
+    let totalDebit = 0;
+    let totalCredit = 0;
+    processedData.forEach(account => {
+      totalDebit += account.totalDebit || 0;
+      totalCredit += account.totalCredit || 0;
+    });
+    return { totalDebit, totalCredit, solde: totalDebit - totalCredit };
+  }, [processedData]);
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-800">Grand Livre</h1>
-            {isGenerating && <RefreshCw className="h-5 w-5 animate-spin text-blue-500" />}
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGeneratePDF} disabled={isGenerating || !selectedPeriodeId}>
-              <Download className="h-4 w-4 mr-2" /> PDF
-            </Button>
-            <Button variant="outline" onClick={handleGenerateXLSX} disabled={isGenerating || !selectedPeriodeId}>
-              <Download className="h-4 w-4 mr-2" /> XLSX
-            </Button>
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-[#f8fafc] text-slate-900 overflow-hidden">
+      {/* Fixed Header Section */}
+      <div className="flex-none bg-white border-b z-30 shadow-sm">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-600 p-2.5 rounded-xl shadow-blue-200 shadow-lg">
+                <FileText className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 tracking-tight">GRAND LIVRE</h1>
+                <p className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">Analyse détaillée des comptes</p>
+              </div>
+              {isGenerating && <RefreshCw className="h-4 w-4 animate-spin text-blue-500 ml-2" />}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button variant="outline" className="h-10 border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold" onClick={handleGeneratePDF}>
+                <Printer className="h-4 w-4 mr-2" /> Imprimer
+              </Button>
+              <Button variant="outline" className="h-10 border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold">
+                <Download className="h-4 w-4 mr-2" /> XLSX
+              </Button>
+              <div className="h-8 w-px bg-slate-200 mx-2 hidden md:block"></div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={generateReport}
+                disabled={isGenerating || !selectedPeriodeId}
+                className={cn(
+                  "h-10 w-10 border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all",
+                  isGenerating && "bg-blue-50 text-blue-600 border-blue-200"
+                )}
+                title="Actualiser les données"
+              >
+                <RefreshCw className={cn("h-5 w-5", isGenerating && "animate-spin")} />
+              </Button>
+            </div>
           </div>
         </div>
+      </div>
 
-        <div className="space-y-4">
-          <div className="flex gap-4 items-center">
-            <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId} disabled={isGenerating}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Sélectionner une période" />
-              </SelectTrigger>
-              <SelectContent>
-                {periodes.map((periode) => (
-                  <SelectItem key={periode.id} value={periode.id!}>
-                    {periode.code} ({new Date(periode.dateDebut).toLocaleDateString()} - {new Date(periode.dateFin).toLocaleDateString()})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="relative w-64">
-              <Input
-                placeholder="Filtrer par compte..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-md border border-gray-300"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pt-6 pb-20">
+        <div className="max-w-[1600px] mx-auto px-6 space-y-8">
+          {/* Filters Panel */}
+          <Card className="border-none shadow-sm overflow-hidden bg-white">
+            <div className="bg-slate-50 border-b px-6 py-3 flex items-center gap-2">
+              <Filter className="h-4 w-4 text-blue-600" />
+              <span className="text-xs font-black text-slate-900 uppercase tracking-widest">Critères de sélection</span>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => { setExpandedAccounts(new Set()) }} title="Tout replier">
-              Replier tout
-            </Button>
-            <Button variant="ghost" size="icon" onClick={fetchPeriodesData} title="Rafraîchir les périodes">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+                {/* Period Selector */}
+                <div className="lg:col-span-3 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Période d'analyse</label>
+                  <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId} disabled={isGenerating}>
+                    <SelectTrigger className="h-11 bg-slate-50/50 border-slate-200 focus:ring-blue-500">
+                      <Calendar className="h-4 w-4 text-slate-400 mr-2" />
+                      <SelectValue placeholder={isLoadingPeriods ? "Chargement..." : "Sélectionner une période"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periodes.map((periode) => (
+                        <SelectItem key={periode.id} value={periode.id!}>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-slate-900">{periode.code}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(periode.dateDebut).toLocaleDateString()} — {new Date(periode.dateFin).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="space-y-4">
-            {filteredData.length > 0 ? filteredData.map((account) => {
-              const isExpanded = expandedAccounts.has(account.noCompte || '');
-              return (
-                <Card key={account.noCompte} className="overflow-hidden border-l-4 border-l-blue-500">
-                  <div
-                    className="p-4 bg-white cursor-pointer hover:bg-gray-50 flex items-center justify-between"
-                    onClick={() => toggleAccount(account.noCompte || '')}
-                  >
-                    <div className="flex items-center gap-3">
-                      {isExpanded ? <ChevronDown className="h-4 w-4 text-gray-400" /> : <ChevronRight className="h-4 w-4 text-gray-400" />}
-                      <div>
-                        <span className="font-mono text-blue-600 font-bold mr-2">{account.noCompte}</span>
-                        <span className="font-semibold text-gray-800">{account.libelleCompte}</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-6 text-sm">
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Report</p>
-                        <p className="font-medium">{account.soldeOuverture?.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Mouvements</p>
-                        <p className="font-medium text-emerald-600">D: {account.totalDebit?.toLocaleString()} / C: {account.totalCredit?.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Solde Final</p>
-                        <p className={`font-bold ${account.soldeCloture! >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
-                          {account.soldeCloture?.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                {/* Mode Selector */}
+                <div className="lg:col-span-5 space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mode de filtrage</label>
+                  <Tabs value={filterMode} onValueChange={(v) => setFilterMode(v as FilterMode)} className="w-full">
+                    <TabsList className="grid grid-cols-4 h-11 bg-slate-100 p-1 rounded-xl">
+                      <TabsTrigger value="tous" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">TOUS</TabsTrigger>
+                      <TabsTrigger value="plage" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">PLAGE</TabsTrigger>
+                      <TabsTrigger value="groupe" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">GROUPE</TabsTrigger>
+                      <TabsTrigger value="selection" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">SELECT</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
 
-                  {isExpanded && (
-                    <div className="border-t bg-gray-50/50 p-0 overflow-x-auto">
-                      <table className="w-full text-xs text-left border-collapse">
-                        <thead>
-                          <tr className="bg-gray-100 border-b text-gray-600 font-bold">
-                            <th className="px-4 py-2 w-24">Date</th>
-                            <th className="px-4 py-2 w-32">Journal</th>
-                            <th className="px-4 py-2 w-32">Référence</th>
-                            <th className="px-4 py-2">Libellé de l'écriture</th>
-                            <th className="px-4 py-2 w-32 text-right text-emerald-700">Débit</th>
-                            <th className="px-4 py-2 w-32 text-right text-orange-700">Crédit</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {account.lignes && account.lignes.length > 0 ? account.lignes.map((line, idx) => (
-                            <tr key={idx} className="border-b bg-white hover:bg-gray-50 transition-colors">
-                              <td className="px-4 py-2 text-gray-500">{new Date(line.date || '').toLocaleDateString()}</td>
-                              <td className="px-4 py-2 text-gray-600">{line.journal}</td>
-                              <td className="px-4 py-2 font-mono text-gray-400">{line.reference}</td>
-                              <td className="px-4 py-2 text-gray-800">{line.libelle}</td>
-                              <td className="px-4 py-2 text-right text-emerald-600 font-medium">{line.debit?.toLocaleString()}</td>
-                              <td className="px-4 py-2 text-right text-orange-600 font-medium">{line.credit?.toLocaleString()}</td>
-                            </tr>
-                          )) : (
-                            <tr><td colSpan={6} className="px-4 py-4 text-center text-gray-400 italic">Aucun mouvement pour cette période</td></tr>
-                          )}
-                        </tbody>
-                        <tfoot>
-                          <tr className="bg-blue-50/30 font-bold">
-                            <td colSpan={4} className="px-4 py-2 text-right uppercase text-[9px] tracking-widest text-gray-400">Totaux mouvements</td>
-                            <td className="px-4 py-2 text-right text-emerald-700">{account.totalDebit?.toLocaleString()}</td>
-                            <td className="px-4 py-2 text-right text-orange-700">{account.totalCredit?.toLocaleString()}</td>
-                          </tr>
-                        </tfoot>
-                      </table>
+                {/* Dynamic Inputs based on mode */}
+                <div className="lg:col-span-4 transition-all duration-300">
+                  {filterMode === 'tous' && (
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Recherche globale</label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input
+                          placeholder="N° Compte ou intitulé..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="h-11 pl-10 bg-slate-50/50 border-slate-200"
+                        />
+                      </div>
                     </div>
                   )}
-                </Card>
-              );
-            }) : (
-              <div className="text-center py-20 bg-white border rounded-lg text-gray-400 italic">
-                {isGenerating ? "Génération du grand livre..." : "Aucun compte trouvé"}
+                  {filterMode === 'plage' && (
+                    <div className="grid grid-cols-2 gap-3 items-end">
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">De (Compte)</label>
+                        <Input placeholder="101..." value={accountStart} onChange={(e) => setAccountStart(e.target.value)} className="h-11 font-mono uppercase" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-1">À (Compte)</label>
+                        <Input placeholder="799..." value={accountEnd} onChange={(e) => setAccountEnd(e.target.value)} className="h-11 font-mono uppercase" />
+                      </div>
+                    </div>
+                  )}
+                  {filterMode === 'groupe' && (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Le compte commence par...</label>
+                      <div className="relative">
+                        <Layers className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input placeholder="Ex: 41" value={accountGroup} onChange={(e) => setAccountGroup(e.target.value)} className="h-11 pl-10 font-mono uppercase" />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
+            </CardContent>
+          </Card>
+
+          {/* Ledger Table Section */}
+          <div className="bg-white rounded-lg shadow-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[12px]">
+                <thead>
+                  <tr className="bg-slate-800 text-white font-bold uppercase tracking-wider sticky top-0 z-20 divide-x divide-slate-700">
+                    <th className="px-3 py-3 text-left w-24">Compte</th>
+                    <th className="px-3 py-3 text-left w-24">N° saisie</th>
+                    <th className="px-3 py-3 text-left w-28">Date Ec</th>
+                    <th className="px-3 py-3 text-left w-16">JN</th>
+                    <th className="px-3 py-3 text-left min-w-[300px]">Pièce</th>
+                    <th className="px-3 py-3 text-right w-32">Debit</th>
+                    <th className="px-3 py-3 text-right w-32">Credit</th>
+                    <th className="px-3 py-3 text-right w-32">Solde</th>
+                    <th className="px-3 py-3 text-right w-36 bg-slate-900">Solde Cumule</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {processedData.length > 0 ? processedData.map((account) => (
+                    <React.Fragment key={account.noCompte}>
+                      {/* Account Opening Balance / Header Row */}
+                      <tr className="bg-slate-50/80 font-bold border-b border-slate-300">
+                        <td className="px-3 py-2 font-mono text-blue-700">{account.noCompte}</td>
+                        <td colSpan={4} className="px-3 py-2 uppercase text-slate-700 tracking-tight">
+                          Report à nouveau — {account.libelleCompte}
+                        </td>
+                        <td className="px-3 py-2 text-right"></td>
+                        <td className="px-3 py-2 text-right"></td>
+                        <td className="px-3 py-2 text-right font-mono text-slate-900 border-l border-slate-200">
+                          {account.soldeOuverture?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                        </td>
+                        <td className="px-3 py-2 bg-slate-100 border-l border-slate-200"></td>
+                      </tr>
+
+                      {/* Transaction Lines */}
+                      {account.lignesWithBalances?.map((line, idx) => (
+                        <tr key={idx} className="hover:bg-blue-50/30 transition-colors divide-x divide-slate-100 border-b border-slate-50 items-center">
+                          <td className="px-3 py-2 font-mono text-slate-500">{account.noCompte}</td>
+                          <td className="px-3 py-2 font-mono text-slate-400 text-[11px]">{line.ecritureId?.slice(0, 8) || '—'}</td>
+                          <td className="px-3 py-2 text-slate-600">{new Date(line.date || '').toLocaleDateString('fr-FR')}</td>
+                          <td className="px-3 py-2 text-slate-500 font-bold">{line.journal}</td>
+                          <td className="px-3 py-2 text-slate-900 truncate max-w-md">{line.libelle}</td>
+                          <td className="px-3 py-2 text-right text-slate-900 font-mono">
+                            {(line.debit ?? 0) > 0 ? line.debit?.toLocaleString('fr-FR', { minimumFractionDigits: 0 }) : '0'}
+                          </td>
+                          <td className="px-3 py-2 text-right text-slate-900 font-mono">
+                            {(line.credit ?? 0) > 0 ? line.credit?.toLocaleString('fr-FR', { minimumFractionDigits: 0 }) : '0'}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">
+                            {line.soldeLigne?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono text-rose-600 bg-slate-50/50">
+                            {line.soldeCumule?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                          </td>
+                        </tr>
+                      ))}
+
+                      {/* Account Subtotal Row */}
+                      <tr className="bg-blue-50/50 font-bold border-t border-slate-300">
+                        <td className="px-3 py-2 font-mono text-blue-700">{account.noCompte}</td>
+                        <td colSpan={4} className="px-3 py-2 text-blue-800 uppercase italic">
+                          Sous total {account.noCompte} - {account.libelleCompte}
+                        </td>
+                        <td className="px-3 py-2 text-right text-blue-800 font-mono">
+                          {account.totalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                        </td>
+                        <td className="px-3 py-2 text-right text-blue-800 font-mono">
+                          {account.totalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-blue-900">
+                          {account.soldeCloture?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                        </td>
+                        <td className="px-3 py-2"></td>
+                      </tr>
+                    </React.Fragment>
+                  )) : (
+                    <tr>
+                      <td colSpan={9} className="px-6 py-32 text-center bg-white">
+                        <div className="flex flex-col items-center justify-center space-y-4">
+                          <div className="bg-slate-50 p-6 rounded-full">
+                            {isGenerating ? (
+                              <RefreshCw className="h-10 w-10 text-blue-400 animate-spin" />
+                            ) : (
+                              <Search className="h-10 w-10 text-slate-300" />
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-slate-900 font-black uppercase tracking-widest">
+                              {isGenerating ? "Génération des données..." : "Aucun mouvement"}
+                            </p>
+                            <p className="text-slate-400 text-sm">
+                              {isGenerating ? "Cette opération analyse l'ensemble des écritures comptables." : "Ajustez vos filtres ou sélectionnez une autre période."}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                {processedData.length > 0 && (
+                  <tfoot className="border-t-4 border-slate-800 bg-yellow-50 font-black">
+                    <tr className="divide-x divide-slate-200">
+                      <td colSpan={5} className="px-3 py-4 text-right uppercase tracking-[0.2em] text-slate-600">
+                        Totaux cumulés
+                      </td>
+                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                        {grandTotals.totalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                      </td>
+                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                        {grandTotals.totalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                      </td>
+                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                        {grandTotals.solde.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                      </td>
+                      <td className="px-3 py-4 bg-slate-900 border-none"></td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
           </div>
         </div>
       </div>

@@ -142,9 +142,7 @@ export default function EcritureComptableDetailsPage() {
     return (
         <div className="space-y-6 max-w-7xl mx-auto p-6 md:p-8">
             <div className="flex items-center justify-between">
-                <Button variant="ghost" onClick={() => router.back()} className="text-gray-600 hover:text-blue-600">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Retour
-                </Button>
+                <div />
 
                 {!ecriture.validee && (
                     <div className="flex gap-2">
@@ -160,6 +158,16 @@ export default function EcritureComptableDetailsPage() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                 <EcritureComptableReadView ecriture={ecriture} />
+            </div>
+
+            <div className="flex justify-end pt-6 border-t font-semibold">
+                <Button
+                    variant="outline"
+                    onClick={() => router.push('/accounting/entries')}
+                    className="bg-white hover:bg-gray-50 text-gray-800 border-gray-300 px-10 font-semibold shadow-sm"
+                >
+                    Fermer
+                </Button>
             </div>
 
             {ecritureToDelete && (

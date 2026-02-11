@@ -182,8 +182,12 @@ export default function AccountingValidationPage() {
                         <TableCell className="font-medium">{ecriture.libelle}</TableCell>
                         <TableCell>{new Date(ecriture.dateEcriture).toLocaleDateString()}</TableCell>
                         <TableCell>{ecriture.journalComptableLibelle}</TableCell>
-                        <TableCell className="text-right font-mono text-emerald-600">{ecriture.montantTotalDebit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
-                        <TableCell className="text-right font-mono text-emerald-600">{ecriture.montantTotalCredit?.toLocaleString('fr-FR', { minimumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right font-mono text-emerald-600">
+                          {(ecriture.montantTotalDebit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-emerald-600">
+                          {(ecriture.montantTotalCredit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0)).toLocaleString('fr-FR', { minimumFractionDigits: 2 })}
+                        </TableCell>
                         <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-center gap-2">
                             <Button variant="ghost" size="sm" onClick={() => handleOpenDetail(ecriture.id!)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">

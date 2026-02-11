@@ -16,6 +16,7 @@ import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
 import { Edit, Trash2, Plus, Check, RefreshCw, Loader2, Search } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface EcritureComptableListViewProps {
   ecritures: EcritureComptableDto[];
@@ -36,14 +37,6 @@ const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: Ecri
   return (
     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-green-600 hover:bg-green-50" onClick={() => onValidate(ecriture.id || '')}>
-              <Check className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Valider</p></TooltipContent>
-        </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(ecriture.id || '')}>
@@ -78,6 +71,8 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
   readOnly = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
 
   const filteredEcritures = useMemo(() => {
     return ecritures.filter(ecriture => {
@@ -172,8 +167,12 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
                       {ecriture.journalComptableLibelle}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-right">{ecriture.montantTotalDebit?.toLocaleString('fr-FR')} XAF</TableCell>
-                  <TableCell className="font-mono text-right">{ecriture.montantTotalCredit?.toLocaleString('fr-FR')} XAF</TableCell>
+                  <TableCell className="font-mono text-right">
+                    {(ecriture.montantTotalDebit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
+                  </TableCell>
+                  <TableCell className="font-mono text-right">
+                    {(ecriture.montantTotalCredit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
+                  </TableCell>
                   <TableCell className="text-center">
                     <Badge variant={ecriture.validee ? "default" : "secondary"} className={ecriture.validee ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}>
                       {ecriture.validee ? 'Validée' : 'Brouillon'}

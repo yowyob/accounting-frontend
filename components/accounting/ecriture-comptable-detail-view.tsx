@@ -126,8 +126,10 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   const liveTotalCredit = detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0;
 
   useEffect(() => {
-    form.reset(getDefaultValues());
-  }, [ecriture, form]);
+    if (accounts.length > 0) {
+      form.reset(getDefaultValues());
+    }
+  }, [ecriture, form, accounts]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -173,7 +175,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     // Validation for account existence
     const invalidAccounts = data.detailsEcriture.filter(detail => {
       if (!detail.compteComptableId) return false;
-      return !accounts.some(acc => acc.noCompte === detail.compteComptableId);
+      return !accounts.some(acc => acc.noCompte === detail.compteComptableId || acc.id === detail.compteComptableId);
     });
 
     if (invalidAccounts.length > 0) {
@@ -182,9 +184,11 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
       return;
     }
 
-    // Convert numbers back to IDs before saving
+    // Convert numbers back to IDs before saving and include calculated totals
     const processedData = {
       ...data,
+      montantTotalDebit: liveTotalDebit,
+      montantTotalCredit: liveTotalCredit,
       detailsEcriture: data.detailsEcriture.map(d => ({
         ...d,
         compteComptableId: getAccountId(d.compteComptableId)!
@@ -336,17 +340,17 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                 )}
               </div>
 
-              <div className="bg-gray-50 rounded-2xl border p-1 shadow-inner">
-                <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                  <div className="col-span-3 text-center">N° Compte</div>
+              <div className="bg-gray-100/80 rounded-2xl border border-gray-200 p-1 shadow-sm">
+                <div className="hidden md:grid grid-cols-12 gap-3 px-6 py-4 text-[11px] font-black text-blue-900 uppercase tracking-widest border-b border-gray-200 bg-white/50 rounded-t-xl">
+                  <div className="col-span-3">N° Compte</div>
                   <div className="col-span-5">Libellé de la ligne</div>
                   <div className="col-span-2 text-right">Débit</div>
                   <div className="col-span-2 text-right">Crédit</div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2 p-2">
                   {fields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-1 items-center p-4 md:p-1 bg-white md:bg-transparent md:border-b last:border-0 hover:bg-white/80 transition-colors group">
+                    <div key={field.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-4 md:p-3 bg-white border border-gray-100 rounded-xl shadow-sm hover:border-blue-200 hover:shadow-md transition-all group">
                       <div className="col-span-3">
                         <FormField
                           control={form.control}
@@ -362,7 +366,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                                   accounts={accounts}
                                   placeholder="N° Compte"
                                   disabled={ecriture?.validee}
-                                  className="md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
+                                  className="bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-mono font-semibold"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -380,9 +384,9 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                               <FormControl>
                                 <Input
                                   {...field}
-                                  placeholder="Description"
+                                  placeholder="Description de l'opération"
                                   disabled={ecriture?.validee}
-                                  className="md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500"
+                                  className="bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all"
                                 />
                               </FormControl>
                             </FormItem>
@@ -402,7 +406,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                                   {...field}
                                   disabled={ecriture?.validee}
                                   onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                                  className="text-right md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500 font-mono text-emerald-600 font-medium"
+                                  className="text-right bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-mono text-emerald-700 font-bold"
                                 />
                               </FormControl>
                             </FormItem>
@@ -422,7 +426,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                                   {...field}
                                   disabled={ecriture?.validee}
                                   onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                                  className="text-right md:border-none md:bg-transparent md:focus-visible:ring-1 focus-visible:ring-blue-500 font-mono text-rose-600 font-medium"
+                                  className="text-right bg-gray-50/50 border-gray-200 focus:bg-white focus:ring-1 focus:ring-blue-500 transition-all font-mono text-rose-700 font-bold"
                                 />
                               </FormControl>
                             </FormItem>

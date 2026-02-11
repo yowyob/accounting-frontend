@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Download, RefreshCw, AlertCircle, PieChart, TrendingUp, Wallet, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPeriodeComptables } from '@/lib/api';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface SummaryData {
   section: string;
@@ -37,6 +38,8 @@ const staticSummaryData: SummaryData[] = [
 ];
 
 export default function GeneralSummaryPage() {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
@@ -182,7 +185,7 @@ export default function GeneralSummaryPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Actifs</span>
-                  <span className="font-bold">3 500 000 XAF</span>
+                  <span className="font-bold">3 500 000 {currencyCode}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-blue-500 h-full w-[100%]" />
@@ -191,7 +194,7 @@ export default function GeneralSummaryPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Passifs</span>
-                  <span className="font-bold">1 250 000 XAF</span>
+                  <span className="font-bold">1 250 000 {currencyCode}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-red-500 h-full w-[35%]" />
@@ -200,7 +203,7 @@ export default function GeneralSummaryPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Capitaux Propres</span>
-                  <span className="font-bold">2 250 000 XAF</span>
+                  <span className="font-bold">2 250 000 {currencyCode}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-indigo-500 h-full w-[65%]" />
@@ -218,7 +221,7 @@ export default function GeneralSummaryPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Total Produits</span>
-                  <span className="font-bold">2 000 000 XAF</span>
+                  <span className="font-bold">2 000 000 {currencyCode}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-emerald-500 h-full w-[100%]" />
@@ -227,7 +230,7 @@ export default function GeneralSummaryPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Total Charges</span>
-                  <span className="font-bold">700 000 XAF</span>
+                  <span className="font-bold">700 000 {currencyCode}</span>
                 </div>
                 <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                   <div className="bg-orange-500 h-full w-[35%]" />
