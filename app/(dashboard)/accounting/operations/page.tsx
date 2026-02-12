@@ -7,7 +7,7 @@ import { OperationComptableListView } from '@/components/accounting/operation-co
 import { OperationForm } from '@/components/accounting/settings/operation-form';
 import { OperationComptableReadView } from '@/components/accounting/operation-comptable-read-view';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Edit, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useCompose } from '@/hooks/use-compose-store';
 import {
@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 import {
   Tabs,
   TabsContent,
@@ -177,38 +178,34 @@ export default function OperationComptablePage() {
     return (
       <div className="min-h-screen flex flex-col p-4 bg-gray-100">
         <div className="w-full max-w-7xl mx-auto bg-white p-8 rounded-lg shadow-lg">
-          <Tabs defaultValue="details" className="w-full">
-            <div className="flex items-center justify-between mb-8 border-b pb-4">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
-                <h2 className="text-2xl font-bold text-gray-800 tracking-tight uppercase">Détails dOpération</h2>
-              </div>
-
-              <TabsList className="bg-gray-100/80 p-1">
-                <TabsTrigger value="details" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 font-semibold px-6">DÉTAILS</TabsTrigger>
-                <TabsTrigger value="modifier" className="data-[state=active]:bg-white data-[state=active]:text-blue-600 font-semibold px-6">MODIFIER</TabsTrigger>
-              </TabsList>
+          <div className="flex items-center justify-between mb-8 border-b pb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
+              <h2 className="text-2xl font-bold text-gray-800 tracking-tight uppercase">Détails d'Opération</h2>
             </div>
 
-            <TabsContent value="details" className="mt-0">
-              <OperationComptableReadView
-                operation={viewData}
-                onBack={() => setViewMode('list')}
-              />
-            </TabsContent>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="text-blue-600 hover:bg-blue-50 h-8 w-8 p-0"
+                onClick={() => handleEditOperation(viewData.id!)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                onClick={() => confirmDelete(viewData)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
 
-            <TabsContent value="modifier" className="mt-0">
-              <OperationForm
-                initialData={viewData}
-                onSave={async (data, journalIds) => {
-                  await handleSave(data, journalIds);
-                  setViewData(data); // Refresh view data
-                  // Optionally stay on modifier or switch to details
-                }}
-                onCancel={() => setViewMode('list')}
-              />
-            </TabsContent>
-          </Tabs>
+          <OperationComptableReadView
+            operation={viewData}
+            onBack={() => setViewMode('list')}
+          />
         </div>
       </div>
     );

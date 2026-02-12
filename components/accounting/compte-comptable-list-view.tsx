@@ -140,55 +140,59 @@ export const CompteComptableListView: React.FC<CompteComptableListViewProps> = (
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <Input
-                        placeholder="Rechercher par numéro, libellé..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full sm:w-64"
-                    />
-                    <Select value={selectedClasse} onValueChange={setSelectedClasse}>
-                        <SelectTrigger className="w-full sm:w-40">
-                            <SelectValue placeholder="Classe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Toutes les classes</SelectItem>
-                            {uniqueClasses.map((classe) => (
-                                <SelectItem key={classe} value={classe.toString()}>
-                                    Classe {classe}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={selectedType} onValueChange={setSelectedType}>
-                        <SelectTrigger className="w-full sm:w-40">
-                            <SelectValue placeholder="Type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tous les types</SelectItem>
-                            {uniqueTypes.map((type) => (
-                                <SelectItem key={type} value={type}>
-                                    {type}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                    {onRefresh && (
-                        <Button variant="outline" size="sm" onClick={onRefresh} className="flex-1 md:flex-none">
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Actualiser
-                        </Button>
-                    )}
+            {/* Top row: Nouveau Compte button on left, Refresh button on right */}
+            <div className="flex items-center justify-between">
+                <div>
                     {onAddNew && (
-                        <Button size="sm" onClick={onAddNew} className="bg-[#007bff] hover:bg-[#0069d9] flex-1 md:flex-none">
+                        <Button size="sm" onClick={onAddNew} className="bg-[#007bff] hover:bg-[#0069d9]">
                             <Plus className="h-4 w-4 mr-2" />
                             Nouveau Compte
                         </Button>
                     )}
                 </div>
+                <div>
+                    {onRefresh && (
+                        <Button variant="outline" size="sm" onClick={onRefresh}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                        </Button>
+                    )}
+                </div>
+            </div>
+
+            {/* Search and filters row */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+                <Input
+                    placeholder="Rechercher par numéro, libellé..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full sm:w-64"
+                />
+                <Select value={selectedClasse} onValueChange={setSelectedClasse}>
+                    <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue placeholder="Classe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Toutes les classes</SelectItem>
+                        {uniqueClasses.map((classe) => (
+                            <SelectItem key={classe} value={classe.toString()}>
+                                Classe {classe}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger className="w-full sm:w-40">
+                        <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Tous les types</SelectItem>
+                        {uniqueTypes.map((type) => (
+                            <SelectItem key={type} value={type}>
+                                {type}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="border rounded-lg overflow-hidden bg-white">

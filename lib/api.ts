@@ -346,7 +346,7 @@ const staticRecentOperations: OperationComptable[] = [
     journalComptableId: 'journal-001' as UUID,
     plafondClient: 100000,
     actif: true,
-    createdAt: new Date('2025-09-14').toISOString(), // Chaîne ISO 8601
+    createdAt: new Date('2025-09-14'), // Objet Date
   },
   {
     id: 'op-002' as UUID,
@@ -359,7 +359,7 @@ const staticRecentOperations: OperationComptable[] = [
     journalComptableId: 'journal-002' as UUID,
     plafondClient: 50000,
     actif: true,
-    createdAt: new Date('2025-09-13').toISOString(), // Chaîne ISO 8601
+    createdAt: new Date('2025-09-13'), // Objet Date
   },
 ];
 
@@ -368,16 +368,14 @@ const staticPeriodSummary: PeriodeComptable[] = [
   {
     id: 'period-001' as UUID,
     code: 'P2025-01',
-    statut: 'OUVERT',
-    montantTotal: 800000,
-    createdAt: new Date('2025-09-01').toISOString(), // Chaîne ISO 8601
+    cloturee: false,
+    createdAt: new Date('2025-09-01'), // Objet Date
   },
   {
     id: 'period-002' as UUID,
     code: 'P2025-02',
-    statut: 'CLOTURE',
-    montantTotal: 700000,
-    createdAt: new Date('2025-08-01').toISOString(), // Chaîne ISO 8601
+    cloturee: true,
+    createdAt: new Date('2025-08-01'), // Objet Date
   },
 ];
 
@@ -409,13 +407,13 @@ export const generateReport = async ({ periodeId, reportType }: { periodeId: str
       let content = '';
       switch (reportType) {
         case 'BALANCE_SHEET':
-          content = `Bilan pour la période ${periodeId}\nTotal Actif: 1 200 000 XOF\nTotal Passif: 1 150 000 XOF`;
+          content = `Bilan pour la période ${periodeId}\nTotal Actif: 1 200 000\nTotal Passif: 1 150 000`;
           break;
         case 'LEDGER':
-          content = `Grand Livre pour ${periodeId}\nCompte 57000: 800 000 XOF\nCompte 60100: 450 000 XOF`;
+          content = `Grand Livre pour ${periodeId}\nCompte 57000: 800 000\nCompte 60100: 450 000`;
           break;
         case 'PERIOD_SUMMARY':
-          content = `Résumé pour ${periodeId}\nPériode P2025-01: 800 000 XOF\nPériode P2025-02: 700 000 XOF`;
+          content = `Résumé pour ${periodeId}\nPériode P2025-01: 800 000\nPériode P2025-02: 700 000`;
           break;
         default:
           content = 'Type de rapport non reconnu.';

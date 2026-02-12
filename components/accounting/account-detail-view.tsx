@@ -71,13 +71,18 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
   }, [account, forceEdit]);
 
   const fetchComptesAssocies = async () => {
-    if (!account?.classe) return;
+    if (!account?.noCompte) return;
     setIsLoadingComptes(true);
     try {
       const res = await AccountingComptesService.getAllComptes();
       if (res && res.data) {
-        // Ne garder que les comptes créés appartenant à la même classe
-        const filtered = res.data.filter(c => c.classe === account.classe);
+        // Filter accounts that:
+        // 1. Start with the parent account number
+        // 2. Have exactly 6 digits (CompteDto are 6-bit accounts)
+        const filtered = res.data.filter(c =>
+          c.noCompte?.startsWith(account.noCompte) &&
+          c.noCompte?.length === 6
+        );
         setComptesCrees(filtered);
       }
     } catch (error) {
@@ -153,7 +158,7 @@ export const AccountDetailView: React.FC<AccountDetailViewProps> = ({
             <div className="flex items-center justify-between border-b pb-4">
               <div className="flex items-center gap-2">
                 <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
-                <h3 className="text-xl font-bold text-gray-800 tracking-tight">Comptes comptables  (Classe {account.classe})</h3>
+                <h3 className="text-xl font-bold text-gray-800 tracking-tight">Comptes comptables commençant par {account.noCompte}</h3>
               </div>
               <div className="text-xs font-semibold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
                 {comptesCrees.length} Compte(s) trouvé(s)

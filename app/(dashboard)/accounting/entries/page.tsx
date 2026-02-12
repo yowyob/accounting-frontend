@@ -140,10 +140,6 @@ export default function EcritureComptablePage() {
             if (ecriture) setEcritureToDelete(ecriture);
             closeCompose();
           }}
-          onValidate={() => {
-            if (ecriture?.id) handleValidate(ecriture.id);
-            closeCompose();
-          }}
           onBack={closeCompose}
           ecriture={ecriture}
         />
@@ -165,7 +161,6 @@ export default function EcritureComptablePage() {
           onSelectEcriture={handleViewEcriture} // Row click -> Navigate to Details Page
           onEditEcriture={handleEditEcriture}   // Edit click -> Edit Mode
           onDeleteEcriture={setEcritureToDelete}
-          onValidateEcriture={handleValidate}
           onAddNew={() => handleOpenCompose()}
           onRefresh={fetchAndSetEcritures}
         />

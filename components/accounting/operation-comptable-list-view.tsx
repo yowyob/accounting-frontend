@@ -21,26 +21,26 @@ import { cn } from '@/lib/utils';
 import { useEffect } from 'react';
 
 const OPERATION_TEMPLATES: Record<string, string> = {
-  "VENTE": "Vente [CLIENT]",
-  "ACHAT": "Achat [FOURNISSEUR]",
-  "SALAIRE": "Salaire [PERSONNEL]",
-  "PAIEMENT": "Paiement [BANQUE/CAISSE]",
+  "VENTE": "Vente CLIENT",
+  "ACHAT": "Achat FOURNISSEUR",
+  "SALAIRE": "Salaire PERSONNEL",
+  "PAIEMENT": "Paiement BANQUE/CAISSE",
   "DIVERS": "Opération diverse",
 };
 
 const MODE_REGLEMENT_LABELS: Record<string, { label: string, isComptant: boolean }> = {
-  "ESPECE": { label: "par espèces [CCE]", isComptant: true },
-  "CHEQUE": { label: "par chèque [CHQ]", isComptant: true },
-  "VIREMENT": { label: "par virement [VIR]", isComptant: true },
-  "MOBILE": { label: "par mobile [MOB]", isComptant: true },
-  "CR": { label: "par crédit [CR]", isComptant: false },
+  "ESPECE": { label: "par espèces", isComptant: true },
+  "CHEQUE": { label: "par chèque", isComptant: true },
+  "VIREMENT": { label: "par virement", isComptant: true },
+  "MOBILE": { label: "par mobile", isComptant: true },
+  "CR": { label: "par crédit", isComptant: false },
 };
 
 const MONTANT_LABELS: Record<string, string> = {
-  "TTC": "Montant Toutes Taxes Comprises [TTC]",
-  "HT": "Montant Hors Taxes [HT]",
-  "TVA": "Montant TVA [TVA]",
-  "PAU": "Prix d'Achat Unitaire [PAU]",
+  "TTC": "Montant Toutes Taxes Comprises",
+  "HT": "Montant Hors Taxes",
+  "TVA": "Montant TVA",
+  "PAU": "Prix d'Achat Unitaire",
 };
 
 interface OperationComptableListViewProps {
@@ -231,7 +231,7 @@ export const OperationComptableListView: React.FC<OperationComptableListViewProp
 
     return (
       <span className="leading-relaxed font-medium">
-        <span className="font-bold text-blue-700 uppercase">{typeLabel}</span> {comptantStr}{modeInfo.label}, {action} <span className="font-mono bg-blue-50 text-blue-700 px-1 py-0.5 rounded border border-blue-100 font-bold">[{accNumber}]</span> {amount}
+        <span className="font-bold text-blue-700 uppercase">{typeLabel}</span> {comptantStr}{modeInfo.label}, {action} <span className="font-mono bg-blue-50 text-blue-700 px-1 py-0.5 rounded border border-blue-100 font-bold">{accNumber}</span> {amount}
       </span>
     );
   };

@@ -36,6 +36,7 @@ interface PeriodeComptableDetailViewProps {
   onSave: (data: PeriodeComptableDto) => void;
   onClose: () => void;
   onBack: () => void;
+  onConfirmClose?: (id: string) => void;
 }
 
 export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProps> = ({
@@ -43,6 +44,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
   onSave,
   onClose,
   onBack,
+  onConfirmClose,
 }) => {
   const [exercices, setExercices] = React.useState<ExerciceComptableDto[]>([]);
   const [isLoadingExercices, setIsLoadingExercices] = React.useState(true);
@@ -77,8 +79,15 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
   };
 
   const handleClose = () => {
-    onClose();
+    if (periode?.id && onConfirmClose) {
+      onConfirmClose(periode.id);
+      onClose(); // Close the detail view after triggering confirmation
+    } else {
+      onClose();
+    }
   };
+
+  const isReadOnly = !!periode?.cloturee;
 
   return (
     <Form {...form}>
@@ -90,9 +99,16 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                 <Lock className="h-5 w-5" />
               </div>
               <h3 className="text-lg font-bold text-blue-900 uppercase tracking-tight">
-                {periode?.id ? "Modifier la Période" : "Nouvelle Période"}
+                {periode?.id ? "Détails de la Période" : "Nouvelle Période"}
               </h3>
             </div>
+
+            {isReadOnly && (
+              <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-semibold border border-slate-300 flex items-center gap-2">
+                <Lock className="h-3 w-3" />
+                Lecture seule (Clôturée)
+              </div>
+            )}
 
             <FormField
               control={form.control}
@@ -117,7 +133,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                 <FormItem>
                   <FormLabel className="font-semibold text-blue-900">Code (YYYY-MM) <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="2025-09" disabled={periode?.cloturee} className="bg-white border-blue-200 focus:ring-blue-500" />
+                    <Input {...field} placeholder="2025-09" disabled={isReadOnly} className="bg-white border-blue-200 focus:ring-blue-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -130,9 +146,9 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-semibold text-blue-900">Exercice Comptable <span className="text-red-500">*</span></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} disabled={isReadOnly}>
                     <FormControl>
-                      <SelectTrigger disabled={periode?.cloturee} className="bg-white border-blue-200 focus:ring-blue-500">
+                      <SelectTrigger className="bg-white border-blue-200 focus:ring-blue-500">
                         <SelectValue placeholder={isLoadingExercices ? "Chargement..." : "Sélectionner un exercice"} />
                       </SelectTrigger>
                     </FormControl>
@@ -159,7 +175,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                 <FormItem>
                   <FormLabel className="font-semibold text-blue-900">Date de début <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={periode?.cloturee} className="bg-white border-blue-200 focus:ring-blue-500" />
+                    <Input type="date" {...field} disabled={isReadOnly} className="bg-white border-blue-200 focus:ring-blue-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -173,7 +189,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
                 <FormItem>
                   <FormLabel className="font-semibold text-blue-900">Date de fin <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} disabled={periode?.cloturee} className="bg-white border-blue-200 focus:ring-blue-500" />
+                    <Input type="date" {...field} disabled={isReadOnly} className="bg-white border-blue-200 focus:ring-blue-500" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -188,7 +204,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
               <FormItem>
                 <FormLabel className="font-semibold text-blue-900">Notes</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Informations complémentaires..." disabled={periode?.cloturee} className="bg-white border-blue-200 focus:ring-blue-500" />
+                  <Input {...field} placeholder="Informations complémentaires..." disabled={isReadOnly} className="bg-white border-blue-200 focus:ring-blue-500" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -209,7 +225,7 @@ export const PeriodeComptableDetailView: React.FC<PeriodeComptableDetailViewProp
               </Button>
             </>
           )}
-          {!periode?.cloturee && (
+          {!isReadOnly && (
             <Button type="submit" disabled={form.formState.isSubmitting} className="bg-[#007bff] hover:bg-[#0069d9]">
               <span>{form.formState.isSubmitting ? "Enregistrement..." : (periode?.id ? "Enregistrer les modifications" : "Enregistrer")}</span>
             </Button>

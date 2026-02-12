@@ -4,3 +4,34 @@ import { twMerge } from "tailwind-merge"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+/**
+ * Formats a date for API query parameters (YYYY-MM-DD).
+ * Handles:
+ * - Arrays: [2026, 3, 31] -> "2026-03-31"
+ * - ISO strings or Date strings: "2026-03-31T00:00:00.000Z" -> "2026-03-31"
+ * - Date objects
+ */
+export function formatDateForApi(date: any): string {
+  if (!date) return "";
+
+  if (Array.isArray(date)) {
+    const [year, month, day] = date;
+    // Month in array is usually 1-indexed from backend, but if it was 0-indexed we'd adjust.
+    // Given user example ?date_debut=2026&date_debut=3&date_debut=1, it's 1-indexed.
+    const y = String(year);
+    const m = String(month).padStart(2, '0');
+    const d = String(day).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  if (date instanceof Date) {
+    return date.toISOString().split('T')[0];
+  }
+
+  if (typeof date === 'string') {
+    return date.split('T')[0];
+  }
+
+  return String(date);
+}
