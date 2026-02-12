@@ -60,7 +60,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 // Set token for subsequent API calls
                 OpenAPI.TOKEN = response.token;
 
-                router.push('/dashboard');
+                router.push('/accounting/dashboard');
                 onClose();
             }
         } catch (error: any) {
