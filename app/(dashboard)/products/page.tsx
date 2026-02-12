@@ -7,35 +7,48 @@ import { useCompose } from '@/hooks/use-compose-store';
 import { ProductForm } from '@/components/products/product-form';
 import { ProductListView } from '@/components/products/product-list-view';
 import { ProductDetailView } from '@/components/products/product-detail-view';
-import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { toast } from 'sonner';
+import { AlertCircle, Edit, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<CompteDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [productToDelete, setProductToDelete] = useState<CompteDto | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const { onOpen, onClose } = useCompose();
+  const { onOpen, onClose: closeCompose } = useCompose();
 
   const fetchAndSetProducts = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      // Using 'STOCK' as the type for products as requested by the pattern api/accounting/comptes/type/{type}
       const res = await AccountingComptesService.getAccountsByType('STOCK');
       if (res.success && res.data) {
         setProducts(res.data);
+      } else {
+        setProducts([]);
       }
-      if (selectedProductId && res.data && !res.data.some(p => p.id === selectedProductId)) {
-        setSelectedProductId(null);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch products:", error);
+      setError("Impossible de charger les articles. Veuillez vérifier votre connexion.");
       toast.error("Erreur lors de la récupération des articles");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedProductId]);
+  }, []);
 
   useEffect(() => {
     fetchAndSetProducts();
@@ -52,89 +65,172 @@ export default function ProductsPage() {
           typeCompte: 'STOCK'
         });
         toast.success("Article créé");
-        onClose();
       }
       await fetchAndSetProducts();
-    } catch (error) {
+      setSelectedProductId(null);
+    } catch (error: any) {
       console.error("Failed to save product", error);
       toast.error("Erreur lors de l'enregistrement");
     }
   };
 
-  const confirmDelete = async () => {
-    if (!productToDelete) return;
+  const confirmDelete = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
     try {
-      await AccountingComptesService.deleteCompte(productToDelete.id || '');
+      await AccountingComptesService.deleteCompte(deleteId);
       toast.success("Article supprimé");
       await fetchAndSetProducts();
-      if (selectedProductId === productToDelete.id) {
+      if (selectedProductId === deleteId) {
         setSelectedProductId(null);
       }
-    } catch (error) {
-      console.error("Failed to delete product :", error);
+    } catch (error: any) {
+      console.error("Failed to delete product:", error);
       toast.error("Erreur lors de la suppression");
     } finally {
-      setProductToDelete(null);
+      setDeleteId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Êtes-vous sûr de vouloir supprimer cet article ?")) {
-      try {
-        await AccountingComptesService.deleteCompte(id);
-        toast.success("Article supprimé");
-        handleBackToList();
-        await fetchAndSetProducts();
-      } catch (error) {
-        console.error("Failed to delete product:", error);
-        toast.error("Erreur lors de la suppression");
-      }
-    }
+  const handleSelectProduct = (id: string) => {
+    setSelectedProductId(id);
   };
 
-  const handleOpenCompose = () => {
+  const handleEditProduct = (id: string) => {
+    const product = products.find(p => p.id === id);
+    if (product) handleOpenCompose(product);
+  };
+
+  const handleAddNew = () => {
+    handleOpenCompose(null);
+  };
+
+  const handleOpenCompose = (product: CompteDto | null = null) => {
     onOpen({
-      title: "Nouvel Article",
-      content: <ProductForm onSave={handleSave} initialData={null} />
+      title: product ? "Modifier l'Article" : "Nouvel Article",
+      content: (
+        <ProductForm
+          initialData={product}
+          onSave={async (data) => {
+            await handleSave(data);
+            closeCompose();
+          }}
+        />
+      ),
+      isMaximized: false // Normal size modal for products
     });
-  };
-
-  const handleBackToList = () => {
-    setSelectedProductId(null);
   };
 
   const selectedProduct = products.find(p => p.id === selectedProductId);
 
   if (selectedProductId && selectedProduct) {
     return (
-      <ProductDetailView
-        product={selectedProduct}
-        onSave={handleSave}
-        onDelete={handleDelete}
-        onBack={handleBackToList}
-      />
+      <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+        <div className="w-full max-w-7xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+          <div className="flex items-center justify-between mb-8 border-b pb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
+              <h2 className="text-2xl font-bold text-gray-800 tracking-tight uppercase">Détails de l'Article</h2>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="text-blue-600 hover:bg-blue-50 h-8 w-8 p-0"
+                onClick={() => handleEditProduct(selectedProduct.id!)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                onClick={() => confirmDelete(selectedProduct.id!)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <ProductDetailView
+            product={selectedProduct}
+            onSave={handleSave}
+            onDelete={(id) => confirmDelete(id)}
+            onBack={() => setSelectedProductId(null)}
+          />
+
+          <div className="mt-8 pt-4 border-t flex justify-end">
+            <Button variant="outline" onClick={() => setSelectedProductId(null)}>
+              Fermer
+            </Button>
+          </div>
+        </div>
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action supprimera définitivement cet article.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     );
   }
 
   return (
-    <>
-      <ProductListView
-        products={products}
-        isLoading={isLoading}
-        onSelectProduct={setSelectedProductId}
-        onEditProduct={setSelectedProductId}
-        onDeleteProduct={setProductToDelete}
-        onAddNew={handleOpenCompose}
-        onRefresh={fetchAndSetProducts}
-      />
-      {productToDelete && (
-        <ConfirmationDialog
-          isOpen={!!productToDelete}
-          onClose={() => setProductToDelete(null)}
-          onConfirm={confirmDelete}
-          title={`Supprimer ${productToDelete?.libelle} ?`}
-          description="Cette action est irréversible. Toutes les données associées à cet article seront perdues."
-        />)}
-    </>
+    <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+      <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-700 mb-1">Articles</h2>
+          <p className="text-sm text-gray-500">Gérez la liste de vos articles.</p>
+        </div>
+
+        {error && (
+          <Alert variant="destructive" className="mb-6 border-red-200 bg-red-50">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Erreur</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <ProductListView
+          products={products}
+          isLoading={isLoading}
+          onSelectProduct={handleSelectProduct}
+          onEditProduct={handleEditProduct}
+          onDeleteProduct={(p) => { if (p.id) confirmDelete(p.id) }}
+          onAddNew={handleAddNew}
+          onRefresh={fetchAndSetProducts}
+        />
+
+        <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Cette action supprimera définitivement cet article.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Annuler</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                Supprimer
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
   );
 }

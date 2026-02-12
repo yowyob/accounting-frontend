@@ -24,14 +24,13 @@ interface EcritureComptableListViewProps {
   onSelectEcriture: (id: string) => void;
   onEditEcriture: (id: string) => void;
   onDeleteEcriture: (ecriture: EcritureComptableDto) => void;
-  onValidateEcriture: (id: string) => void;
   onAddNew?: () => void;
   onRefresh?: () => void;
   selectedId?: string;
   readOnly?: boolean;
 }
 
-const RowActions = ({ ecriture, onEdit, onDelete, onValidate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onValidate: (id: string) => void }) => {
+const RowActions = ({ ecriture, onEdit, onDelete }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void }) => {
   if (ecriture.validee) return null; // Hide actions if validated
 
   return (
@@ -64,7 +63,6 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
   onSelectEcriture,
   onEditEcriture,
   onDeleteEcriture,
-  onValidateEcriture,
   onAddNew,
   onRefresh,
   selectedId,
@@ -184,7 +182,6 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
                         ecriture={ecriture}
                         onEdit={onEditEcriture}
                         onDelete={onDeleteEcriture}
-                        onValidate={onValidateEcriture}
                       />
                     </TableCell>
                   )}

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Download, RefreshCw, AlertCircle, PieChart, TrendingUp, Wallet, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPeriodeComptables } from '@/lib/api';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface SummaryData {
@@ -47,10 +47,18 @@ export default function GeneralSummaryPage() {
   const fetchPeriodesData = useCallback(async () => {
     setIsLoadingPeriods(true);
     try {
-      const data = await getPeriodeComptables();
-      setPeriodes(data);
-      if (data.length > 0 && !selectedPeriodeId) {
-        setSelectedPeriodeId(data[0].id || null);
+      const response = await AccountingPeriodsService.getAllPeriodeComptables();
+      if (response.success && Array.isArray(response.data)) {
+        setPeriodes(response.data);
+        if (response.data.length > 0 && !selectedPeriodeId) {
+          const today = new Date();
+          const currentPeriod = response.data.find(p => {
+            const start = new Date(p.dateDebut);
+            const end = new Date(p.dateFin);
+            return today >= start && today <= end;
+          });
+          setSelectedPeriodeId(currentPeriod?.id || response.data[0].id || null);
+        }
       }
     } catch (error) {
       console.error('Error fetching periods:', error);

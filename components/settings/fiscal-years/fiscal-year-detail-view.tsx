@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns';
 import { Lock, Unlock, CheckCircle, Printer } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface FiscalYearDetailViewProps {
     year: FiscalYear;
@@ -19,6 +20,8 @@ interface FiscalYearDetailViewProps {
 }
 
 export function FiscalYearDetailView({ year, allOrders, onStatusChange }: FiscalYearDetailViewProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
 
     const yearStats = useMemo(() => {
         const startDate = parseISO(year.startDate as string);
@@ -31,14 +34,14 @@ export function FiscalYearDetailView({ year, allOrders, onStatusChange }: Fiscal
 
         const totalRevenue = ordersInYear.reduce((sum, order) => sum + order.netToPay, 0);
         const invoiceCount = ordersInYear.length;
-        
+
         const topProducts = ordersInYear
             .flatMap(order => order.items)
             .reduce((acc, item) => {
                 acc[item.name] = (acc[item.name] || 0) + item.quantity;
                 return acc;
             }, {} as Record<string, number>);
-        
+
         const sortedTopProducts = Object.entries(topProducts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
@@ -47,7 +50,7 @@ export function FiscalYearDetailView({ year, allOrders, onStatusChange }: Fiscal
         return {
             totalRevenue,
             invoiceCount,
-            topProducts,
+            topProducts: sortedTopProducts,
         };
     }, [year, allOrders]);
 
@@ -69,16 +72,16 @@ export function FiscalYearDetailView({ year, allOrders, onStatusChange }: Fiscal
                             </Badge>
                         </CardDescription>
                     </div>
-                     <div>
-                        {year.status === 'Ouvert' && <Button size="sm" onClick={() => onStatusChange(year, 'En cours')}><Unlock className="h-4 w-4 mr-2"/>Activer l'exercice</Button>}
-                        {year.status === 'En cours' && <Button size="sm" variant="destructive" onClick={() => onStatusChange(year, 'Clôturé')}><Lock className="h-4 w-4 mr-2"/>Clôturer l'exercice</Button>}
-                        {year.status === 'Clôturé' && <span className="text-sm text-muted-foreground flex items-center h-9"><CheckCircle className="h-4 w-4 mr-2 text-green-500"/>Terminé</span>}
+                    <div>
+                        {year.status === 'Ouvert' && <Button size="sm" onClick={() => onStatusChange(year, 'En cours')}><Unlock className="h-4 w-4 mr-2" />Activer l'exercice</Button>}
+                        {year.status === 'En cours' && <Button size="sm" variant="destructive" onClick={() => onStatusChange(year, 'Clôturé')}><Lock className="h-4 w-4 mr-2" />Clôturer l'exercice</Button>}
+                        {year.status === 'Clôturé' && <span className="text-sm text-muted-foreground flex items-center h-9"><CheckCircle className="h-4 w-4 mr-2 text-green-500" />Terminé</span>}
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="flex-grow overflow-y-auto space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <StatCard title="Chiffre d'Affaires" value={`${yearStats.totalRevenue.toLocaleString('fr-FR')} XAF`} variant="primary" />
+                    <StatCard title="Chiffre d'Affaires" value={`${yearStats.totalRevenue.toLocaleString('fr-FR')} ${currencyCode}`} variant="primary" />
                     <StatCard title="Nombre de Commandes" value={yearStats.invoiceCount.toLocaleString('fr-FR')} />
                     <StatCard title="Marge Brute (Estimée)" value="N/A" />
                 </div>

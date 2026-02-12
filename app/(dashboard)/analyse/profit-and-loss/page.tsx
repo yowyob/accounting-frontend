@@ -14,7 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Search, RefreshCw } from 'lucide-react';
 import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 import { toast } from 'sonner';
-import { getPeriodeComptables } from '@/lib/api';
+import { cn, formatDateForApi } from '@/lib/utils';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface ResultatItem {
@@ -41,10 +42,18 @@ export default function ProfitAndLossPage() {
   const fetchPeriodesData = useCallback(async () => {
     setIsLoadingPeriods(true);
     try {
-      const data = await getPeriodeComptables();
-      setPeriodes(data);
-      if (data.length > 0 && !selectedPeriodeId) {
-        setSelectedPeriodeId(data[0].id || null);
+      const response = await AccountingPeriodsService.getAllPeriodeComptables();
+      if (response.success && Array.isArray(response.data)) {
+        setPeriodes(response.data);
+        if (response.data.length > 0 && !selectedPeriodeId) {
+          const today = new Date();
+          const currentPeriod = response.data.find(p => {
+            const start = new Date(p.dateDebut);
+            const end = new Date(p.dateFin);
+            return today >= start && today <= end;
+          });
+          setSelectedPeriodeId(currentPeriod?.id || response.data[0].id || null);
+        }
       }
     } catch (error) {
       console.error('Error fetching periods:', error);
@@ -66,8 +75,8 @@ export default function ProfitAndLossPage() {
     setIsGenerating(true);
     try {
       const response = await AccountingFinancialReportsService.generateCompteResultat(
-        periode.dateDebut,
-        periode.dateFin
+        formatDateForApi(periode.dateDebut),
+        formatDateForApi(periode.dateFin)
       );
 
       if (response.success && response.data) {
@@ -100,8 +109,23 @@ export default function ProfitAndLossPage() {
 
     try {
       toast.info("Génération du PDF...");
-      const pdfUrl = await AccountingFinancialReportsService.exportCompteResultatPdf(periode.dateDebut, periode.dateFin);
-      window.open(pdfUrl, '_blank');
+
+      // Construct the PDF export URL
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
+      const pdfUrl = `${baseUrl}/api/accounting/rapport/compte-resultat/export/pdf?date_debut=${formatDateForApi(periode.dateDebut)}&date_fin=${formatDateForApi(periode.dateFin)}`;
+
+      // Fetch the PDF as a blob
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+
+      // Clean up the blob URL after a delay
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
     } catch (error) {
       console.error("PDF Export failed", error);
       toast.error("Erreur lors de l'export PDF");

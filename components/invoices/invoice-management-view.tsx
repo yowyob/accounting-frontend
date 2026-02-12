@@ -14,6 +14,7 @@ import { InvoiceDetailPanel } from "./invoice-detail-panel";
 import { Skeleton } from "../ui/skeleton";
 import { PrintPreviewModal } from "@/components/ui/print-preview-modal";
 import { PrintableInvoice } from "./printable-invoice";
+import { useNationalCurrency } from "@/hooks/use-national-currency";
 
 const statusVariantMap: Record<InvoiceStatus, "success" | "warning" | "destructive" | "default"> = {
   "P": "success",
@@ -23,11 +24,13 @@ const statusVariantMap: Record<InvoiceStatus, "success" | "warning" | "destructi
 };
 
 interface InvoiceManagementViewProps {
-    initialInvoices: Invoice[];
-    printSettings: GeneralOptions['printing'];
+  initialInvoices: Invoice[];
+  printSettings: GeneralOptions['printing'];
 }
 
 export function InvoiceManagementView({ initialInvoices, printSettings }: InvoiceManagementViewProps) {
+  const { nationalCurrency } = useNationalCurrency();
+  const currencyCode = nationalCurrency?.code || 'XAF';
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(initialInvoices[0] || null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -57,7 +60,7 @@ export function InvoiceManagementView({ initialInvoices, printSettings }: Invoic
                   <div
                     key={invoice.id}
                     onClick={() => setSelectedInvoice(invoice)}
-                    className={`p-3 rounded-lg cursor-pointer border ${ selectedInvoice?.id === invoice.id ? "bg-primary/10 border-primary" : "hover:bg-accent" }`}
+                    className={`p-3 rounded-lg cursor-pointer border ${selectedInvoice?.id === invoice.id ? "bg-primary/10 border-primary" : "hover:bg-accent"}`}
                   >
                     <div className="flex justify-between items-start">
                       <p className="font-semibold-75">{invoice.invoiceNumber}</p>
@@ -65,7 +68,7 @@ export function InvoiceManagementView({ initialInvoices, printSettings }: Invoic
                     </div>
                     <div className="flex justify-between">
                       <p className="text-sm text-muted-foreground">{invoice.client.name}</p>
-                      <p className="text-sm italic">{invoice.totalTTC.toLocaleString()} XAF</p>
+                      <p className="text-sm italic">{invoice.totalTTC.toLocaleString()} {currencyCode}</p>
                     </div>
                   </div>
                 ))}
@@ -83,10 +86,10 @@ export function InvoiceManagementView({ initialInvoices, printSettings }: Invoic
           )}
         </div>
       </div>
-      
+
       {selectedInvoice && (
         <PrintPreviewModal isOpen={isPreviewOpen} onClose={() => setIsPreviewOpen(false)} title={`Facture N° ${selectedInvoice.invoiceNumber}`}>
-            <PrintableInvoice invoice={selectedInvoice} companyName="MAISON DG SARL" />
+          <PrintableInvoice invoice={selectedInvoice} companyName="MAISON DG SARL" />
         </PrintPreviewModal>
       )}
     </>

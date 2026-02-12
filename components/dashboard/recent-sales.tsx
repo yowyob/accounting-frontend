@@ -4,12 +4,15 @@ import { Order } from "@/types/sales";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useNationalCurrency } from "@/hooks/use-national-currency";
 
 interface RecentSalesProps {
     sales: Order[];
 }
 
 export function RecentSales({ sales }: RecentSalesProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
     return (
         <div className="space-y-6">
             {sales.map(sale => (
@@ -24,7 +27,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
                         </p>
                     </div>
                     <div className="ml-auto font-medium text-right">
-                        <p>+{sale.netToPay.toLocaleString('fr-FR')} XAF</p>
+                        <p>+{sale.netToPay.toLocaleString('fr-FR')} {currencyCode}</p>
                         <p className="text-xs text-muted-foreground">{sale.orderNumber}</p>
                     </div>
                 </div>

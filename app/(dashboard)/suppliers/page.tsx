@@ -7,8 +7,9 @@ import { SupplierListView } from '@/components/suppliers/supplier-list-view';
 import { SupplierDetailView } from '@/components/suppliers/supplier-detail-view';
 import { SupplierForm } from '@/components/suppliers/supplier-form';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Edit, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useCompose } from '@/hooks/use-compose-store';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -19,14 +20,16 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 
 export default function SuppliersPage() {
     const [suppliers, setSuppliers] = useState<CompteDto[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
-    const [isEditing, setIsEditing] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+
+    const { onOpen, onClose: closeCompose } = useCompose();
 
     const fetchAndSetSuppliers = useCallback(async () => {
         setIsLoading(true);
@@ -65,7 +68,6 @@ export default function SuppliersPage() {
             }
             await fetchAndSetSuppliers();
             setSelectedSupplierId(null);
-            setIsEditing(false);
         } catch (error: any) {
             console.error("Failed to save supplier", error);
             toast.error("Erreur lors de l'enregistrement");
@@ -84,7 +86,6 @@ export default function SuppliersPage() {
             await fetchAndSetSuppliers();
             if (selectedSupplierId === deleteId) {
                 setSelectedSupplierId(null);
-                setIsEditing(false);
             }
         } catch (error) {
             console.error("Failed to delete supplier:", error);
@@ -96,59 +97,84 @@ export default function SuppliersPage() {
 
     const handleSelectSupplier = (id: string) => {
         setSelectedSupplierId(id);
-        setIsEditing(false);
     };
 
     const handleEditSupplier = (id: string) => {
-        setSelectedSupplierId(id);
-        setIsEditing(true);
+        const supplier = suppliers.find(s => s.id === id);
+        if (supplier) handleOpenCompose(supplier);
     };
 
     const handleAddNew = () => {
-        setSelectedSupplierId('new');
-        setIsEditing(true);
+        handleOpenCompose(null);
     };
 
-    const handleBack = () => {
-        setSelectedSupplierId(null);
-        setIsEditing(false);
+    const handleOpenCompose = (supplier: CompteDto | null = null) => {
+        onOpen({
+            title: supplier ? "Modifier le Fournisseur" : "Nouveau Fournisseur",
+            content: (
+                <SupplierForm
+                    initialData={supplier}
+                    onSave={async (data) => {
+                        await handleSave(data);
+                        closeCompose();
+                    }}
+                    onCancel={closeCompose}
+                />
+            ),
+            isMaximized: false // Normal size modal
+        });
     };
 
-    const selectedSupplier = selectedSupplierId === 'new' ? null : suppliers.find(s => s.id === selectedSupplierId);
+    const selectedSupplier = suppliers.find(s => s.id === selectedSupplierId);
 
-    if (selectedSupplierId) {
+    if (selectedSupplierId && selectedSupplier) {
         return (
-            <div className="min-h-screen p-4 bg-gray-100">
-                <div className="w-full max-w-5xl mx-auto">
-                    {isEditing ? (
-                        <div className="space-y-6">
-                            {/* Assuming SupplierForm exists and behaves like others */}
-                            <SupplierForm
-                                initialData={selectedSupplier || null}
-                                onSave={handleSave}
-                                // onCancel may or may not exist on SupplierForm based on previous patterns, 
-                                // but we should check. If it doesn't, we might need a wrapper.
-                                // I'll assume standard args for now or check in next step if error.
-                                onCancel={handleBack}
-                            />
+            <div className="min-h-screen flex flex-col p-4 bg-gray-100">
+                <div className="w-full max-w-7xl mx-auto bg-white p-8 rounded-lg shadow-lg">
+                    <div className="flex items-center justify-between mb-8 border-b pb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="h-8 w-1.5 bg-blue-600 rounded-full" />
+                            <h2 className="text-2xl font-bold text-gray-800 tracking-tight uppercase">Détails du Fournisseur</h2>
                         </div>
-                    ) : (
-                        <div className="space-y-6 bg-white p-6 rounded-lg shadow">
-                            <SupplierDetailView
-                                supplier={selectedSupplier!}
-                                onSave={handleSave}
-                                onDelete={(id) => confirmDelete(id)} // Signature mismatch check? DetailView usually passes ID?
-                                onBack={handleBack}
-                            />
+
+                        <div className="flex items-center gap-3">
+                            <Button
+                                variant="ghost"
+                                className="text-blue-600 hover:bg-blue-50 h-8 w-8 p-0"
+                                onClick={() => handleEditSupplier(selectedSupplier.id!)}
+                            >
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                className="text-red-600 hover:bg-red-50 h-8 w-8 p-0"
+                                onClick={() => confirmDelete(selectedSupplier.id!)}
+                            >
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
-                    )}
+                    </div>
+
+                    <SupplierDetailView
+                        supplier={selectedSupplier}
+                        onSave={handleSave}
+                        onDelete={(id) => confirmDelete(id)}
+                        onBack={() => setSelectedSupplierId(null)}
+                    />
+
+                    <div className="mt-8 pt-4 border-t flex justify-end">
+                        <Button variant="outline" onClick={() => setSelectedSupplierId(null)}>
+                            Fermer
+                        </Button>
+                    </div>
                 </div>
+
                 <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Cette action est irréversible.
+                                Cette action supprimera définitivement ce fournisseur.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -194,7 +220,7 @@ export default function SuppliersPage() {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                Cette action supprimera définivement ce fournisseur.
+                                Cette action supprimera définitivement ce fournisseur.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

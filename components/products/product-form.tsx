@@ -48,15 +48,15 @@ export function ProductForm({ initialData, onSave }: ProductFormProps) {
             <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
                 <div className="flex-1 p-6 overflow-y-auto space-y-6">
                     <FormField control={form.control} name="libelle" rules={{ required: "Le libellé est requis" }} render={({ field }) => (
-                        <FormItem><FormLabel>Libellé de l'article *</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Libellé de l'article *</FormLabel><FormControl><Input {...field} value={field.value || ''} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                     )} />
 
                     <FormField control={form.control} name="noCompte" rules={{ required: "Le code est requis" }} render={({ field }) => (
-                        <FormItem><FormLabel>Code Article *</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Code Article *</FormLabel><FormControl><Input {...field} value={field.value || ''} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                     )} />
 
                     <FormField control={form.control} name="notes" render={({ field }) => (
-                        <FormItem><FormLabel>Description / Notes</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={4} /></FormControl></FormItem>
+                        <FormItem><FormLabel>Description / Notes</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={4} className="border-gray-300" /></FormControl></FormItem>
                     )} />
 
                     <Separator />

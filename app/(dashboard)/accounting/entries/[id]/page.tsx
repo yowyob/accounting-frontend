@@ -122,9 +122,6 @@ export default function EcritureComptableDetailsPage() {
                         setEcritureToDelete(ecriture);
                         onClose();
                     }}
-                    onValidate={() => {
-                        if (ecriture.id) handleValidate(ecriture.id);
-                    }}
                     onBack={onClose}
                 />
             )

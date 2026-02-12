@@ -19,6 +19,7 @@ import { AccountingEntriesService } from '@/src/lib2/services/AccountingEntriesS
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { OperationComptableListView } from './operation-comptable-list-view';
 import { JournalEntriesAnalysisTable } from './journal-entries-analysis-table';
+import { JournalOperationsAnalysisTable } from './journal-operations-analysis-table';
 import { toast } from 'sonner';
 
 interface JournalComptableReadViewProps {
@@ -95,7 +96,6 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                             <Badge variant="outline" className="bg-indigo-600 text-white border-none px-3">
                                 {TYPE_LABELS[journal.typeJournal] || journal.typeJournal}
                             </Badge>
-                            <span className="text-sm font-medium text-gray-500 font-mono">#{journal.id?.slice(0, 8)}</span>
                         </div>
                         <h2 className="text-2xl font-bold text-gray-900 mt-2">{journal.libelle}</h2>
                     </div>
@@ -163,18 +163,11 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                 </TabsList>
 
                 <TabsContent value="operations">
-                    <div className="bg-white border rounded-xl overflow-hidden shadow-sm p-4">
-                        <OperationComptableListView
-                            operations={operations}
-                            isLoading={isLoadingOperations}
-                            onSelectOperation={(id) => setSelectedOperationId(id)}
-                            onEditOperation={() => { }}
-                            onDeleteOperation={() => { }}
-                            selectedId={selectedOperationId || undefined}
-                            readOnly={true}
-                            variant="detailed"
-                        />
-                    </div>
+                    <JournalOperationsAnalysisTable
+                        operations={operations}
+                        isLoading={isLoadingOperations}
+                        accountMap={accountMap}
+                    />
                 </TabsContent>
 
                 <TabsContent value="entries">

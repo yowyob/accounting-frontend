@@ -16,6 +16,7 @@ import { createWarehouseTransfer, updateProduct } from '@/lib/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { PlusCircle, Save, Eraser, Trash2 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface WarehouseTransferFormProps {
     products: Product[];
@@ -32,6 +33,8 @@ type FormValues = {
 };
 
 export function WarehouseTransferForm({ products, warehouses }: WarehouseTransferFormProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
     const [selectedProductId, setSelectedProductId] = useState('');
     const [quantity, setQuantity] = useState(1);
 
@@ -189,7 +192,7 @@ export function WarehouseTransferForm({ products, warehouses }: WarehouseTransfe
                             <CardContent className="p-4 flex flex-col gap-4">
                                 <StatCard
                                     title="Valeur totale du transfert"
-                                    value={`${totalValue.toLocaleString("fr-FR")} XAF`}
+                                    value={`${totalValue.toLocaleString("fr-FR")} ${currencyCode}`}
                                     variant="primary"
                                 />
                                 <div className="flex gap-2">

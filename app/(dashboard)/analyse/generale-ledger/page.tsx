@@ -29,7 +29,7 @@ import { AccountingFinancialReportsService } from '@/src/lib2/services/Accountin
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { GrandLivreDto } from '@/src/lib2/models/GrandLivreDto';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn, formatDateForApi } from '@/lib/utils';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type FilterMode = 'tous' | 'plage' | 'groupe' | 'selection';
@@ -55,7 +55,15 @@ export default function GeneralLedgerPage() {
       if (response.success && Array.isArray(response.data)) {
         setPeriodes(response.data);
         if (response.data.length > 0 && !selectedPeriodeId) {
-          setSelectedPeriodeId(response.data[0].id || null);
+          // Find period covering today
+          const today = new Date();
+          const currentPeriod = response.data.find(p => {
+            const start = new Date(p.dateDebut);
+            const end = new Date(p.dateFin);
+            return today >= start && today <= end;
+          });
+
+          setSelectedPeriodeId(currentPeriod?.id || response.data[0].id || null);
         }
       }
     } catch (error) {
@@ -78,8 +86,8 @@ export default function GeneralLedgerPage() {
     setIsGenerating(true);
     try {
       const response = await AccountingFinancialReportsService.generateGrandLivre(
-        periode.dateDebut,
-        periode.dateFin
+        formatDateForApi(periode.dateDebut),
+        formatDateForApi(periode.dateFin)
       );
 
       if (response.success && Array.isArray(response.data)) {
@@ -108,8 +116,23 @@ export default function GeneralLedgerPage() {
 
     try {
       toast.info("Génération du PDF...");
-      const pdfUrl = await AccountingFinancialReportsService.exportGrandLivrePdf(periode.dateDebut, periode.dateFin);
-      window.open(pdfUrl, '_blank');
+
+      // Construct the PDF export URL
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
+      const pdfUrl = `${baseUrl}/api/accounting/rapport/grand-livre/export/pdf?date_debut=${formatDateForApi(periode.dateDebut)}&date_fin=${formatDateForApi(periode.dateFin)}`;
+
+      // Fetch the PDF as a blob
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+
+      // Clean up the blob URL after a delay
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
     } catch (error) {
       console.error("PDF Export failed", error);
       toast.error("Erreur lors de l'export PDF");
@@ -138,13 +161,27 @@ export default function GeneralLedgerPage() {
     return data;
   }, [ledgerData, filterMode, accountStart, accountEnd, accountGroup, searchQuery]);
 
-  // Calculate Running Balances
+  // Calculate Running Balances & Sort
   const processedData = useMemo(() => {
     let cumulativeTotal = 0;
 
-    return filteredData.map(account => {
+    // 1. Sort accounts by noCompte strictly
+    const sortedAccounts = [...filteredData].sort((a, b) =>
+      (a.noCompte || '').localeCompare(b.noCompte || '')
+    );
+
+    return sortedAccounts.map(account => {
       let runningBalance = account.soldeOuverture || 0;
-      const lignesWithBalances = (account.lignes || []).map(line => {
+
+      // 2. Sort lines by date, then by ecritureId to ensure stability
+      const sortedLines = [...(account.lignes || [])].sort((a, b) => {
+        const dateA = new Date(a.date || 0).getTime();
+        const dateB = new Date(b.date || 0).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return (a.ecritureId || '').localeCompare(b.ecritureId || '');
+      });
+
+      const lignesWithBalances = sortedLines.map(line => {
         runningBalance += (line.debit || 0) - (line.credit || 0);
         cumulativeTotal += (line.debit || 0) - (line.credit || 0);
         return {
@@ -158,6 +195,10 @@ export default function GeneralLedgerPage() {
         ...account,
         lignesWithBalances
       };
+    }).filter(account => {
+      // Filter out accounts with no movements (lines) in the selected period
+      // User requirement: if no entries, the table/account should not be shown, even with opening balance.
+      return account.lignes && account.lignes.length > 0;
     });
   }, [filteredData]);
 
@@ -257,7 +298,6 @@ export default function GeneralLedgerPage() {
                       <TabsTrigger value="tous" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">TOUS</TabsTrigger>
                       <TabsTrigger value="plage" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">PLAGE</TabsTrigger>
                       <TabsTrigger value="groupe" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">GROUPE</TabsTrigger>
-                      <TabsTrigger value="selection" className="rounded-lg text-[11px] font-bold data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm">SELECT</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
@@ -325,24 +365,26 @@ export default function GeneralLedgerPage() {
                   {processedData.length > 0 ? processedData.map((account) => (
                     <React.Fragment key={account.noCompte}>
                       {/* Account Opening Balance / Header Row */}
-                      <tr className="bg-slate-50/80 font-bold border-b border-slate-300">
-                        <td className="px-3 py-2 font-mono text-blue-700">{account.noCompte}</td>
-                        <td colSpan={4} className="px-3 py-2 uppercase text-slate-700 tracking-tight">
-                          Report à nouveau — {account.libelleCompte}
-                        </td>
-                        <td className="px-3 py-2 text-right"></td>
-                        <td className="px-3 py-2 text-right"></td>
-                        <td className="px-3 py-2 text-right font-mono text-slate-900 border-l border-slate-200">
-                          {account.soldeOuverture?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
-                        </td>
-                        <td className="px-3 py-2 bg-slate-100 border-l border-slate-200"></td>
-                      </tr>
+                      {account.soldeOuverture !== 0 && (
+                        <tr className="bg-slate-50/80 font-bold border-b border-slate-300">
+                          <td className="px-3 py-2 font-mono text-blue-700">{account.noCompte}</td>
+                          <td colSpan={4} className="px-3 py-2 uppercase text-slate-700 tracking-tight">
+                            Report à nouveau — {account.libelleCompte}
+                          </td>
+                          <td className="px-3 py-2 text-right"></td>
+                          <td className="px-3 py-2 text-right"></td>
+                          <td className="px-3 py-2 text-right font-mono text-slate-900 border-l border-slate-200">
+                            {account.soldeOuverture?.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
+                          </td>
+                          <td className="px-3 py-2 bg-slate-100 border-l border-slate-200"></td>
+                        </tr>
+                      )}
 
                       {/* Transaction Lines */}
                       {account.lignesWithBalances?.map((line, idx) => (
                         <tr key={idx} className="hover:bg-blue-50/30 transition-colors divide-x divide-slate-100 border-b border-slate-50 items-center">
                           <td className="px-3 py-2 font-mono text-slate-500">{account.noCompte}</td>
-                          <td className="px-3 py-2 font-mono text-slate-400 text-[11px]">{line.ecritureId?.slice(0, 8) || '—'}</td>
+                          <td className="px-3 py-2 font-mono text-slate-600 font-bold text-[11px]">{line.reference || line.ecritureId?.slice(0, 8) || '—'}</td>
                           <td className="px-3 py-2 text-slate-600">{new Date(line.date || '').toLocaleDateString('fr-FR')}</td>
                           <td className="px-3 py-2 text-slate-500 font-bold">{line.journal}</td>
                           <td className="px-3 py-2 text-slate-900 truncate max-w-md">{line.libelle}</td>
@@ -381,44 +423,28 @@ export default function GeneralLedgerPage() {
                     </React.Fragment>
                   )) : (
                     <tr>
-                      <td colSpan={9} className="px-6 py-32 text-center bg-white">
-                        <div className="flex flex-col items-center justify-center space-y-4">
-                          <div className="bg-slate-50 p-6 rounded-full">
-                            {isGenerating ? (
-                              <RefreshCw className="h-10 w-10 text-blue-400 animate-spin" />
-                            ) : (
-                              <Search className="h-10 w-10 text-slate-300" />
-                            )}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-slate-900 font-black uppercase tracking-widest">
-                              {isGenerating ? "Génération des données..." : "Aucun mouvement"}
-                            </p>
-                            <p className="text-slate-400 text-sm">
-                              {isGenerating ? "Cette opération analyse l'ensemble des écritures comptables." : "Ajustez vos filtres ou sélectionnez une autre période."}
-                            </p>
-                          </div>
-                        </div>
+                      <td colSpan={9} className="px-6 py-12 text-center text-slate-500 italic">
+                        {isGenerating ? "Génération des données..." : "Aucune écriture pour cette période"}
                       </td>
                     </tr>
                   )}
                 </tbody>
                 {processedData.length > 0 && (
-                  <tfoot className="border-t-4 border-slate-800 bg-yellow-50 font-black">
-                    <tr className="divide-x divide-slate-200">
-                      <td colSpan={5} className="px-3 py-4 text-right uppercase tracking-[0.2em] text-slate-600">
+                  <tfoot className="border-t-4 border-blue-600 bg-blue-50 font-black">
+                    <tr className="divide-x divide-blue-200">
+                      <td colSpan={5} className="px-3 py-4 text-right uppercase tracking-[0.2em] text-blue-800">
                         Totaux cumulés
                       </td>
-                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                      <td className="px-3 py-4 text-right font-mono text-blue-700 text-sm">
                         {grandTotals.totalDebit.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
                       </td>
-                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                      <td className="px-3 py-4 text-right font-mono text-blue-700 text-sm">
                         {grandTotals.totalCredit.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
                       </td>
-                      <td className="px-3 py-4 text-right font-mono text-rose-600 text-sm">
+                      <td className="px-3 py-4 text-right font-mono text-blue-700 text-sm">
                         {grandTotals.solde.toLocaleString('fr-FR', { minimumFractionDigits: 0 })}
                       </td>
-                      <td className="px-3 py-4 bg-slate-900 border-none"></td>
+                      <td className="px-3 py-4 border-none"></td>
                     </tr>
                   </tfoot>
                 )}

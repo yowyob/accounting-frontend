@@ -48,13 +48,13 @@ export function SupplierForm({ initialData, onSave, onCancel }: SupplierFormProp
             <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <FormField control={form.control} name="libelle" rules={{ required: "La raison sociale est requise" }} render={({ field }) => (
-                        <FormItem><FormLabel>Raison sociale *</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Raison sociale *</FormLabel><FormControl><Input {...field} value={field.value || ''} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="noCompte" rules={{ required: "Le code est requis" }} render={({ field }) => (
-                        <FormItem><FormLabel>Code *</FormLabel><FormControl><Input {...field} value={field.value || ''} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Code *</FormLabel><FormControl><Input {...field} value={field.value || ''} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="notes" render={({ field }) => (
-                        <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={3} /></FormControl></FormItem>
+                        <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} value={field.value || ''} rows={3} className="border-gray-300" /></FormControl></FormItem>
                     )} />
                     <FormField control={form.control} name="actif" render={({ field }) => (
                         <FormItem className="flex items-center gap-2 pt-4"><FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} /></FormControl><FormLabel>Fournisseur Actif</FormLabel></FormItem>

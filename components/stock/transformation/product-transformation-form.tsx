@@ -15,6 +15,7 @@ import { createProductTransformation, updateProduct } from '@/lib/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { Save, Eraser, Trash2, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface ProductTransformationFormProps {
     products: Product[];
@@ -51,12 +52,14 @@ const ItemAdder = ({ products, onAddItem, disabled }: {
         <div className="flex items-end gap-2 p-2">
             <div className="flex-1"><FormLabel className="text-xs">Article</FormLabel><Combobox options={productOptions} value={selectedId} onChange={setSelectedId} placeholder="Produit..." disabled={disabled} /></div>
             <div className="w-20"><FormLabel className="text-xs">Quantité</FormLabel><Input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min={1} className="h-9 text-center" /></div>
-            <Button type="button" onClick={handleAddClick} disabled={!selectedProduct || disabled} className="h-9"><PlusCircle className="h-4 w-4"/></Button>
+            <Button type="button" onClick={handleAddClick} disabled={!selectedProduct || disabled} className="h-9"><PlusCircle className="h-4 w-4" /></Button>
         </div>
     );
 };
 
 export function ProductTransformationForm({ products, warehouses }: ProductTransformationFormProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
     const form = useForm<FormValues>({
         defaultValues: { warehouseId: '', description: '', notes: '', inputItems: [], outputItems: [] }
     });
@@ -122,7 +125,7 @@ export function ProductTransformationForm({ products, warehouses }: ProductTrans
             alert("Erreur lors de l'enregistrement de la transformation.");
         }
     };
-    
+
     const compactColumns: ColumnDef<any>[] = [
         { accessorKey: "code", header: "Code", cell: ({ row }) => <Badge variant="secondary" className="font-normal">{row.original.code}</Badge> },
         { accessorKey: "name", header: "Produit", cell: ({ row }) => <div className='truncate max-w-[200px]' title={row.original.name}>{row.original.name}</div> },
@@ -133,19 +136,19 @@ export function ProductTransformationForm({ products, warehouses }: ProductTrans
 
     const inputTotal = useMemo(() => watchedInputs.reduce((sum, item) => sum + item.totalValue, 0), [watchedInputs]);
     const outputTotal = useMemo(() => watchedOutputs.reduce((sum, item) => sum + item.totalValue, 0), [watchedOutputs]);
-    
+
     return (
         <Form {...form}>
             <form onSubmit={handleSubmit(onSubmit)} className="h-full flex flex-col gap-2">
                 <div className="flex-shrink-0 p-3 border rounded-lg flex flex-col gap-3">
                     <div className="flex items-center justify-between">
-                         <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
                             <h2 className="text-base font-semibold">Détails de la Transformation</h2>
-                         </div>
-                         <div className="flex items-center gap-2">
+                        </div>
+                        <div className="flex items-center gap-2">
                             <Button type="button" variant="outline" onClick={() => reset()} size="sm"><Eraser className="mr-2 h-3 w-3" />Effacer</Button>
                             <Button onClick={handleSubmit(onSubmit)} size="sm" disabled={!warehouseId || inputFields.length === 0 || outputFields.length === 0}><Save className="mr-2 h-3 w-3" />Enregistrer</Button>
-                         </div>
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <FormField control={control} name="warehouseId" render={({ field }) => (<FormItem><FormLabel className="text-xs">Magasin *</FormLabel><Select onValueChange={field.onChange} value={field.value}><SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Sélectionner..." /></SelectTrigger><SelectContent>{warehouses.map(w => (<SelectItem key={w.id} value={w.id} className="text-xs">{w.name}</SelectItem>))}</SelectContent></Select></FormItem>)} />
@@ -168,7 +171,7 @@ export function ProductTransformationForm({ products, warehouses }: ProductTrans
                         <CardFooter className="p-2 border-t">
                             <div className="w-full text-sm font-semibold flex justify-between items-center text-red-600">
                                 <span>Total Entrants :</span>
-                                <span>{inputTotal.toLocaleString('fr-FR')} XAF</span>
+                                <span>{inputTotal.toLocaleString('fr-FR')} {currencyCode}</span>
                             </div>
                         </CardFooter>
                     </Card>
@@ -183,10 +186,10 @@ export function ProductTransformationForm({ products, warehouses }: ProductTrans
                                 <DataTable columns={compactColumns} data={outputFields} meta={{ remove: removeOutput }} />
                             </div>
                         </CardContent>
-                         <CardFooter className="p-2 border-t">
-                             <div className="w-full text-sm font-semibold flex justify-between items-center text-green-600">
+                        <CardFooter className="p-2 border-t">
+                            <div className="w-full text-sm font-semibold flex justify-between items-center text-green-600">
                                 <span>Total Sortants :</span>
-                                <span>{outputTotal.toLocaleString('fr-FR')} XAF</span>
+                                <span>{outputTotal.toLocaleString('fr-FR')} {currencyCode}</span>
                             </div>
                         </CardFooter>
                     </Card>

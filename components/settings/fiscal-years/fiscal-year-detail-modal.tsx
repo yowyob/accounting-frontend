@@ -10,6 +10,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { format, parseISO } from 'date-fns';
 import { Separator } from '@/components/ui/separator';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
 import { Item } from '@radix-ui/react-dropdown-menu';
 
 interface FiscalYearDetailModalProps {
@@ -20,6 +21,8 @@ interface FiscalYearDetailModalProps {
 }
 
 export function FiscalYearDetailModal({ year, allOrders, isOpen, onClose }: FiscalYearDetailModalProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
     const yearStats = useMemo(() => {
         if (!year) return null;
 
@@ -35,7 +38,7 @@ export function FiscalYearDetailModal({ year, allOrders, isOpen, onClose }: Fisc
         const totalHT = ordersInYear.reduce((sum, order) => sum + order.totalNetHT, 0);
         const totalTVA = ordersInYear.reduce((sum, order) => sum + order.totalTVA, 0);
         const invoiceCount = ordersInYear.length;
-        
+
         const topProducts = ordersInYear
             .flatMap(order => order.items)
             .filter(item => item !== null)
@@ -43,18 +46,18 @@ export function FiscalYearDetailModal({ year, allOrders, isOpen, onClose }: Fisc
                 acc[item.name] = (acc[item.name] || 0) + item.quantity;
                 return acc;
             }, {} as Record<string, number>);
-        
+
         const sortedTopProducts = Object.entries(topProducts)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
             .map(([name, quantity]) => ({ name, quantity }));
-        
+
         const topClients = ordersInYear
             .reduce((acc, order) => {
                 acc[order.client.name] = (acc[order.client.name] || 0) + order.netToPay;
                 return acc;
             }, {} as Record<string, number>);
-        
+
         const sortedTopClients = Object.entries(topClients)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
@@ -67,10 +70,10 @@ export function FiscalYearDetailModal({ year, allOrders, isOpen, onClose }: Fisc
         { accessorKey: 'name', header: 'Produit' },
         { accessorKey: 'quantity', header: 'Qté Vendue' },
     ];
-    
+
     const topClientsColumns: ColumnDef<{ name: string; revenue: number }>[] = [
         { accessorKey: 'name', header: 'Client' },
-        { accessorKey: 'revenue', header: 'Chiffre d\'Affaires', cell: ({row}) => `${row.original.revenue.toLocaleString('fr-FR')} XAF` },
+        { accessorKey: 'revenue', header: 'Chiffre d\'Affaires', cell: ({ row }) => `${row.original.revenue.toLocaleString('fr-FR')} ${currencyCode}` },
     ];
 
     if (!year || !yearStats) return null;
@@ -86,9 +89,9 @@ export function FiscalYearDetailModal({ year, allOrders, isOpen, onClose }: Fisc
                 </DialogHeader>
                 <div className="max-h-[70vh] overflow-y-auto pr-4 space-y-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <StatCard title="CA TTC" value={`${yearStats.totalRevenue.toLocaleString('fr-FR')} XAF`} variant="primary" />
-                        <StatCard title="Total HT" value={`${yearStats.totalHT.toLocaleString('fr-FR')} XAF`} />
-                        <StatCard title="Total TVA" value={`${yearStats.totalTVA.toLocaleString('fr-FR')} XAF`} />
+                        <StatCard title="CA TTC" value={`${yearStats.totalRevenue.toLocaleString('fr-FR')} ${currencyCode}`} variant="primary" />
+                        <StatCard title="Total HT" value={`${yearStats.totalHT.toLocaleString('fr-FR')} ${currencyCode}`} />
+                        <StatCard title="Total TVA" value={`${yearStats.totalTVA.toLocaleString('fr-FR')} ${currencyCode}`} />
                         <StatCard title="Commandes" value={yearStats.invoiceCount.toLocaleString('fr-FR')} />
                     </div>
                     <Separator />

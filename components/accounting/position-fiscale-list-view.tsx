@@ -71,7 +71,6 @@ export const PositionFiscaleListView: React.FC<PositionFiscaleListViewProps> = (
           className="border-gray-300 hover:bg-gray-50"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Actualiser
         </Button>
       </div>
 

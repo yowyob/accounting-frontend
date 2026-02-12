@@ -14,10 +14,9 @@ const MainInfoView = ({ client }: { client: Client }) => (
     <div className="p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900">Informations Principales</h3>
         <div className="space-y-4">
-             <div><label className="text-sm font-medium text-gray-600">Raison sociale</label><p className="text-gray-900">{client.companyName}</p></div>
-             <div><label className="text-sm font-medium text-gray-600">Code client</label><p className="text-gray-900">{client.code}</p></div>
-             <div><label className="text-sm font-medium text-gray-600">Contact</label><p className="text-gray-900">{client.contactPerson || 'N/A'}</p></div>
-             <div><label className="text-sm font-medium text-gray-600">Téléphone</label><p className="text-gray-900">{client.phone || 'N/A'}</p></div>
+            <div><label className="text-sm font-medium text-gray-600">Raison sociale</label><p className="text-gray-900">{client.companyName}</p></div>
+            <div><label className="text-sm font-medium text-gray-600">Code client</label><p className="text-gray-900">{client.code}</p></div>
+            <div><label className="text-sm font-medium text-gray-600">Contact</label><p className="text-gray-900">{client.contactPerson || 'N/A'}</p></div>
         </div>
     </div>
 );
@@ -53,12 +52,12 @@ export function CustomerManagementView() {
             setIsLoading(false);
         }
     };
-    
+
     useEffect(() => {
         fetchAndSetClients();
     }, []);
 
-    const filteredClients = useMemo(() => 
+    const filteredClients = useMemo(() =>
         clients.filter(client =>
             client.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             client.code.toLowerCase().includes(searchTerm.toLowerCase())
@@ -70,7 +69,7 @@ export function CustomerManagementView() {
         setIsCreating(false);
         setActiveView('profile');
     };
-    
+
     const handleAddNew = () => {
         setIsCreating(true);
         setSelectedClient(null);
@@ -86,25 +85,25 @@ export function CustomerManagementView() {
 
     const handleSaveClient = async (data: Client) => {
         try {
-            if(data.id) {
+            if (data.id) {
                 await updateClient(data.id, data);
             } else {
                 await createClient(data);
             }
             await fetchAndSetClients();
             setIsCreating(false);
-        } catch(error) {
+        } catch (error) {
             console.error("Failed to save client:", error);
         }
     };
 
     const handleDeleteClient = async (id: string) => {
-        if(window.confirm("Êtes-vous sûr de vouloir supprimer ce client ?")) {
+        if (window.confirm("Êtes-vous sûr de vouloir supprimer ce client ?")) {
             try {
                 await deleteClient(id);
                 await fetchAndSetClients();
                 setSelectedClient(null);
-            } catch(error) {
+            } catch (error) {
                 console.error("Failed to delete client:", error);
             }
         }
@@ -120,8 +119,8 @@ export function CustomerManagementView() {
     const currentView = () => {
         if (isCreating) return <CustomerForm initialData={null} onSave={handleSaveClient} onCancel={handleCancelCreation} />;
         if (selectedClient) {
-            switch(activeView) {
-                case 'profile': return <CustomerForm initialData={selectedClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onCancel={() => {}} />;
+            switch (activeView) {
+                case 'profile': return <CustomerForm initialData={selectedClient} onSave={handleSaveClient} onDelete={handleDeleteClient} onCancel={() => { }} />;
                 case 'main': return <MainInfoView client={selectedClient} />;
                 case 'accounting': return <AccountingInfoView client={selectedClient} />;
                 case 'products': return <ProductHistoryView client={selectedClient} />;

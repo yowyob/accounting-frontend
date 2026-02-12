@@ -3,6 +3,7 @@
 import { Invoice } from "@/types/sales";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { useNationalCurrency } from "@/hooks/use-national-currency";
 
 interface PrintableInvoiceProps {
     invoice: Invoice;
@@ -10,9 +11,11 @@ interface PrintableInvoiceProps {
 }
 
 export function PrintableInvoice({ invoice, companyName }: PrintableInvoiceProps) {
+    const { nationalCurrency } = useNationalCurrency();
+    const currencyCode = nationalCurrency?.code || 'XAF';
     return (
         <div className="text-sm text-black font-sans">
-            
+
             <section className="flex justify-between items-start pb-4 mb-8 border-b-2 border-black">
                 <div>
                     <h1 className="text-3xl font-bold text-black">{companyName}</h1>
@@ -33,10 +36,10 @@ export function PrintableInvoice({ invoice, companyName }: PrintableInvoiceProps
                     <p className="font-bold text-base">{invoice.client.name}</p>
                     <p>{invoice.client.address || 'Adresse non spécifiée'}</p>
                 </div>
-            </section>            
+            </section>
 
             <section className="my-8">
-                 <table className="w-full text-left table-auto">
+                <table className="w-full text-left table-auto">
                     <thead>
                         <tr className="bg-gray-200 text-black">
                             <th className="p-2 font-semibold">Code</th>
@@ -64,16 +67,16 @@ export function PrintableInvoice({ invoice, companyName }: PrintableInvoiceProps
                 <div className="w-full max-w-sm space-y-2">
                     <div className="flex justify-between"><span className="text-gray-600">Total HT :</span><span className="font-semibold">{invoice.totalHT.toLocaleString('fr-FR')}</span></div>
                     <div className="flex justify-between"><span className="text-gray-600">TVA (19.25%) :</span><span className="font-semibold">{invoice.totalTVA.toLocaleString('fr-FR')}</span></div>
-                    <Separator className="my-2 bg-gray-400"/>
-                    <div className="flex justify-between text-lg font-bold"><span >TOTAL TTC :</span><span>{invoice.totalTTC.toLocaleString('fr-FR')} XAF</span></div>
-                    <Separator className="my-2"/>
+                    <Separator className="my-2 bg-gray-400" />
+                    <div className="flex justify-between text-lg font-bold"><span >TOTAL TTC :</span><span>{invoice.totalTTC.toLocaleString('fr-FR')} {currencyCode}</span></div>
+                    <Separator className="my-2" />
                     <div className="flex justify-between"><span className="text-gray-600">Montant Payé :</span><span className="font-semibold">{invoice.totalPaid.toLocaleString('fr-FR')}</span></div>
                     <div className="flex justify-between font-bold text-red-600"><span>Solde Dû :</span><span>{invoice.balanceDue.toLocaleString('fr-FR')}</span></div>
                 </div>
             </section>
 
             <footer className="absolute bottom-12 w-full left-0 px-12">
-                 <div className="flex justify-between text-center pt-8">
+                <div className="flex justify-between text-center pt-8">
                     <div className="w-1/3">
                         <p className="border-t border-gray-400 pt-2">La Direction</p>
                     </div>

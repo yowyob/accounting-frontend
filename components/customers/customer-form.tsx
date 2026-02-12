@@ -12,6 +12,7 @@ interface CustomerFormProps {
     initialData: Partial<Client> | null;
     onSave: (data: Client) => void;
     onCancel: () => void;
+    onDelete?: (id: string) => void;
 }
 
 export function CustomerForm({ initialData, onSave, onCancel }: CustomerFormProps) {
@@ -32,24 +33,21 @@ export function CustomerForm({ initialData, onSave, onCancel }: CustomerFormProp
             <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <FormField control={form.control} name="companyName" render={({ field }) => (
-                        <FormItem><FormLabel>Raison sociale *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Raison sociale *</FormLabel><FormControl><Input {...field} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <div className="grid grid-cols-2 gap-4">
                         <FormField control={form.control} name="code" render={({ field }) => (
-                            <FormItem><FormLabel>Code *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>Code *</FormLabel><FormControl><Input {...field} className="border-gray-300" /></FormControl><FormMessage /></FormItem>
                         )} />
                         <FormField control={form.control} name="contactPerson" render={({ field }) => (
-                            <FormItem><FormLabel>Contact</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
-                        )} />
-                        <FormField control={form.control} name="phone" render={({ field }) => (
-                            <FormItem><FormLabel>Téléphone</FormLabel><FormControl><Input {...field} /></FormControl></FormItem>
+                            <FormItem><FormLabel>Contact</FormLabel><FormControl><Input {...field} className="border-gray-300" /></FormControl></FormItem>
                         )} />
                         <FormField control={form.control} name="email" render={({ field }) => (
-                            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} /></FormControl></FormItem>
+                            <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} className="border-gray-300" /></FormControl></FormItem>
                         )} />
                     </div>
                     <FormField control={form.control} name="notes" render={({ field }) => (
-                        <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} rows={3} /></FormControl></FormItem>
+                        <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea {...field} rows={3} className="border-gray-300" /></FormControl></FormItem>
                     )} />
                     <div className="flex items-center space-x-8 pt-4">
                         <FormField control={form.control} name="isTaxable" render={({ field }) => (
