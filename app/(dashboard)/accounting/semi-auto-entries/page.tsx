@@ -1,267 +1,276 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  EcritureComptable,
-  DetailEcritureDto,
-  OperationComptable,
-  PeriodeComptable,
-  UUID,
-} from '@/types/accounting';
-import {
-  getOperationsComptables,
-  getPeriodeComptables,
-  getJounalComptables,
-  createEcritureComptable,
-} from '@/lib/api';
-import { useForm } from 'react-hook-form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { CustomerInvoiceDto } from '@/src/lib2/models/CustomerInvoiceDto';
+import { SupplierInvoiceDto } from '@/src/lib2/models/SupplierInvoiceDto';
+import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
+import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
+import { InvoiceAccountingService } from '@/src/lib2/services/InvoiceAccountingService';
+import { DraftAccountingService } from '@/src/lib2/services/DraftAccountingService';
+import { SemiAutoEntryListView } from '@/components/accounting/semi-auto-entry-list-view';
+import { SemiAutoEntryPreview } from '@/components/accounting/semi-auto-entry-preview';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Save, Plus, Trash } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { RefreshCw, FileText } from 'lucide-react';
 
-export default function AccountingSemiAutoEntryPage() {
-  const [operations, setOperations] = useState<OperationComptable[]>([]);
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
-  const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedOperation, setSelectedOperation] = useState<OperationComptable | null>(null);
+type InvoiceType = 'SALE' | 'PURCHASE';
 
-  const form = useForm<EcritureComptable>({
-    defaultValues: {
-      libelle: '',
-      dateEcriture: new Date().toISOString().split('T')[0] as any,
-      journalComptableId: '',
-      periodeComptableId: '',
-      montantTotalDebit: 0,
-      montantTotalCredit: 0,
-      validee: false,
-      referenceExterne: '',
-      notes: '',
-      detailsEcriture: [{ compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 }],
-    },
-  });
+export default function SemiAutoEntryPage() {
+  return (
+    <Suspense fallback={<div>Chargement...</div>}>
+      <SemiAutoEntryContent />
+    </Suspense>
+  );
+}
 
-  const fetchData = useCallback(async () => {
+function SemiAutoEntryContent() {
+  const searchParams = useSearchParams();
+  const fromDraftId = searchParams.get('from_draft');
+
+  const [invoiceType, setInvoiceType] = useState<InvoiceType>('SALE');
+  const [invoices, setInvoices] = useState<(CustomerInvoiceDto | SupplierInvoiceDto)[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<CustomerInvoiceDto | SupplierInvoiceDto | null>(null);
+  const [generatedEntry, setGeneratedEntry] = useState<EcritureComptableDto | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch invoices when type changes or when redirecting from draft
+  useEffect(() => {
+    fetchInvoices();
+  }, [invoiceType]);
+
+  // Effect to handle from_draft param
+  useEffect(() => {
+    if (fromDraftId && invoices.length > 0) {
+      const draft = invoices.find(inv => inv.idFacture === fromDraftId);
+      if (draft) {
+        generateEntry(draft);
+      } else {
+        // If not found in current list (maybe wrong type or not loaded), we might need to fetch it specifically or warn
+        // For now, let's assume if it's not found, we might be looking at wrong type
+      }
+    }
+  }, [fromDraftId, invoices]);
+
+  const fetchInvoices = async () => {
     setIsLoading(true);
     try {
-      const [operationsResponse, periodesResponse, journalsResponse] = await Promise.all([
-        getOperationsComptables(),
-        getPeriodeComptables(),
-        getJounalComptables(),
-      ]);
-      setOperations(Array.isArray(operationsResponse) ? (operationsResponse as any) : []);
-      setPeriodes(Array.isArray(periodesResponse) ? (periodesResponse as any) : []);
-      setJournals(Array.isArray(journalsResponse) ? (journalsResponse as any).map((j: any) => ({ id: j.id!, libelle: j.libelle })) : []);
+      // Fetch draft entries (brouillards) for the selected invoice type
+      const type = invoiceType === 'SALE' ? 'FACTURE_CLIENT' : 'FACTURE_FOURNISSEUR';
+      const response = await DraftAccountingService.getAllBrouillards(
+        'EN_ATTENTE_VALIDATION',
+        type,
+        0,
+        100
+      );
+
+      // Convert BrouillardComptableDto to invoice format
+      const convertedInvoices = (response || []).map((brouillard): CustomerInvoiceDto | SupplierInvoiceDto => {
+        const baseInvoice = {
+          idFacture: brouillard.id || '',
+          numeroFacture: brouillard.numeroPiece || '',
+          dateFacturation: brouillard.datePiece || '',
+          montantHT: (brouillard.montantTotal || 0) / 1.1925, // Approximate HT from TTC
+          montantTVA: (brouillard.montantTotal || 0) * 0.1925 / 1.1925,
+          montantTTC: brouillard.montantTotal || 0,
+          modeReglement: 'Non spécifié',
+        };
+
+        if (invoiceType === 'SALE') {
+          return {
+            ...baseInvoice,
+            nomClient: brouillard.libelle || 'Client inconnu',
+          } as CustomerInvoiceDto;
+        } else {
+          return {
+            ...baseInvoice,
+            nomFournisseur: brouillard.libelle || 'Fournisseur inconnu',
+          } as SupplierInvoiceDto;
+        }
+      });
+
+      setInvoices(convertedInvoices);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error('Failed to fetch invoices:', error);
+      toast.error('Erreur lors du chargement des factures');
+      setInvoices([]);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const generateEntry = (invoice: CustomerInvoiceDto | SupplierInvoiceDto) => {
+    // Generate accounting entry based on invoice type
+    const details: DetailEcritureDto[] = [];
+    const montantHT = invoice.montantHT || 0;
+    const montantTVA = invoice.montantTVA || 0;
+    const montantTTC = invoice.montantTTC || 0;
 
-  const handleOperationSelect = (operationId: string) => {
-    const operation = operations.find(op => op.id === operationId) || null;
-    setSelectedOperation(operation);
-    if (operation) {
-      form.reset({
-        ...form.getValues(),
-        libelle: `Saisie semi-automatique - ${operation.typeOperation}`,
-        journalComptableId: operation.journalComptableId,
-        detailsEcriture: [
-          {
-            compteId: crypto.randomUUID() as UUID,
-            libelle: operation.typeOperation,
-            montantDebit: operation.sensPrincipal === 'DEBIT' ? operation.plafondClient || 0 : 0,
-            montantCredit: operation.sensPrincipal === 'CREDIT' ? operation.plafondClient || 0 : 0,
-          },
-        ],
+    if (invoiceType === 'SALE') {
+      // Sale: Debit Client, Credit Sale, Credit VAT
+      details.push({
+        compteComptableId: '411000', // Client account
+        libelle: `Facture ${invoice.numeroFacture} - ${(invoice as CustomerInvoiceDto).nomClient}`,
+        sens: 'DEBIT',
+        montantDebit: montantTTC,
+        montantCredit: 0,
+        ecritureComptableId: '',
+      });
+      details.push({
+        compteComptableId: '701000', // Sales account
+        libelle: 'Vente de marchandises',
+        sens: 'CREDIT',
+        montantDebit: 0,
+        montantCredit: montantHT,
+        ecritureComptableId: '',
+      });
+      details.push({
+        compteComptableId: '445710', // VAT collected
+        libelle: 'TVA collectée',
+        sens: 'CREDIT',
+        montantDebit: 0,
+        montantCredit: montantTVA,
+        ecritureComptableId: '',
+      });
+    } else {
+      // Purchase: Debit Purchase, Debit VAT, Credit Supplier
+      details.push({
+        compteComptableId: '601000', // Purchase account
+        libelle: 'Achat de marchandises',
+        sens: 'DEBIT',
+        montantDebit: montantHT,
+        montantCredit: 0,
+        ecritureComptableId: '',
+      });
+      details.push({
+        compteComptableId: '445660', // VAT deductible
+        libelle: 'TVA déductible',
+        sens: 'DEBIT',
+        montantDebit: montantTVA,
+        montantCredit: 0,
+        ecritureComptableId: '',
+      });
+      details.push({
+        compteComptableId: '401000', // Supplier account
+        libelle: `Facture ${invoice.numeroFacture} - ${(invoice as SupplierInvoiceDto).nomFournisseru}`,
+        sens: 'CREDIT',
+        montantDebit: 0,
+        montantCredit: montantTTC,
+        ecritureComptableId: '',
       });
     }
+
+    const entry: EcritureComptableDto = {
+      libelle: `Saisie semi-automatique - Facture ${invoice.numeroFacture}`,
+      dateEcriture: invoice.dateFacturation,
+      periodeComptableId: '', // Will be determined by backend based on date
+      journalComptableId: '', // TODO: Get from accounting settings
+      montantTotalDebit: montantTTC, // Assuming balanced for now
+      montantTotalCredit: montantTTC,
+      validee: false,
+      referenceExterne: invoice.numeroFacture,
+      detailsEcriture: details,
+      // Store the source draft ID if needed? 
+      // Ideally the backend InvoiceAccountingService should link it via referenceExterne or by ID
+    };
+
+    setGeneratedEntry(entry);
+    setSelectedInvoice(invoice);
   };
 
-  const addDetailLine = () => {
-    const details = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', [
-      ...details,
-      { compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 },
-    ]);
-  };
+  const handleValidateEntry = async () => {
+    if (!generatedEntry || !selectedInvoice) return;
 
-  const removeDetailLine = (index: number) => {
-    const details = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', details.filter((_, i) => i !== index));
-  };
-
-  const onSubmit = async (data: EcritureComptable) => {
-    const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
-    const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
-    if (totalDebit !== totalCredit) {
-      toast.error("Erreur", { description: "Les montants de débit et de crédit doivent être égaux." });
-      return;
-    }
-
-    setIsLoading(true);
+    setIsSubmitting(true);
     try {
-      await createEcritureComptable({ ...data, dateEcriture: new Date(data.dateEcriture) as any, montantTotalDebit: totalDebit, montantTotalCredit: totalCredit });
-      toast.success("Succès", { description: "Écriture créée avec succès." });
-      form.reset();
-      setSelectedOperation(null);
+      if (invoiceType === 'SALE') {
+        await InvoiceAccountingService.accountCustomerInvoice(selectedInvoice as CustomerInvoiceDto);
+      } else {
+        await InvoiceAccountingService.accountSupplierInvoice(selectedInvoice as SupplierInvoiceDto);
+      }
+
+      toast.success('Écriture enregistrée avec succès');
+
+      // Reset and refresh
+      setSelectedInvoice(null);
+      setGeneratedEntry(null);
+      await fetchInvoices();
     } catch (error) {
-      console.error("Failed to create ecriture:", error);
-      toast.error("Erreur", { description: "Échec de la création de l'écriture." });
+      console.error('Failed to save entry:', error);
+      toast.error('Erreur lors de l\'enregistrement de l\'écriture');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
+  };
+
+  const handleCancelEntry = () => {
+    setSelectedInvoice(null);
+    setGeneratedEntry(null);
   };
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 justify-center">
-      <div className="mx-auto space-y-6 justify-center">
-        <h1 className="text-2xl font-bold">Saisie Semi-Automatique des Écritures</h1>
+    <div className="min-h-screen p-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Saisie Semi-Automatique</h1>
+            <p className="text-gray-500 mt-1">
+              Générez automatiquement des écritures comptables à partir de vos factures
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchInvoices}
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
 
-        {isLoading ? (
-          <div className="text-center py-10 text-gray-500">Chargement...</div>
+        {/* Invoice List or Entry Preview */}
+        {selectedInvoice && generatedEntry ? (
+          <SemiAutoEntryPreview
+            invoice={selectedInvoice}
+            generatedEntry={generatedEntry}
+            type={invoiceType}
+            onValidate={handleValidateEntry}
+            onCancel={handleCancelEntry}
+            isSubmitting={isSubmitting}
+          />
         ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres de Saisie</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Opération Comptable</label>
-                  <Select onValueChange={handleOperationSelect} value={selectedOperation?.id || ''}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une opération" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {operations.map((op) => (
-                        <SelectItem key={op.id} value={op.id!}>
-                          {op.typeOperation} ({op.modeReglement})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Période Comptable</label>
-                  <Select
-                    onValueChange={(value) => form.setValue('periodeComptableId', value)}
-                    value={form.watch('periodeComptableId') || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une période" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {periodes.map((periode) => (
-                        <SelectItem key={periode.id} value={periode.id!}>
-                          {periode.code} - {periode.cloturee}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Journal Comptable</label>
-                  <Select
-                    onValueChange={(value) => form.setValue('journalComptableId', value)}
-                    value={form.watch('journalComptableId') || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un journal" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {journals.map((journal) => (
-                        <SelectItem key={journal.id} value={journal.id}>
-                          {journal.libelle}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Date</label>
-                  <Input
-                    type="date"
-                    {...form.register('dateEcriture')}
-                    defaultValue={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Référence Externe</label>
-                <Input {...form.register('referenceExterne')} placeholder="Ex: Réf-001" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
-                <Input {...form.register('notes')} placeholder="Informations supplémentaires..." />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Détails de l&#39;Écriture</h3>
-                {form.watch('detailsEcriture')?.map((detail, index) => (
-                  <div key={detail.compteId} className="grid grid-cols-5 gap-5 mb-4 p-2 bg-gray-50 rounded-lg">
-                    <Input
-                      {...form.register(`detailsEcriture.${index}.compteId` as const)}
-                      placeholder="Compte"
-                      className="col-span-1"
-                    />
-                    <Input
-                      {...form.register(`detailsEcriture.${index}.libelle` as const)}
-                      placeholder="Description"
-                      className="col-span-1"
-                    />
-                    <Input
-                      type="number"
-                      {...form.register(`detailsEcriture.${index}.montantDebit` as const, { valueAsNumber: true })}
-                      placeholder="Débit"
-                      className="col-span-1"
-                    />
-                    <Input
-                      type="number"
-                      {...form.register(`detailsEcriture.${index}.montantCredit` as const, { valueAsNumber: true })}
-                      placeholder="Crédit"
-                      className="col-span-1"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeDetailLine(index)}
-                      className="col-span-1"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={addDetailLine} className="mt-2">
-                  <Plus className="mr-2 h-4 w-4" /> Ajouter une ligne
-                </Button>
-              </div>
-
-              <Button
-                onClick={form.handleSubmit(onSubmit)}
-                disabled={isLoading}
-                className="w-full md:w-auto"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Enregistrer
-              </Button>
-            </CardContent>
-          </Card>
+          <Tabs value={invoiceType} onValueChange={(value) => setInvoiceType(value as InvoiceType)}>
+            <TabsList className="grid w-full max-w-md grid-cols-2">
+              <TabsTrigger value="SALE">
+                <FileText className="h-4 w-4 mr-2" />
+                Factures Clients
+              </TabsTrigger>
+              <TabsTrigger value="PURCHASE">
+                <FileText className="h-4 w-4 mr-2" />
+                Factures Fournisseurs
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="SALE" className="mt-6">
+              <SemiAutoEntryListView
+                invoices={invoices}
+                type="SALE"
+                isLoading={isLoading}
+                onInvoiceDoubleClick={generateEntry}
+              />
+            </TabsContent>
+            <TabsContent value="PURCHASE" className="mt-6">
+              <SemiAutoEntryListView
+                invoices={invoices}
+                type="PURCHASE"
+                isLoading={isLoading}
+                onInvoiceDoubleClick={generateEntry}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

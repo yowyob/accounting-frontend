@@ -13,7 +13,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
-import { Edit, Trash2, Plus, Check, RefreshCw, Loader2, Search } from 'lucide-react';
+import { Edit, Trash2, Plus, Check, RefreshCw, Loader2, Search, Archive, FileText } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
@@ -24,13 +24,14 @@ interface EcritureComptableListViewProps {
   onSelectEcriture: (id: string) => void;
   onEditEcriture: (id: string) => void;
   onDeleteEcriture: (ecriture: EcritureComptableDto) => void;
+  onDeactivateEcriture?: (ecriture: EcritureComptableDto) => void;
   onAddNew?: () => void;
   onRefresh?: () => void;
   selectedId?: string;
   readOnly?: boolean;
 }
 
-const RowActions = ({ ecriture, onEdit, onDelete }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void }) => {
+const RowActions = ({ ecriture, onEdit, onDelete, onDeactivate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onDeactivate?: (ecriture: EcritureComptableDto) => void }) => {
   if (ecriture.validee) return null; // Hide actions if validated
 
   return (
@@ -44,6 +45,16 @@ const RowActions = ({ ecriture, onEdit, onDelete }: { ecriture: EcritureComptabl
           </TooltipTrigger>
           <TooltipContent><p>Modifier</p></TooltipContent>
         </Tooltip>
+        {onDeactivate && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50" onClick={() => onDeactivate(ecriture)}>
+                <Archive className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Désactiver</p></TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(ecriture)}>
@@ -63,6 +74,7 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
   onSelectEcriture,
   onEditEcriture,
   onDeleteEcriture,
+  onDeactivateEcriture,
   onAddNew,
   onRefresh,
   selectedId,
@@ -152,7 +164,21 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
                   className={`group cursor-pointer transition-colors hover:bg-blue-50/50 ${selectedId === ecriture.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
                   onClick={() => onSelectEcriture(ecriture.id || '')}
                 >
-                  <TableCell className="font-medium text-gray-900">{ecriture.libelle}</TableCell>
+                  <TableCell className="font-medium text-gray-900">
+                    <div className="flex items-center gap-2">
+                      {ecriture.libelle}
+                      {ecriture.attachmentIds && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <FileText className="h-3 w-3 text-blue-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>Document joint</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="text-gray-500">
                     {new Date(ecriture.dateEcriture).toLocaleDateString('fr-FR', {
                       day: '2-digit',
@@ -177,11 +203,12 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
                     </Badge>
                   </TableCell>
                   {!readOnly && (
-                    <TableCell className="text-right px-6">
+                    <TableCell className="text-right">
                       <RowActions
                         ecriture={ecriture}
                         onEdit={onEditEcriture}
                         onDelete={onDeleteEcriture}
+                        onDeactivate={onDeactivateEcriture}
                       />
                     </TableCell>
                   )}

@@ -104,6 +104,7 @@ export const modules: Record<ModuleKey, Module> = {
     sidebarLinks: [
       { title: "Plan Comptable", icon: BookOpen, href: "/accounting/chart-of-accounts" },
       { title: "Écritures Comptables", icon: FileClock, href: "/accounting/entries" },
+      { title: "Brouillard", icon: PenSquare, href: "/accounting/draft" },
       { title: "Saisie Semi-Automatique", icon: ListChecks, href: "/accounting/semi-auto-entries" },
       { title: "Validation Écritures", icon: ShieldCheck, href: "/accounting/validation" },
       { title: "Paramétrage", icon: Settings, href: "/accounting/settings" },
