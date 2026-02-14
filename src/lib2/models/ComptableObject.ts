@@ -12,9 +12,9 @@ export type ComptableObject = {
     get_description?: string;
     get_source_type?: ComptableObject.get_source_type;
     get_date?: string;
+    get_id?: string;
     get_organization_id?: string;
     get_periode_comptable_id?: string;
-    get_id?: string;
 };
 export namespace ComptableObject {
     export enum get_source_type {

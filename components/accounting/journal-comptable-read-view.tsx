@@ -52,7 +52,7 @@ export const JournalComptableReadView: React.FC<JournalComptableReadViewProps> =
                 try {
                     const [opsRes, entriesRes, accountsRes] = await Promise.all([
                         AccountingOperationsService.getAllOperationsComptables(),
-                        AccountingJournalManagementService.getJournalEntries(journal.id!),
+                        AccountingJournalManagementService.getJournal(journal.id!),
                         AccountingComptesService.getAllComptes()
                     ]);
 

@@ -21,9 +21,9 @@ export type FactureComptable = {
     get_source_type?: FactureComptable.get_source_type;
     is_achat?: boolean;
     get_date?: string;
+    get_id?: string;
     get_organization_id?: string;
     get_periode_comptable_id?: string;
-    get_id?: string;
     get_attachment_ids?: JsonNode;
 };
 export namespace FactureComptable {

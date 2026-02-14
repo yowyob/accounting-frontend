@@ -69,7 +69,7 @@ export class AccountingTaxDeclarationsService {
      * @returns ApiResponseWrapperDeclarationFiscaleDto OK
      * @throws ApiError
      */
-    public static getById(
+    public static getById1(
         id: string,
     ): CancelablePromise<ApiResponseWrapperDeclarationFiscaleDto> {
         return __request(OpenAPI, {
@@ -86,7 +86,7 @@ export class AccountingTaxDeclarationsService {
      * @returns ApiResponseWrapperVoid OK
      * @throws ApiError
      */
-    public static delete(
+    public static delete1(
         id: string,
     ): CancelablePromise<ApiResponseWrapperVoid> {
         return __request(OpenAPI, {
