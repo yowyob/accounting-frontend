@@ -12,6 +12,61 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class AccountingEntriesService {
     /**
+     * Get an entry by its ID
+     * @param id
+     * @returns ApiResponseWrapperEcritureComptableDto OK
+     * @throws ApiError
+     */
+    public static getById(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/ecritures/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * Update an existing accounting entry
+     * @param id
+     * @param requestBody
+     * @returns ApiResponseWrapperEcritureComptableDto OK
+     * @throws ApiError
+     */
+    public static updateEcriture(
+        id: string,
+        requestBody: EcritureComptableDto,
+    ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
+        return __request(OpenAPI, {
+            method: 'PUT',
+            url: '/api/accounting/ecritures/{id}',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Delete an accounting entry
+     * @param id
+     * @returns ApiResponseWrapperObject OK
+     * @throws ApiError
+     */
+    public static delete(
+        id: string,
+    ): CancelablePromise<ApiResponseWrapperObject> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/accounting/ecritures/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
      * List all entries for the current organization
      * @returns ApiResponseWrapperListEcritureComptableDto OK
      * @throws ApiError
@@ -112,40 +167,6 @@ export class AccountingEntriesService {
             },
             query: {
                 'user': user,
-            },
-        });
-    }
-    /**
-     * Get an entry by its ID
-     * @param id
-     * @returns ApiResponseWrapperEcritureComptableDto OK
-     * @throws ApiError
-     */
-    public static getById1(
-        id: string,
-    ): CancelablePromise<ApiResponseWrapperEcritureComptableDto> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/api/accounting/ecritures/{id}',
-            path: {
-                'id': id,
-            },
-        });
-    }
-    /**
-     * Delete an accounting entry
-     * @param id
-     * @returns ApiResponseWrapperObject OK
-     * @throws ApiError
-     */
-    public static delete1(
-        id: string,
-    ): CancelablePromise<ApiResponseWrapperObject> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/accounting/ecritures/{id}',
-            path: {
-                'id': id,
             },
         });
     }

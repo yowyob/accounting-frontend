@@ -29,7 +29,7 @@ export default function EcritureComptableDetailsPage() {
         setIsLoading(true);
         try {
             const [entryRes, journalsRes, accountsRes] = await Promise.all([
-                AccountingEntriesService.getById1(id),
+                AccountingEntriesService.getById(id),
                 AccountingJournalManagementService.getAllJournals(),
                 AccountingPlanComptableService.getAllPlanComptables()
             ]);

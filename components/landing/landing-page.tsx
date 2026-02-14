@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { 
   Building2, 
   BarChart3, 
-  Package, 
+  BookOpen, 
   Users, 
   TrendingUp, 
   Shield, 
   Zap,
   ArrowRight,
   Menu,
-  X
+  X,
+  Wallet,
+  Calculator
 } from 'lucide-react';
 import { LoginModal } from './login-modal';
 
@@ -23,19 +25,19 @@ export function LandingPage() {
 
   const features = [
     {
-      icon: Package,
-      title: "Gestion de Stock",
-      description: "Suivi en temps réel de vos inventaires avec alertes automatiques et optimisation des stocks."
+      icon: BookOpen,
+      title: "Comptabilité Générale",
+      description: "Gestion complète de votre plan comptable, écritures et journaux avec automatisation intelligente."
     },
     {
-      icon: BarChart3,
-      title: "Rapports Analytiques",
-      description: "Tableaux de bord intuitifs avec métriques avancées pour prendre des décisions éclairées."
+      icon: Calculator,
+      title: "États Financiers",
+      description: "Génération automatique de bilans, comptes de résultat et balances en temps réel."
     },
     {
       icon: Users,
-      title: "Gestion Clients",
-      description: "CRM intégré pour gérer vos relations clients et optimiser vos ventes."
+      title: "Gestion des Tiers",
+      description: "Suivi détaillé de vos comptes clients et fournisseurs pour une maîtrise parfaite de vos flux."
     },
     {
       icon: TrendingUp,
@@ -74,7 +76,7 @@ export function LandingPage() {
               </div> */}
               <div>
                 <h1 className="text-xl font-bold text-gray-900">KSM</h1>
-                <p className="text-xs text-gray-500">Commercial Operations</p>
+                <p className="text-xs text-gray-500">Solution Comptable</p>
               </div>
             </div>
 
@@ -146,14 +148,14 @@ export function LandingPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl sm:text-6xl font-bold text-gray-900 tracking-tight">
-              Optimisez vos
+              Maîtrisez votre
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                {" "}Opérations Commerciales
+                {" "}Gestion Comptable
               </span>
             </h1>
             <p className="mt-6 text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-              KSM vous offre une suite complète d&apos;outils pour gérer efficacement vos stocks, 
-              clients, ventes et analyses. Transformez votre entreprise avec notre solution tout-en-un.
+              KSM vous offre une suite complète d&apos;outils pour gérer efficacement votre comptabilité, 
+              vos flux financiers et vos rapports. Simplifiez votre gestion financière avec notre solution tout-en-un.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
@@ -232,7 +234,7 @@ export function LandingPage() {
           </h2>
           <p className="text-xl text-blue-100 mb-8 leading-relaxed">
             Rejoignez des centaines d&apos;entreprises qui font déjà confiance à KSM 
-            pour optimiser leurs opérations commerciales.
+            pour optimiser leur gestion comptable et financière.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -265,7 +267,7 @@ export function LandingPage() {
                 <span className="text-lg font-bold">KSM</span>
               </div>
               <p className="text-gray-400 text-sm">
-                Solution complète pour optimiser vos opérations commerciales.
+                Solution complète pour maîtriser votre gestion comptable.
               </p>
             </div>
             <div>

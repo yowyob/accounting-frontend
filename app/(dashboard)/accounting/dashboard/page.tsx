@@ -2,7 +2,7 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -54,10 +54,17 @@ export default function AccountingDashboard() {
     // In a real app, call API here
   }, []);
 
+  const debitCreditChartRef = useRef<Chart | null>(null);
+  const periodStatusChartRef = useRef<Chart | null>(null);
+
   useEffect(() => {
     const debitCreditCtx = document.getElementById('debit-credit-chart') as HTMLCanvasElement;
     if (debitCreditCtx) {
-      new Chart(debitCreditCtx, {
+      if (debitCreditChartRef.current) {
+        debitCreditChartRef.current.destroy();
+      }
+
+      debitCreditChartRef.current = new Chart(debitCreditCtx, {
         type: 'bar',
         data: {
           labels: ['Débit', 'Crédit'],
@@ -76,7 +83,11 @@ export default function AccountingDashboard() {
 
     const periodStatusCtx = document.getElementById('period-status-chart') as HTMLCanvasElement;
     if (periodStatusCtx) {
-      new Chart(periodStatusCtx, {
+      if (periodStatusChartRef.current) {
+        periodStatusChartRef.current.destroy();
+      }
+
+      periodStatusChartRef.current = new Chart(periodStatusCtx, {
         type: 'pie',
         data: {
           labels: ['Revenu', 'Dépenses', 'Profit Net'],
@@ -90,6 +101,17 @@ export default function AccountingDashboard() {
         },
       });
     }
+
+    return () => {
+      if (debitCreditChartRef.current) {
+        debitCreditChartRef.current.destroy();
+        debitCreditChartRef.current = null;
+      }
+      if (periodStatusChartRef.current) {
+        periodStatusChartRef.current.destroy();
+        periodStatusChartRef.current = null;
+      }
+    };
   }, [kpis, periodSummary]);
 
   return (
