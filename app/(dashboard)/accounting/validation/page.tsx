@@ -92,7 +92,7 @@ export default function AccountingValidationPage() {
 
   const handleOpenDetail = async (id: string) => {
     try {
-      const response = await AccountingEntriesService.getById1(id);
+      const response = await AccountingEntriesService.getById(id);
       if (response.success && response.data) {
         // Enrich with current context data
         const entry = response.data;

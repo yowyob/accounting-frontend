@@ -101,7 +101,7 @@ export default function EcritureComptablePage() {
   const confirmDelete = async () => {
     if (!ecritureToDelete?.id) return;
     try {
-      await AccountingEntriesService.delete1(ecritureToDelete.id);
+      await AccountingEntriesService.delete(ecritureToDelete.id);
       await fetchAndSetEcritures();
       if (selectedEcritureId === ecritureToDelete.id) {
         setSelectedEcritureId(null);
@@ -117,7 +117,7 @@ export default function EcritureComptablePage() {
 
   const handleEditEcriture = async (id: string) => {
     try {
-      const response = await AccountingEntriesService.getById1(id);
+      const response = await AccountingEntriesService.getById(id);
       if (response.success && response.data) {
         handleOpenCompose(response.data);
       }

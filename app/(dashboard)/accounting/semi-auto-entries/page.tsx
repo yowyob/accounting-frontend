@@ -1,20 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { DraftAccountingService } from '@/src/lib2/services/DraftAccountingService';
+import { BrouillardComptableDto } from '@/src/lib2/models/BrouillardComptableDto';
+import { format } from 'date-fns';
 import {
-  EcritureComptable,
-  DetailEcritureDto,
-  OperationComptable,
-  PeriodeComptable,
-  UUID,
-} from '@/types/accounting';
-import {
-  getOperationsComptables,
-  getPeriodeComptables,
-  getJounalComptables,
-  createEcritureComptable,
-} from '@/lib/api';
-import { useForm } from 'react-hook-form';
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { toast } from "sonner";
+import { CheckCircle2, FileStack, RefreshCw, XCircle, Search, Filter } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -22,248 +25,307 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Save, Plus, Trash } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from "sonner";
 
 export default function AccountingSemiAutoEntryPage() {
-  const [operations, setOperations] = useState<OperationComptable[]>([]);
-  const [periodes, setPeriodes] = useState<PeriodeComptable[]>([]);
-  const [journals, setJournals] = useState<{ id: string; libelle: string }[]>([]);
+  const [drafts, setDrafts] = useState<BrouillardComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedOperation, setSelectedOperation] = useState<OperationComptable | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<BrouillardComptableDto | null>(null);
 
-  const form = useForm<EcritureComptable>({
-    defaultValues: {
-      libelle: '',
-      dateEcriture: new Date().toISOString().split('T')[0] as any,
-      journalComptableId: '',
-      periodeComptableId: '',
-      montantTotalDebit: 0,
-      montantTotalCredit: 0,
-      validee: false,
-      referenceExterne: '',
-      notes: '',
-      detailsEcriture: [{ compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 }],
-    },
-  });
-
-  const fetchData = useCallback(async () => {
+  const fetchDrafts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [operationsResponse, periodesResponse, journalsResponse] = await Promise.all([
-        getOperationsComptables(),
-        getPeriodeComptables(),
-        getJounalComptables(),
-      ]);
-      setOperations(Array.isArray(operationsResponse) ? (operationsResponse as any) : []);
-      setPeriodes(Array.isArray(periodesResponse) ? (periodesResponse as any) : []);
-      setJournals(Array.isArray(journalsResponse) ? (journalsResponse as any).map((j: any) => ({ id: j.id!, libelle: j.libelle })) : []);
+      // Fetch Drafts
+      const response = await DraftAccountingService.getAllBrouillards(BrouillardComptableDto.statut.EN_ATTENTE_VALIDATION);
+      const draftsDraft = await DraftAccountingService.getAllBrouillards(BrouillardComptableDto.statut.BROUILLON);
+
+      const allDrafts = [...(response || []), ...(draftsDraft || [])].sort(
+        (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+      );
+
+      setDrafts(allDrafts);
+      setSelectedDraft(null); // Reset selection on refresh
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error("Failed to fetch drafts:", error);
+      toast.error("Erreur", { description: "Impossible de charger les brouillards comptables." });
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchDrafts();
+  }, [fetchDrafts]);
 
-  const handleOperationSelect = (operationId: string) => {
-    const operation = operations.find(op => op.id === operationId) || null;
-    setSelectedOperation(operation);
-    if (operation) {
-      form.reset({
-        ...form.getValues(),
-        libelle: `Saisie semi-automatique - ${operation.typeOperation}`,
-        journalComptableId: operation.journalComptableId,
-        detailsEcriture: [
-          {
-            compteId: crypto.randomUUID() as UUID,
-            libelle: operation.typeOperation,
-            montantDebit: operation.sensPrincipal === 'DEBIT' ? operation.plafondClient || 0 : 0,
-            montantCredit: operation.sensPrincipal === 'CREDIT' ? operation.plafondClient || 0 : 0,
-          },
-        ],
-      });
-    }
-  };
+  const handleValidate = async () => {
+    if (!selectedDraft || !selectedDraft.id) return;
 
-  const addDetailLine = () => {
-    const details = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', [
-      ...details,
-      { compteId: crypto.randomUUID() as UUID, libelle: '', montantDebit: 0, montantCredit: 0 },
-    ]);
-  };
-
-  const removeDetailLine = (index: number) => {
-    const details = form.getValues('detailsEcriture') || [];
-    form.setValue('detailsEcriture', details.filter((_, i) => i !== index));
-  };
-
-  const onSubmit = async (data: EcritureComptable) => {
-    const totalDebit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantDebit || 0), 0) || 0;
-    const totalCredit = data.detailsEcriture?.reduce((sum, d) => sum + (d.montantCredit || 0), 0) || 0;
-    if (totalDebit !== totalCredit) {
-      toast.error("Erreur", { description: "Les montants de débit et de crédit doivent être égaux." });
-      return;
-    }
-
-    setIsLoading(true);
+    setIsValidating(true);
     try {
-      await createEcritureComptable({ ...data, dateEcriture: new Date(data.dateEcriture) as any, montantTotalDebit: totalDebit, montantTotalCredit: totalCredit });
-      toast.success("Succès", { description: "Écriture créée avec succès." });
-      form.reset();
-      setSelectedOperation(null);
-    } catch (error) {
-      console.error("Failed to create ecriture:", error);
-      toast.error("Erreur", { description: "Échec de la création de l'écriture." });
+      await DraftAccountingService.validateBrouillard(selectedDraft.id, {
+        notes: "Validé depuis l'interface semi-automatique",
+        forceValidation: false
+      });
+      toast.success("Succès", { description: "Le brouillard a été validé et l'écriture a été enregistrée." });
+      await fetchDrafts(); // Refresh list
+    } catch (error: any) {
+      console.error("Failed to validate draft:", error);
+      toast.error("Erreur de validation", { description: error.message || "Impossible de valider le brouillard." });
     } finally {
-      setIsLoading(false);
+      setIsValidating(false);
     }
   };
+
+  const currentPreviewLines = () => {
+    if (!selectedDraft) return [];
+    const data = selectedDraft.dataJson;
+    let details: Array<{ compte: string, libelle: string, sens: 'D' | 'C', debit: number, credit: number, journal: string }> = [];
+
+    const journalCode = selectedDraft.journalCode || 'JV';
+
+    if (data) {
+      if (selectedDraft.type === BrouillardComptableDto.type.FACTURE_FOURNISSEUR) {
+        details.push({ compte: '601000', libelle: `Charge (HT) - ${data.numeroFacture || ''}`, sens: 'D', debit: data.montantHT || 0, credit: 0, journal: journalCode });
+        if (data.montantTVA && data.montantTVA > 0) {
+          details.push({ compte: '445200', libelle: `TVA Déductible`, sens: 'D', debit: data.montantTVA, credit: 0, journal: journalCode });
+        }
+        details.push({ compte: '401100', libelle: `Fournisseur (TTC)`, sens: 'C', debit: 0, credit: data.montantTTC || 0, journal: journalCode });
+      } else if (selectedDraft.type === BrouillardComptableDto.type.FACTURE_CLIENT) {
+        details.push({ compte: '411100', libelle: `Client (TTC)`, sens: 'D', debit: data.montantTTC || 0, credit: 0, journal: journalCode });
+        details.push({ compte: '701000', libelle: `Vente (HT) - ${data.numeroFacture || ''}`, sens: 'C', debit: 0, credit: data.montantHT || 0, journal: journalCode });
+        if (data.montantTVA && data.montantTVA > 0) {
+          details.push({ compte: '443100', libelle: `TVA Collectée`, sens: 'C', debit: 0, credit: data.montantTVA, journal: journalCode });
+        }
+      } else {
+        details.push({ compte: '5XXXXX', libelle: selectedDraft.libelle || 'Mouvement', sens: 'D', debit: selectedDraft.montantTotal || 0, credit: 0, journal: journalCode });
+        details.push({ compte: 'XXXXXX', libelle: 'Contrepartie', sens: 'C', debit: 0, credit: selectedDraft.montantTotal || 0, journal: journalCode });
+      }
+    }
+    return details;
+  };
+
+  const previewLines = currentPreviewLines();
+  const totalDebit = previewLines.reduce((acc, l) => acc + l.debit, 0);
+  const totalCredit = previewLines.reduce((acc, l) => acc + l.credit, 0);
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50 justify-center">
-      <div className="mx-auto space-y-6 justify-center">
-        <h1 className="text-2xl font-bold">Saisie Semi-Automatique des Écritures</h1>
+    <div className="p-4 space-y-4 max-w-[1400px] mx-auto min-h-[calc(100vh-100px)] flex flex-col bg-gray-50/50">
 
-        {isLoading ? (
-          <div className="text-center py-10 text-gray-500">Chargement...</div>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Paramètres de Saisie</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Opération Comptable</label>
-                  <Select onValueChange={handleOperationSelect} value={selectedOperation?.id || ''}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une opération" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {operations.map((op) => (
-                        <SelectItem key={op.id} value={op.id!}>
-                          {op.typeOperation} ({op.modeReglement})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Période Comptable</label>
-                  <Select
-                    onValueChange={(value) => form.setValue('periodeComptableId', value)}
-                    value={form.watch('periodeComptableId') || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner une période" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {periodes.map((periode) => (
-                        <SelectItem key={periode.id} value={periode.id!}>
-                          {periode.code} - {periode.cloturee}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Journal Comptable</label>
-                  <Select
-                    onValueChange={(value) => form.setValue('journalComptableId', value)}
-                    value={form.watch('journalComptableId') || ''}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un journal" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {journals.map((journal) => (
-                        <SelectItem key={journal.id} value={journal.id}>
-                          {journal.libelle}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Date</label>
-                  <Input
-                    type="date"
-                    {...form.register('dateEcriture')}
-                    defaultValue={new Date().toISOString().split('T')[0]}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Référence Externe</label>
-                <Input {...form.register('referenceExterne')} placeholder="Ex: Réf-001" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
-                <Input {...form.register('notes')} placeholder="Informations supplémentaires..." />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Détails de l&#39;Écriture</h3>
-                {form.watch('detailsEcriture')?.map((detail, index) => (
-                  <div key={detail.compteId} className="grid grid-cols-5 gap-5 mb-4 p-2 bg-gray-50 rounded-lg">
-                    <Input
-                      {...form.register(`detailsEcriture.${index}.compteId` as const)}
-                      placeholder="Compte"
-                      className="col-span-1"
-                    />
-                    <Input
-                      {...form.register(`detailsEcriture.${index}.libelle` as const)}
-                      placeholder="Description"
-                      className="col-span-1"
-                    />
-                    <Input
-                      type="number"
-                      {...form.register(`detailsEcriture.${index}.montantDebit` as const, { valueAsNumber: true })}
-                      placeholder="Débit"
-                      className="col-span-1"
-                    />
-                    <Input
-                      type="number"
-                      {...form.register(`detailsEcriture.${index}.montantCredit` as const, { valueAsNumber: true })}
-                      placeholder="Crédit"
-                      className="col-span-1"
-                    />
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => removeDetailLine(index)}
-                      className="col-span-1"
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={addDetailLine} className="mt-2">
-                  <Plus className="mr-2 h-4 w-4" /> Ajouter une ligne
-                </Button>
-              </div>
-
-              <Button
-                onClick={form.handleSubmit(onSubmit)}
-                disabled={isLoading}
-                className="w-full md:w-auto"
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Enregistrer
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+      {/* Header and Actions */}
+      <div className="flex items-center justify-between pb-2 border-b">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 text-[#003366]">
+            <FileStack className="w-5 h-5" />
+            Saisie semi-automatique des écritures
+          </h1>
+        </div>
+        <div className="space-x-2">
+          <Button onClick={fetchDrafts} variant="outline" size="sm" disabled={isLoading} className="h-8">
+            <RefreshCw className={`w-3.5 h-3.5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
       </div>
+
+      {/* TOP PANEL: Filters & List */}
+      <Card className="rounded-md border shadow-sm">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Critères de consultation et Liste</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-4 p-3 border-b bg-white text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Exercice:</span>
+              <Select defaultValue="2024"><SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="2024">2024</SelectItem></SelectContent></Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Type:</span>
+              <Select defaultValue="all"><SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Tous les types" /></SelectTrigger><SelectContent><SelectItem value="all">Toutes opérations</SelectItem><SelectItem value="ventes">Les ventes</SelectItem><SelectItem value="achats">Les achats</SelectItem></SelectContent></Select>
+            </div>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2.5 top-2 text-gray-400" />
+                <Input placeholder="Rechercher..." className="pl-8 h-8 max-w-[200px] text-xs" />
+              </div>
+            </div>
+          </div>
+
+          <div className="max-h-[220px] overflow-y-auto bg-white border-b">
+            <Table>
+              <TableHeader className="sticky top-0 bg-blue-50/80 backdrop-blur-sm z-10 shadow-sm text-xs">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[180px] h-8 text-blue-900 font-semibold border-r">N° Pièce / Facture</TableHead>
+                  <TableHead className="h-8 text-blue-900 font-semibold border-r">Type / Client / Fournisseur</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold border-r h-8">Mt HT</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold border-r h-8">Mt TVA</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold h-8">Mt TTC</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
+                ) : drafts.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun brouillard en attente</TableCell></TableRow>
+                ) : drafts.map((draft, idx) => (
+                  <TableRow
+                    key={draft.id}
+                    className={`cursor-pointer transition-colors text-xs border-b ${selectedDraft?.id === draft.id ? 'bg-[#cce5ff] hover:bg-[#cce5ff]' : idx % 2 === 0 ? 'bg-white' : 'bg-[#fff5e6]'}`}
+                    onClick={() => setSelectedDraft(draft)}
+                  >
+                    <TableCell className="font-medium border-r py-1.5 px-3">
+                      {draft.numeroPiece || draft.sourceId}
+                    </TableCell>
+                    <TableCell className="border-r py-1.5 px-3 uppercase">
+                      {draft.type?.replace(/_/g, ' ')}
+                      <span className="text-gray-500 lowercase ml-2 capitalize truncate">{draft.libelle ? ` - ${draft.libelle}` : ''}</span>
+                    </TableCell>
+                    <TableCell className="text-right border-r py-1.5 px-3 font-mono">
+                      {draft.dataJson?.montantHT ? draft.dataJson.montantHT.toLocaleString() : '-'}
+                    </TableCell>
+                    <TableCell className="text-right border-r py-1.5 px-3 font-mono">
+                      {draft.dataJson?.montantTVA ? draft.dataJson.montantTVA.toLocaleString() : '0,00'}
+                    </TableCell>
+                    <TableCell className="text-right py-1.5 px-3 font-mono font-medium">
+                      {(draft.montantTotal || draft.dataJson?.montantTTC)?.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {/* MIDDLE PANEL: Document Header */}
+      <Card className="rounded-md border shadow-sm flex-shrink-0 opacity-100 transition-opacity">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Entête Écriture / Opération Comptable</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 bg-white space-y-4">
+          {selectedDraft ? (
+            <div className="grid grid-cols-12 gap-4 items-end text-sm">
+              <div className="col-span-8 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Pièce(s) Justificative(s)</label>
+                <Input readOnly value={`${selectedDraft.type?.replace(/_/g, ' ')} : ${selectedDraft.numeroPiece || selectedDraft.sourceId} du ${selectedDraft.datePiece ? format(new Date(selectedDraft.datePiece), 'dd/MM/yyyy') : 'N/A'}`} className="bg-gray-50 text-xs h-8 border-gray-300 font-medium text-gray-900" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">N° Saisie (Brouillard)</label>
+                <Input readOnly value={selectedDraft.id?.split('-')[0].toUpperCase()} className="bg-gray-50 text-xs h-8 text-right font-mono font-bold text-blue-900 border-gray-300" />
+              </div>
+
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Période / Exercice</label>
+                <Input readOnly value={selectedDraft.periodeCode || 'Exercice Courant'} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Date de création prévue</label>
+                <Input readOnly value={format(new Date(), 'dd/MM/yyyy')} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Journal</label>
+                <Input readOnly value={`${selectedDraft.journalCode || 'JV'} - ${selectedDraft.journalLibelle || 'Journal non spécifié'}`} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+
+              <div className="col-span-12 flex flex-col gap-1.5 mt-1">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Description / Remarques</label>
+                <Input readOnly value={selectedDraft.libelle || `Saisie semi-automatique des données relatives à l'opération de type ${selectedDraft.type}`} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-6 text-sm text-gray-400">
+              Sélectionnez une ligne dans le tableau ci-dessus pour afficher l'entête.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+      {/* BOTTOM PANEL: Document Lines */}
+      <Card className="rounded-md border shadow-sm flex-1 flex flex-col min-h-0 mb-8">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Détail écriture comptable</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 flex flex-col bg-white overflow-hidden relative">
+
+          <div className="flex-1 overflow-y-auto">
+            <Table>
+              <TableHeader className="bg-gray-50/80 sticky top-0 z-10 shadow-sm border-b text-xs">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[120px] font-bold text-gray-700 h-8 border-r">N° Compte</TableHead>
+                  <TableHead className="font-bold text-gray-700 h-8 border-r">Intitulé</TableHead>
+                  <TableHead className="w-[60px] text-center font-bold text-gray-700 h-8 border-r">Sens</TableHead>
+                  <TableHead className="w-[150px] text-right font-bold text-gray-700 h-8 border-r">Débit</TableHead>
+                  <TableHead className="w-[150px] text-right font-bold text-gray-700 h-8 border-r">Crédit</TableHead>
+                  <TableHead className="w-[80px] text-center font-bold text-gray-700 h-8">Journal</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!selectedDraft ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Sélectionnez une ligne ci-dessus pour prévisualiser les écritures comptables générées.</TableCell></TableRow>
+                ) : previewLines.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Aucune ligne générée (Format non supporté ou données incomplètes).</TableCell></TableRow>
+                ) : (
+                  previewLines.map((line, idx) => (
+                    <TableRow key={idx} className="text-xs border-b hover:bg-gray-50/50">
+                      <TableCell className="font-mono border-r py-2">{line.compte}</TableCell>
+                      <TableCell className="border-r py-2 font-medium">{line.libelle}</TableCell>
+                      <TableCell className="text-center border-r py-2 font-medium">{line.sens}</TableCell>
+                      <TableCell className="text-right border-r py-2 font-mono text-gray-600 bg-red-50/20">
+                        {line.debit > 0 ? line.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right border-r py-2 font-mono text-gray-600 bg-blue-50/20">
+                        {line.credit > 0 ? line.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-medium">{line.journal}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Bottom Total Footer & Actions */}
+          <div className="bg-gray-100/80 border-t p-3 flex items-center justify-between text-sm mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-600 text-xs">Utilisateur :</span>
+              <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-medium text-gray-700">Administrateur</span>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-600 text-xs">Débit :</span>
+                <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-mono font-bold text-red-600 min-w-[120px] justify-end">
+                  {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-600 text-xs">Crédit :</span>
+                <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-mono font-bold text-red-600 min-w-[120px] justify-end">
+                  {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-muted/30 border-t p-2 flex justify-between items-center px-4">
+            <Button variant="ghost" className="text-red-500 h-8 text-xs hover:text-red-700 hover:bg-red-50" onClick={() => setSelectedDraft(null)} disabled={!selectedDraft}>
+              <XCircle className="w-4 h-4 mr-2" /> Effacer
+            </Button>
+
+            <Button
+              onClick={handleValidate}
+              disabled={!selectedDraft || isValidating || totalDebit !== totalCredit || totalDebit === 0}
+              className="bg-[#0055aa] hover:bg-[#004080] h-8 text-xs font-medium shadow-sm transition-all text-white"
+            >
+              {isValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileStack className="w-4 h-4 mr-2" />}
+              Valider & Enregistrer
+            </Button>
+          </div>
+
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
