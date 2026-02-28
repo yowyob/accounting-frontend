@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { cn, formatDateForApi } from '@/lib/utils';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
+import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 
 interface BilanItem {
   code: string;
@@ -153,7 +154,7 @@ export default function BalanceSheetPage() {
   const totalPassifs = bilanSections.passifs.reduce((sum, item) => sum + item.solde, 0);
   const totalCapitauxPropres = bilanSections.capitauxPropres.reduce((sum, item) => sum + item.solde, 0);
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+  if (isLoadingPeriods) return <CustomPageLoader />;
 
   return (
     <div className="min-h-screen p-4 bg-gray-50">

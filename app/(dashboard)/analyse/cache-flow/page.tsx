@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
 
 interface CashFlowData {
@@ -23,26 +25,14 @@ interface CashFlowData {
   category: 'operationnel' | 'investissement' | 'financement';
 }
 
-const staticCashFlowData: CashFlowData[] = [
-  // Activités opérationnelles
-  { code: 'A1', description: 'Résultat net', amount: 620000, category: 'operationnel' },
-  { code: 'A2', description: 'Ajustements non monétaires', amount: 150000, category: 'operationnel' },
-  { code: 'A3', description: 'Variation du BFR', amount: -200000, category: 'operationnel' },
-  // Activités d'investissement
-  { code: 'B1', description: 'Achat d\'immobilisations', amount: -300000, category: 'investissement' },
-  { code: 'B2', description: 'Vente d\'actifs', amount: 100000, category: 'investissement' },
-  // Activités de financement
-  { code: 'C1', description: 'Emprunts obtenus', amount: 400000, category: 'financement' },
-  { code: 'C2', description: 'Remboursement d\'emprunts', amount: -150000, category: 'financement' },
-  { code: 'C3', description: 'Dividendes versés', amount: -100000, category: 'financement' },
-];
-
 export default function CashFlowPage() {
   const { nationalCurrency } = useNationalCurrency();
   const currencyCode = nationalCurrency?.code || 'XAF';
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [cashFlowData, setCashFlowData] = useState<CashFlowData[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchPeriodesData = useCallback(async () => {
@@ -73,6 +63,50 @@ export default function CashFlowPage() {
     fetchPeriodesData();
   }, [fetchPeriodesData]);
 
+  useEffect(() => {
+    const fetchCashFlow = async () => {
+      if (!selectedPeriodeId || periodes.length === 0) {
+        setCashFlowData([]);
+        return;
+      }
+
+      const periode = periodes.find(p => p.id === selectedPeriodeId);
+      if (!periode) {
+        setCashFlowData([]);
+        return;
+      }
+
+      setIsLoadingData(true);
+      try {
+        const response = await AccountingFinancialReportsService.generateCashFlow(
+          periode.dateDebut.toString(),
+          periode.dateFin.toString()
+        );
+
+        if (response.success && response.data) {
+          const data = response.data as any;
+          const combinedData: CashFlowData[] = [
+            ...(data.operationnel || []),
+            ...(data.investissement || []),
+            ...(data.financement || [])
+          ];
+          setCashFlowData(combinedData);
+        } else {
+          setCashFlowData([]);
+          toast.error("Erreur lors de la génération des flux de trésorerie.");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la génération des flux de trésorerie:", error);
+        toast.error("Erreur lors de la génération des flux de trésorerie.");
+        setCashFlowData([]);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchCashFlow();
+  }, [selectedPeriodeId, periodes]);
+
   const handleGeneratePDF = () => {
     toast.info("L'export PDF sera disponible prochainement pour ce rapport");
   };
@@ -81,16 +115,16 @@ export default function CashFlowPage() {
     toast.info("L'export XLSX sera disponible prochainement");
   };
 
-  const operationnel = staticCashFlowData.filter(item => item.category === 'operationnel');
-  const investissement = staticCashFlowData.filter(item => item.category === 'investissement');
-  const financement = staticCashFlowData.filter(item => item.category === 'financement');
+  const operationnel = cashFlowData.filter(item => item.category === 'operationnel');
+  const investissement = cashFlowData.filter(item => item.category === 'investissement');
+  const financement = cashFlowData.filter(item => item.category === 'financement');
 
   const totalOperationnel = operationnel.reduce((sum, item) => sum + item.amount, 0);
   const totalInvestissement = investissement.reduce((sum, item) => sum + item.amount, 0);
   const totalFinancement = financement.reduce((sum, item) => sum + item.amount, 0);
   const totalFluxNet = totalOperationnel + totalInvestissement + totalFinancement;
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+  if (isLoadingPeriods || isLoadingData) return <CustomPageLoader />;
 
   return (
     <div className="min-h-screen p-4 bg-gray-50">

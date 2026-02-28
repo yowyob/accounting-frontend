@@ -17,6 +17,8 @@ import { BalanceDesComptesDto } from '@/src/lib2/models/BalanceDesComptesDto';
 import { toast } from 'sonner';
 import { cn, formatDateForApi } from '@/lib/utils';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { useNationalCurrency } from '@/hooks/use-national-currency';
+import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 
 export default function GeneralBalancePage() {
   const [periodes, setPeriodes] = useState<any[]>([]);
@@ -124,7 +126,7 @@ export default function GeneralBalancePage() {
     ligne.libelle?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+  if (isLoadingPeriods) return <CustomPageLoader />;
 
   return (
     <div className="min-h-screen p-4 bg-gray-50">
