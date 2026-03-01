@@ -112,4 +112,20 @@ export class DraftAccountingService {
             },
         });
     }
+    /**
+     * Create a new draft entry
+     * @param requestBody
+     * @returns ApiResponseWrapperBrouillardComptableDto OK
+     * @throws ApiError
+     */
+    public static createBrouillard(
+        requestBody: BrouillardComptableDto,
+    ): CancelablePromise<ApiResponseWrapperBrouillardComptableDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/accounting/brouillards',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
 }

@@ -131,7 +131,7 @@ export default function DraftAccountingPage() {
 
     const handleEditEntry = async (entry: EcritureComptableDto) => {
         try {
-            const response = await AccountingEntriesService.getById1(entry.id!);
+            const response = await AccountingEntriesService.getById(entry.id!);
             if (response.success && response.data) {
                 onOpen({
                     title: "Modifier l'Écriture (Brouillard)",
@@ -166,7 +166,7 @@ export default function DraftAccountingPage() {
 
     const handleDeleteEntry = async (entry: EcritureComptableDto) => {
         try {
-            await AccountingEntriesService.delete1(entry.id!);
+            await AccountingEntriesService.delete(entry.id!);
             toast.success('Écriture supprimée du brouillard');
             fetchAccountingDrafts();
             setActionDialog({ type: null, item: null });

@@ -101,7 +101,7 @@ export default function EcritureComptableDetailsPage() {
     const confirmDelete = async () => {
         if (!ecritureToDelete?.id) return;
         try {
-            await AccountingEntriesService.delete1(ecritureToDelete.id);
+            await AccountingEntriesService.delete(ecritureToDelete.id);
             router.push('/accounting/entries');
         } catch (error) {
             console.error("Failed to delete:", error);
