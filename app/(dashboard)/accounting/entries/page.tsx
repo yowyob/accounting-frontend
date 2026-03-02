@@ -209,35 +209,8 @@ export default function EcritureComptablePage() {
             <h2 className="text-xl font-semibold text-gray-700 mb-1">Écritures Comptables</h2>
             <p className="text-sm text-gray-500">Gérez et consultez vos écritures comptables.</p>
           </div>
-          <div>
-            <input
-              type="file"
-              id="invoice-upload"
-              accept=".pdf,.jpg,.jpeg,.png"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={isUploading}
-            />
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => document.getElementById('invoice-upload')?.click()}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Traitement...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  Coller une facture
-                </>
-              )}
-            </Button>
-          </div>
         </div>
+
 
         <EcritureComptableListView
           ecritures={ecritures}
@@ -270,6 +243,6 @@ export default function EcritureComptablePage() {
           />
         )}
       </div>
-    </div>
+    </div >
   );
 }
