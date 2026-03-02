@@ -1,4 +1,5 @@
 import { request } from '../core/request';
+import { OpenAPI } from '../core/OpenAPI';
 
 export interface AccountingSettingDto {
     id?: string;
@@ -17,7 +18,7 @@ export class AccountingSettingService {
      * Get all accounting settings
      */
     public static getAllSettings(): Promise<AccountingSettingDto[]> {
-        return request({
+        return request(OpenAPI, {
             method: 'GET',
             url: `/api/accounting/settings`,
         });
@@ -27,7 +28,7 @@ export class AccountingSettingService {
      * Get setting for a specific type
      */
     public static getSetting(type: string, journalId?: string): Promise<AccountingSettingDto> {
-        return request({
+        return request(OpenAPI, {
             method: 'GET',
             url: `/api/accounting/settings/${type}`,
             query: { journalId },
@@ -38,7 +39,7 @@ export class AccountingSettingService {
      * Update or create an accounting setting
      */
     public static updateSetting(data: AccountingSettingDto): Promise<{ success: boolean; data: AccountingSettingDto; message: string }> {
-        return request({
+        return request(OpenAPI, {
             method: 'PUT',
             url: `/api/accounting/settings`,
             body: data,
