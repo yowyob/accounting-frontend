@@ -87,11 +87,11 @@ export const modules: Record<ModuleKey, Module> = {
     icon: BarChart3,
     composeActionLabel: "",
     sidebarLinks: [
+      { title: "Rapports Financiers", icon: FileText, href: "/accounting/reports" },
       { title: "Bilan", icon: Scale, href: "/analyse/balance-sheet" },
       { title: "Compte de Résultat", icon: BookOpen, href: "/analyse/profit-and-loss" },
       { title: "Flux de Trésorerie", icon: ArrowRightLeft, href: "/analyse/cache-flow" },
       { title: "Résumé Général", icon: Notebook, href: "/analyse/executive-summary" },
-      { title: "Rapports Financiers", icon: FileText, href: "/accounting/reports" },
       { title: "Grand Livre", icon: BookOpen, href: "/analyse/generale-ledger" },
       { title: "Balance Générale", icon: Landmark, href: "/analyse/generale-balance" },
       { title: "Journal Audit", icon: History, href: "/analyse/audits" },

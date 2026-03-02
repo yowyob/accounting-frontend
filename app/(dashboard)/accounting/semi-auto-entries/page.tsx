@@ -15,9 +15,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { toast } from "sonner";
-import { CheckCircle2, FileStack, RefreshCw, XCircle, Search, Filter } from 'lucide-react';
+import { CheckCircle2, FileStack, RefreshCw, XCircle, Search, Filter, UploadCloud } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { useDropzone } from 'react-dropzone';
 import {
   Select,
   SelectContent,
@@ -30,6 +31,7 @@ export default function AccountingSemiAutoEntryPage() {
   const [drafts, setDrafts] = useState<BrouillardComptableDto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [selectedDraft, setSelectedDraft] = useState<BrouillardComptableDto | null>(null);
 
   const fetchDrafts = useCallback(async () => {
@@ -75,6 +77,46 @@ export default function AccountingSemiAutoEntryPage() {
       setIsValidating(false);
     }
   };
+
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) return;
+
+    const file = acceptedFiles[0];
+    setIsUploading(true);
+    const loadingToastId = toast.loading("Analyse du document en cours par l'OCR...");
+
+    try {
+      const response = await DraftAccountingService.uploadDraftFromInvoice({ file });
+      if (response && response.success) {
+        toast.success("Facture importée", {
+          id: loadingToastId,
+          description: "Le brouillard comptable a été généré avec succès."
+        });
+        await fetchDrafts();
+      } else {
+        throw new Error(response?.message || "Erreur inconnue");
+      }
+    } catch (error: any) {
+      console.error("OCR Upload failed:", error);
+      toast.error("Échec de l'importation", {
+        id: loadingToastId,
+        description: error.message || "Impossible de lire la facture."
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [fetchDrafts]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+    },
+    maxFiles: 1,
+    multiple: false
+  });
 
   const currentPreviewLines = () => {
     if (!selectedDraft) return [];
@@ -126,6 +168,28 @@ export default function AccountingSemiAutoEntryPage() {
           </Button>
         </div>
       </div>
+
+      {/* TOP UPLOAD PANEL: Drag & Drop OCR */}
+      <Card className={`rounded-md border shadow-sm border-dashed transition-colors ${isDragActive ? 'border-blue-400 bg-blue-50/50' : 'border-gray-300 bg-white hover:bg-gray-50'}`}>
+        <div {...getRootProps()} className="cursor-pointer p-6 flex flex-col items-center justify-center text-center gap-3">
+          <input {...getInputProps()} />
+          <div className={`p-3 rounded-full ${isDragActive ? 'bg-blue-100' : 'bg-gray-100'}`}>
+            {isUploading ? (
+              <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+            ) : (
+              <UploadCloud className={`w-6 h-6 ${isDragActive ? 'text-blue-600' : 'text-gray-500'}`} />
+            )}
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">
+              {isUploading ? "Analyse en cours..." : "Glissez une facture ou un reçu ici"}
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              PNG, JPG, PDF (Max 10MB). L'IA extraira automatiquement l'entête et le détail des lignes.
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* TOP PANEL: Filters & List */}
       <Card className="rounded-md border shadow-sm">

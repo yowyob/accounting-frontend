@@ -12,11 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Search, RefreshCw, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
+import { formatDateForApi } from '@/lib/utils';
+import { toast } from 'sonner';
+import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 
 interface CashFlowData {
   code: string;
@@ -79,8 +80,8 @@ export default function CashFlowPage() {
       setIsLoadingData(true);
       try {
         const response = await AccountingFinancialReportsService.generateCashFlow(
-          periode.dateDebut.toString(),
-          periode.dateFin.toString()
+          formatDateForApi(periode.dateDebut),
+          formatDateForApi(periode.dateFin)
         );
 
         if (response.success && response.data) {
@@ -141,13 +142,7 @@ export default function CashFlowPage() {
           </div>
         </div>
 
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 flex gap-3 text-blue-700 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p>
-            <strong>Note :</strong> La génération automatique des flux de trésorerie est en cours de développement. Les données affichées ci-dessous sont des exemples illustratifs (Mock) pour la période sélectionnée.
-          </p>
-        </div>
-
+       
         <div className="space-y-4">
           <div className="flex gap-4 items-center">
             <Select value={selectedPeriodeId || ''} onValueChange={setSelectedPeriodeId}>

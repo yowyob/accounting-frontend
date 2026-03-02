@@ -169,4 +169,46 @@ export class AccountingFinancialReportsService {
             },
         });
     }
+
+    /**
+     * Generate Cash Flow
+     * @param dateDebut
+     * @param dateFin
+     * @returns ApiResponseWrapperMapStringObject OK
+     * @throws ApiError
+     */
+    public static generateCashFlow(
+        dateDebut: string,
+        dateFin: string,
+    ): CancelablePromise<ApiResponseWrapperMapStringObject> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/rapport/flux-tresorerie',
+            query: {
+                'date_debut': dateDebut,
+                'date_fin': dateFin,
+            },
+        });
+    }
+
+    /**
+     * Generate Executive Summary
+     * @param dateDebut
+     * @param dateFin
+     * @returns ApiResponseWrapperMapStringObject OK
+     * @throws ApiError
+     */
+    public static generateExecutiveSummary(
+        dateDebut: string,
+        dateFin: string,
+    ): CancelablePromise<ApiResponseWrapperMapStringObject> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/accounting/rapport/resume-executif',
+            query: {
+                'date_debut': dateDebut,
+                'date_fin': dateFin,
+            },
+        });
+    }
 }
