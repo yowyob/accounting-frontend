@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { useSidebar } from "@/hooks/useSidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import Link from "next/link";
+import { NotificationBell } from "../notifications/notification-bell";
 
 export function Header() {
   const { toggle } = useSidebar();
@@ -57,6 +58,7 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
 
+        <NotificationBell />
         <UserNav />
       </div>
     </header>

@@ -112,4 +112,22 @@ export class DraftAccountingService {
             },
         });
     }
+    /**
+     * Upload an invoice/receipt for OCR and create a draft entry
+     * @param formData
+     * @returns ApiResponseWrapperBrouillardComptableDto OK
+     * @throws ApiError
+     */
+    public static uploadDraftFromInvoice(
+        formData?: {
+            file: Blob | File;
+        },
+    ): CancelablePromise<ApiResponseWrapperBrouillardComptableDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/accounting/brouillards/upload',
+            formData: formData,
+            mediaType: 'multipart/form-data',
+        });
+    }
 }

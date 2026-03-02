@@ -16,6 +16,7 @@ import { AccountingFinancialReportsService } from '@/src/lib2/services/Accountin
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
 import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
+import { formatDateForApi } from '@/lib/utils';
 
 export default function GeneralSummaryPage() {
   const { nationalCurrency } = useNationalCurrency();
@@ -70,8 +71,8 @@ export default function GeneralSummaryPage() {
       setIsLoadingData(true);
       try {
         const response = await AccountingFinancialReportsService.generateExecutiveSummary(
-          periode.dateDebut.toString(),
-          periode.dateFin.toString()
+          formatDateForApi(periode.dateDebut),
+          formatDateForApi(periode.dateFin)
         );
 
         if (response.success && response.data) {
