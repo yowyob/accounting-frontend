@@ -64,7 +64,7 @@ export function CustomerListView({ clients, isLoading, onSelectClient, onEditCli
         },
         { accessorKey: 'code', header: 'Code' },
         { accessorKey: 'contactPerson', header: 'Contact' },
-        { accessorKey: 'phone', header: 'Téléphone' },
+
         {
             accessorKey: 'balance',
             header: () => <div className="">Solde</div>,

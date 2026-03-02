@@ -15,6 +15,9 @@ import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { OpenAPI } from '@/src/lib2/core/OpenAPI';
 import { request as __request } from '@/src/lib2/core/request';
 import { toast } from 'sonner';
+import { AccountingInvoiceUploadService } from '@/src/lib2/services/AccountingInvoiceUploadService';
+import { Loader2, Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function EcritureComptablePage() {
   const router = useRouter();
@@ -23,6 +26,8 @@ export default function EcritureComptablePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedEcritureId, setSelectedEcritureId] = useState<string | null>(null);
   const [ecritureToDelete, setEcritureToDelete] = useState<EcritureComptableDto | null>(null);
+  const [ecritureToDeactivate, setEcritureToDeactivate] = useState<EcritureComptableDto | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [accounts, setAccounts] = useState<{ id: string; noCompte: string }[]>([]);
 
@@ -115,6 +120,55 @@ export default function EcritureComptablePage() {
     }
   };
 
+  const confirmDeactivate = async () => {
+    if (!ecritureToDeactivate?.id) return;
+    try {
+      await AccountingEntriesService.deactivate(ecritureToDeactivate.id);
+      await fetchAndSetEcritures();
+      toast.success("Écriture désactivée avec succès");
+    } catch (error: any) {
+      console.error("Failed to deactivate ecriture:", error);
+      toast.error(`Erreur lors de la désactivation: ${error.body?.message || error.message || "Erreur inconnue"}`);
+    } finally {
+      setEcritureToDeactivate(null);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Upload the invoice
+      const uploadResponse = await AccountingInvoiceUploadService.upload({ file });
+
+      if (uploadResponse.success && uploadResponse.data) {
+        toast.success("Facture analysée avec succès");
+
+        // 2. Generate accounting entry from invoice data
+        // We cast the data to any because ComptableObject has compatible structure
+        const generationResponse = await AccountingEntriesService.generate1(uploadResponse.data as any);
+
+        if (generationResponse.success) {
+          toast.success("Écriture générée automatiquement");
+          await fetchAndSetEcritures();
+        } else {
+          toast.error("Erreur lors de la génération de l'écriture");
+        }
+      } else {
+        toast.error("Erreur lors de l'analyse de la facture");
+      }
+    } catch (error: any) {
+      console.error("Upload/Generation failed:", error);
+      toast.error(`Erreur: ${error.body?.message || error.message || "Une erreur est survenue"}`);
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      event.target.value = '';
+    }
+  };
+
   const handleEditEcriture = async (id: string) => {
     try {
       const response = await AccountingEntriesService.getById(id);
@@ -150,9 +204,39 @@ export default function EcritureComptablePage() {
   return (
     <div className="min-h-screen flex flex-col p-4 bg-gray-100">
       <div className="w-full max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-lg">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-700 mb-1">Écritures Comptables</h2>
-          <p className="text-sm text-gray-500">Gérez et consultez vos écritures comptables.</p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-700 mb-1">Écritures Comptables</h2>
+            <p className="text-sm text-gray-500">Gérez et consultez vos écritures comptables.</p>
+          </div>
+          <div>
+            <input
+              type="file"
+              id="invoice-upload"
+              accept=".pdf,.jpg,.jpeg,.png"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+            />
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => document.getElementById('invoice-upload')?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Traitement...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Coller une facture
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         <EcritureComptableListView
@@ -161,6 +245,7 @@ export default function EcritureComptablePage() {
           onSelectEcriture={handleViewEcriture} // Row click -> Navigate to Details Page
           onEditEcriture={handleEditEcriture}   // Edit click -> Edit Mode
           onDeleteEcriture={setEcritureToDelete}
+          onDeactivateEcriture={setEcritureToDeactivate}
           onAddNew={() => handleOpenCompose()}
           onRefresh={fetchAndSetEcritures}
         />
@@ -172,6 +257,16 @@ export default function EcritureComptablePage() {
             onConfirm={confirmDelete}
             title={`Supprimer ${ecritureToDelete.libelle} ?`}
             description="Cette action est irréversible. L'écriture sera supprimée si elle n'est pas validée."
+          />
+        )}
+
+        {ecritureToDeactivate && (
+          <ConfirmationDialog
+            isOpen={!!ecritureToDeactivate}
+            onClose={() => setEcritureToDeactivate(null)}
+            onConfirm={confirmDeactivate}
+            title={`Désactiver ${ecritureToDeactivate.libelle} ?`}
+            description="L'écriture sera désactivée et ne sera plus prise en compte dans les calculs."
           />
         )}
       </div>

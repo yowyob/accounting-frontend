@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, FileText, Hash, Info, Notebook, Tag, Download, Paperclip } from 'lucide-react';
+import { Calendar, FileText, Hash, Info, Notebook, Tag, Download, Paperclip, AlertCircle } from 'lucide-react';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { CompteDto } from '@/src/lib2/models/CompteDto';
 import { AccountingAttachmentService } from '@/src/lib2/services/AccountingAttachmentService';
@@ -23,6 +23,15 @@ import { Button } from '@/components/ui/button';
 interface EcritureComptableReadViewProps {
     ecriture: EcritureComptableDto;
 }
+
+// Extract rejection reason from notes field (stored as "[REJETÉ]: <reason>")
+const getRejectionReason = (notes?: string | null): string | null => {
+    if (!notes) return null;
+    const marker = '[REJETÉ]: ';
+    const idx = notes.indexOf(marker);
+    if (idx === -1) return null;
+    return notes.slice(idx + marker.length).trim() || null;
+};
 
 export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps> = ({ ecriture }) => {
     const [accounts, setAccounts] = useState<CompteDto[]>([]);
@@ -59,9 +68,16 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                             <p className="text-blue-100 text-sm font-medium mb-1">Écriture Comptable</p>
                             <h2 className="text-2xl font-bold tracking-tight">{ecriture.libelle}</h2>
                         </div>
-                        <Badge className={ecriture.validee ? "bg-white/20 text-white border-white/30 backdrop-blur-md" : "bg-orange-500 text-white border-none shadow-lg"}>
-                            {ecriture.validee ? "Validée" : "Brouillon"}
-                        </Badge>
+                        {(() => {
+                            const rejectionReason = getRejectionReason(ecriture.notes);
+                            if (ecriture.validee) {
+                                return <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-md">Validée</Badge>;
+                            }
+                            if (rejectionReason) {
+                                return <Badge className="bg-red-500 text-white border-none shadow-lg gap-1"><AlertCircle className="h-3 w-3" />Rejeté</Badge>;
+                            }
+                            return <Badge className="bg-orange-500 text-white border-none shadow-lg">Brouillon</Badge>;
+                        })()}
                     </div>
                 </div>
 
@@ -110,8 +126,44 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                 </div>
             </div>
 
-            {/* Notes Section if exists */}
-            {ecriture.notes && (
+            {/* Rejection Banner */}
+            {(() => {
+                const rejectionReason = getRejectionReason(ecriture.notes);
+                if (!rejectionReason) return null;
+                // Strip the rejection part from notes for the banner
+                const markerIdx = ecriture.notes ? ecriture.notes.indexOf('[REJETÉ]: ') : -1;
+                const cleanNotes = markerIdx > 0 ? ecriture.notes!.slice(0, markerIdx).trim() : '';
+                void markerIdx;
+                return (
+                    <>
+                        {/* Rejection reason banner */}
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-5 flex gap-4">
+                            <div className="text-red-600 shrink-0">
+                                <AlertCircle className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold text-red-800 uppercase tracking-widest mb-1">Motif du rejet</p>
+                                <p className="text-sm text-red-900 leading-relaxed whitespace-pre-wrap">{rejectionReason}</p>
+                            </div>
+                        </div>
+                        {/* Other notes if any */}
+                        {cleanNotes && (
+                            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 flex gap-4">
+                                <div className="text-blue-600 shrink-0">
+                                    <Notebook className="h-6 w-6" />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-blue-800 uppercase tracking-widest mb-1">Notes Internes</p>
+                                    <p className="text-sm text-blue-900 leading-relaxed italic">{cleanNotes}</p>
+                                </div>
+                            </div>
+                        )}
+                    </>
+                );
+            })()}
+
+            {/* Notes Section if exists (no rejection) */}
+            {!getRejectionReason(ecriture.notes) && ecriture.notes && (
                 <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5 flex gap-4">
                     <div className="text-blue-600 shrink-0">
                         <Notebook className="h-6 w-6" />

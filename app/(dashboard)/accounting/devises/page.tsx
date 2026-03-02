@@ -38,7 +38,7 @@ export default function DevisesPage() {
     try {
       const [currenciesRes, ratesRes] = await Promise.all([
         CurrencyManagementService.getAllDevises(),
-        ExchangeRateManagementService.getTenantRates()
+        ExchangeRateManagementService.getOrganizationRates()
       ]);
 
       if (currenciesRes.success && currenciesRes.data) {

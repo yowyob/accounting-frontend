@@ -12,11 +12,27 @@ import {
   TableHead,
   TableCell,
 } from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
-import { Edit, Trash2, Plus, Check, RefreshCw, Loader2, Search } from 'lucide-react';
+import { Edit, Trash2, Plus, Check, RefreshCw, Loader2, Search, Archive, FileText, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
+
+// Helper: detect if an entry was rejected (rejection reason stored in notes)
+const getRejectionReason = (notes?: string | null): string | null => {
+  if (!notes) return null;
+  const marker = '[REJETÉ]: ';
+  const idx = notes.indexOf(marker);
+  if (idx === -1) return null;
+  return notes.slice(idx + marker.length).trim() || null;
+};
 
 interface EcritureComptableListViewProps {
   ecritures: EcritureComptableDto[];
@@ -24,13 +40,14 @@ interface EcritureComptableListViewProps {
   onSelectEcriture: (id: string) => void;
   onEditEcriture: (id: string) => void;
   onDeleteEcriture: (ecriture: EcritureComptableDto) => void;
+  onDeactivateEcriture?: (ecriture: EcritureComptableDto) => void;
   onAddNew?: () => void;
   onRefresh?: () => void;
   selectedId?: string;
   readOnly?: boolean;
 }
 
-const RowActions = ({ ecriture, onEdit, onDelete }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void }) => {
+const RowActions = ({ ecriture, onEdit, onDelete, onDeactivate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onDeactivate?: (ecriture: EcritureComptableDto) => void }) => {
   if (ecriture.validee) return null; // Hide actions if validated
 
   return (
@@ -44,6 +61,16 @@ const RowActions = ({ ecriture, onEdit, onDelete }: { ecriture: EcritureComptabl
           </TooltipTrigger>
           <TooltipContent><p>Modifier</p></TooltipContent>
         </Tooltip>
+        {onDeactivate && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50" onClick={() => onDeactivate(ecriture)}>
+                <Archive className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Désactiver</p></TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(ecriture)}>
@@ -63,12 +90,18 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
   onSelectEcriture,
   onEditEcriture,
   onDeleteEcriture,
+  onDeactivateEcriture,
   onAddNew,
   onRefresh,
   selectedId,
   readOnly = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [rejectModalReason, setRejectModalReason] = useState<{ isOpen: boolean; reason: string | null; libelle: string | null }>({
+    isOpen: false,
+    reason: null,
+    libelle: null
+  });
   const { nationalCurrency } = useNationalCurrency();
   const currencyCode = nationalCurrency?.code || 'XAF';
 
@@ -146,51 +179,114 @@ export const EcritureComptableListView: React.FC<EcritureComptableListViewProps>
                 </TableCell>
               </TableRow>
             ) : (
-              filteredEcritures.map((ecriture) => (
-                <TableRow
-                  key={ecriture.id}
-                  className={`group cursor-pointer transition-colors hover:bg-blue-50/50 ${selectedId === ecriture.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
-                  onClick={() => onSelectEcriture(ecriture.id || '')}
-                >
-                  <TableCell className="font-medium text-gray-900">{ecriture.libelle}</TableCell>
-                  <TableCell className="text-gray-500">
-                    {new Date(ecriture.dateEcriture).toLocaleDateString('fr-FR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric'
-                    })}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
-                      {ecriture.journalComptableLibelle}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-right">
-                    {(ecriture.montantTotalDebit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
-                  </TableCell>
-                  <TableCell className="font-mono text-right">
-                    {(ecriture.montantTotalCredit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={ecriture.validee ? "default" : "secondary"} className={ecriture.validee ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}>
-                      {ecriture.validee ? 'Validée' : 'Brouillon'}
-                    </Badge>
-                  </TableCell>
-                  {!readOnly && (
-                    <TableCell className="text-right px-6">
-                      <RowActions
-                        ecriture={ecriture}
-                        onEdit={onEditEcriture}
-                        onDelete={onDeleteEcriture}
-                      />
+              filteredEcritures.map((ecriture) => {
+                const rejectionReason = getRejectionReason(ecriture.notes);
+                return (
+                  <TableRow
+                    key={ecriture.id}
+                    className={`group cursor-pointer transition-colors hover:bg-blue-50/50 ${selectedId === ecriture.id ? 'bg-blue-100/50 shadow-sm border-blue-200' : ''}`}
+                    onClick={() => onSelectEcriture(ecriture.id || '')}
+                  >
+                    <TableCell className="font-medium text-gray-900">
+                      <div className="flex items-center gap-2">
+                        {ecriture.libelle}
+                        {ecriture.attachmentIds && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <FileText className="h-3 w-3 text-blue-500" />
+                              </TooltipTrigger>
+                              <TooltipContent>Document joint</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </TableCell>
-                  )}
-                </TableRow>
-              ))
+                    <TableCell className="text-gray-500">
+                      {new Date(ecriture.dateEcriture).toLocaleDateString('fr-FR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="font-normal border-blue-200 text-blue-700 bg-blue-50/50">
+                        {ecriture.journalComptableLibelle}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-right">
+                      {(ecriture.montantTotalDebit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantDebit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
+                    </TableCell>
+                    <TableCell className="font-mono text-right">
+                      {(ecriture.montantTotalCredit || (ecriture.detailsEcriture?.reduce((sum, d) => sum + (Number(d.montantCredit) || 0), 0) || 0)).toLocaleString('fr-FR')} {currencyCode}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {ecriture.validee ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">
+                          Validée
+                        </Badge>
+                      ) : rejectionReason ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <Badge className="bg-red-100 text-red-700 border-none gap-1">
+                            <AlertCircle className="h-3 w-3" /> Rejeté
+                          </Badge>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRejectModalReason({ isOpen: true, reason: rejectionReason, libelle: ecriture.libelle });
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors whitespace-nowrap"
+                          >
+                            Motif du rejet
+                          </button>
+                        </div>
+                      ) : (
+                        <Badge variant="secondary" className="bg-gray-100 text-gray-600 hover:bg-gray-200">
+                          Brouillon
+                        </Badge>
+                      )}
+                    </TableCell>
+                    {!readOnly && (
+                      <TableCell className="text-right">
+                        <RowActions
+                          ecriture={ecriture}
+                          onEdit={onEditEcriture}
+                          onDelete={onDeleteEcriture}
+                          onDeactivate={onDeactivateEcriture}
+                        />
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={rejectModalReason.isOpen} onOpenChange={(open) => setRejectModalReason(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="sm:max-w-md border-red-100">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-5 w-5" />
+              Motif du rejet
+            </DialogTitle>
+            <DialogDescription className="text-gray-500">
+              Pour l'écriture : <span className="font-semibold text-gray-700">« {rejectModalReason.libelle} »</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-red-50 border border-red-100 rounded-lg p-4 mt-2">
+            <p className="text-sm text-red-900 whitespace-pre-wrap leading-relaxed">
+              {rejectModalReason.reason}
+            </p>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={() => setRejectModalReason(prev => ({ ...prev, isOpen: false }))}>
+              Fermer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
