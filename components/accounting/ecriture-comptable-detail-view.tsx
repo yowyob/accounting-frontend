@@ -36,6 +36,8 @@ import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsS
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { toast } from 'sonner';
 import { AccountAutocomplete } from './account-autocomplete';
+import { FileUpload } from '@/components/ui/file-upload';
+import { AccountingAttachmentService } from '@/src/lib2/services/AccountingAttachmentService';
 
 interface EcritureComptableDetailViewProps {
   ecriture: EcritureComptableDto | null;
@@ -64,6 +66,24 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
   const [openPeriodePopover, setOpenPeriodePopover] = useState(false);
   const [isLoadingJournals, setIsLoadingJournals] = useState(true);
   const [isLoadingPeriodes, setIsLoadingPeriodes] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<{ id: string, name: string }[]>([]);
+
+  useEffect(() => {
+    // Populate existing attachments on load if any
+    if (ecriture?.attachmentIds) {
+      try {
+        const parsed = typeof ecriture.attachmentIds === 'string' ? JSON.parse(ecriture.attachmentIds) : ecriture.attachmentIds;
+        if (Array.isArray(parsed)) {
+          setUploadedFiles(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to parse attachmentIds", e);
+      }
+    } else {
+      setUploadedFiles([]);
+    }
+  }, [ecriture?.attachmentIds]);
 
   const getAccountNumber = (accountId: string) => {
     const account = accounts.find(acc => acc.id === accountId || acc.noCompte === accountId);
@@ -187,6 +207,7 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     // Convert numbers back to IDs before saving and include calculated totals
     const processedData = {
       ...data,
+      attachmentIds: uploadedFiles.length > 0 ? JSON.stringify(uploadedFiles) : undefined,
       montantTotalDebit: liveTotalDebit,
       montantTotalCredit: liveTotalCredit,
       detailsEcriture: data.detailsEcriture.map(d => ({
@@ -196,6 +217,33 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
     };
 
     onSave(processedData);
+  };
+
+  const handleUpload = async (files: File[]) => {
+    setIsUploading(true);
+    try {
+      const newFiles: { id: string, name: string }[] = [];
+      for (const file of files) {
+        const res = await AccountingAttachmentService.uploadAttachment({ file });
+        if (res.success && res.data) {
+          newFiles.push({ id: res.data.id, name: res.data.originalFilename });
+        } else {
+          toast.error(`Échec du téléversement de ${file.name}`);
+        }
+      }
+      if (newFiles.length > 0) {
+        setUploadedFiles(prev => [...prev, ...newFiles]);
+        toast.success(`${newFiles.length} fichier(s) ajouté(s)`);
+      }
+    } catch (err: any) {
+      toast.error("Erreur lors du téléversement : " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveFile = (id: string) => {
+    setUploadedFiles(prev => prev.filter(f => f.id !== id));
   };
 
   const addDetailLine = () => {
@@ -480,6 +528,17 @@ export const EcritureComptableDetailView: React.FC<EcritureComptableDetailViewPr
                         </FormControl>
                       </FormItem>
                     )}
+                  />
+                </div>
+
+                {/* File Upload Section */}
+                <div className="pt-4 border-t border-gray-100">
+                  <FormLabel className="text-blue-900 font-medium block mb-3">Pièces Jointes (Factures, Reçus, etc.)</FormLabel>
+                  <FileUpload
+                    onUpload={handleUpload}
+                    isUploading={isUploading}
+                    uploadedFiles={uploadedFiles}
+                    onRemoveFile={!ecriture?.validee ? handleRemoveFile : undefined}
                   />
                 </div>
               </div>

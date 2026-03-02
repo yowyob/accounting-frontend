@@ -1,529 +1,331 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { CustomerInvoiceDto } from '@/src/lib2/models/CustomerInvoiceDto';
-import { SupplierInvoiceDto } from '@/src/lib2/models/SupplierInvoiceDto';
-import { EcritureComptableDto } from '@/src/lib2/models/EcritureComptableDto';
-import { DetailEcritureDto } from '@/src/lib2/models/DetailEcritureDto';
-import { InvoiceAccountingService } from '@/src/lib2/services/InvoiceAccountingService';
-import { AccountingInvoiceUploadService } from '@/src/lib2/services/AccountingInvoiceUploadService';
-import { SemiAutoEntryListView } from '@/components/accounting/semi-auto-entry-list-view';
-import { SemiAutoEntryPreview } from '@/components/accounting/semi-auto-entry-preview';
+import React, { useState, useEffect, useCallback } from 'react';
+import { DraftAccountingService } from '@/src/lib2/services/DraftAccountingService';
+import { BrouillardComptableDto } from '@/src/lib2/models/BrouillardComptableDto';
+import { format } from 'date-fns';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { RefreshCw, FileText, UploadCloud, FileUp, Zap, Settings2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { toast } from "sonner";
+import { CheckCircle2, FileStack, RefreshCw, XCircle, Search, Filter } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-type InvoiceType = 'SALE' | 'PURCHASE';
-type DocumentType = 'FACTURE_CLIENT' | 'FACTURE_FOURNISSEUR' | 'MOUVEMENT_STOCK' | 'MOUVEMENT_CAISSE' | 'OPERATION_BANCAIRE' | 'AUTRE';
-type ProcessMode = 'SEMI_AUTO' | 'AUTO';
+export default function AccountingSemiAutoEntryPage() {
+  const [drafts, setDrafts] = useState<BrouillardComptableDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
+  const [selectedDraft, setSelectedDraft] = useState<BrouillardComptableDto | null>(null);
 
-export default function SemiAutoEntryPage() {
-  return (
-    <Suspense fallback={<div className="p-8 text-center text-gray-500">Chargement...</div>}>
-      <SemiAutoEntryContent />
-    </Suspense>
-  );
-}
-
-function SemiAutoEntryContent() {
-  const searchParams = useSearchParams();
-  const fromDraftId = searchParams.get('from_draft');
-
-  // Input Hub States
-  const [docType, setDocType] = useState<DocumentType>('FACTURE_CLIENT');
-  const [processMode, setProcessMode] = useState<ProcessMode>('SEMI_AUTO');
-  const [file, setFile] = useState<File | null>(null);
-
-  // List States
-  const [invoiceType, setInvoiceType] = useState<InvoiceType>('SALE');
-  const [invoices, setInvoices] = useState<(CustomerInvoiceDto | SupplierInvoiceDto)[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<CustomerInvoiceDto | SupplierInvoiceDto | null>(null);
-  const [generatedEntry, setGeneratedEntry] = useState<EcritureComptableDto | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    fetchInvoices();
-  }, [invoiceType]);
-
-  useEffect(() => {
-    if (fromDraftId && invoices.length > 0) {
-      const draft = invoices.find(inv => inv.idFacture === fromDraftId);
-      if (draft) {
-        generateEntry(draft);
-      }
-    }
-  }, [fromDraftId, invoices]);
-
-  const fetchInvoices = async () => {
+  const fetchDrafts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const type = invoiceType === 'SALE' ? 'FACTURE_CLIENT' : 'FACTURE_FOURNISSEUR';
-      const response = await DraftAccountingService.getAllBrouillards(
-        'EN_ATTENTE_VALIDATION',
-        type,
-        0,
-        100
+      // Fetch Drafts
+      const response = await DraftAccountingService.getAllBrouillards(BrouillardComptableDto.statut.EN_ATTENTE_VALIDATION);
+      const draftsDraft = await DraftAccountingService.getAllBrouillards(BrouillardComptableDto.statut.BROUILLON);
+
+      const allDrafts = [...(response || []), ...(draftsDraft || [])].sort(
+        (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
       );
 
-      const convertedInvoices = (response || []).map((brouillard): CustomerInvoiceDto | SupplierInvoiceDto => {
-        const baseInvoice = {
-          idFacture: brouillard.id || '',
-          numeroFacture: brouillard.numeroPiece || '',
-          dateFacturation: brouillard.datePiece || '',
-          montantHT: (brouillard.montantTotal || 0) / 1.1925,
-          montantTVA: (brouillard.montantTotal || 0) * 0.1925 / 1.1925,
-          montantTTC: brouillard.montantTotal || 0,
-          modeReglement: 'Non spécifié',
-        };
-
-        if (invoiceType === 'SALE') {
-          return { ...baseInvoice, nomClient: brouillard.libelle || 'Client inconnu' } as CustomerInvoiceDto;
-        } else {
-          return { ...baseInvoice, nomFournisseru: brouillard.libelle || 'Fournisseur inconnu' } as SupplierInvoiceDto;
-        }
-      });
-      setInvoices(convertedInvoices);
+      setDrafts(allDrafts);
+      setSelectedDraft(null); // Reset selection on refresh
     } catch (error) {
-      console.error('Failed to fetch invoices:', error);
-      toast.error('Erreur lors du chargement des brouillards');
-      setInvoices([]);
+      console.error("Failed to fetch drafts:", error);
+      toast.error("Erreur", { description: "Impossible de charger les brouillards comptables." });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const generateEntry = (invoice: CustomerInvoiceDto | SupplierInvoiceDto) => {
-    const details: DetailEcritureDto[] = [];
-    const montantHT = invoice.montantHT || 0;
-    const montantTVA = invoice.montantTVA || 0;
-    const montantTTC = invoice.montantTTC || 0;
+  useEffect(() => {
+    fetchDrafts();
+  }, [fetchDrafts]);
 
-    if (invoiceType === 'SALE') {
-      details.push({
-        compteComptableId: '411000',
-        libelle: `Facture ${invoice.numeroFacture} - ${(invoice as CustomerInvoiceDto).nomClient}`,
-        sens: 'DEBIT',
-        montantDebit: montantTTC,
-        montantCredit: 0,
-        ecritureComptableId: '',
-      });
-      details.push({
-        compteComptableId: '701000',
-        libelle: 'Vente de marchandises',
-        sens: 'CREDIT',
-        montantDebit: 0,
-        montantCredit: montantHT,
-        ecritureComptableId: '',
-      });
-      details.push({
-        compteComptableId: '445710',
-        libelle: 'TVA collectée',
-        sens: 'CREDIT',
-        montantDebit: 0,
-        montantCredit: montantTVA,
-        ecritureComptableId: '',
-      });
-    } else {
-      details.push({
-        compteComptableId: '601000',
-        libelle: 'Achat de marchandises',
-        sens: 'DEBIT',
-        montantDebit: montantHT,
-        montantCredit: 0,
-        ecritureComptableId: '',
-      });
-      details.push({
-        compteComptableId: '445660',
-        libelle: 'TVA déductible',
-        sens: 'DEBIT',
-        montantDebit: montantTVA,
-        montantCredit: 0,
-        ecritureComptableId: '',
-      });
-      details.push({
-        compteComptableId: '401000',
-        libelle: `Facture ${invoice.numeroFacture} - ${(invoice as SupplierInvoiceDto).nomFournisseru}`,
-        sens: 'CREDIT',
-        montantDebit: 0,
-        montantCredit: montantTTC,
-        ecritureComptableId: '',
-      });
-    }
+  const handleValidate = async () => {
+    if (!selectedDraft || !selectedDraft.id) return;
 
-    const entry: EcritureComptableDto = {
-      libelle: `Saisie ${processMode === 'AUTO' ? 'automatique' : 'semi-automatique'} - Facture ${invoice.numeroFacture}`,
-      dateEcriture: invoice.dateFacturation,
-      periodeComptableId: '',
-      journalComptableId: '',
-      montantTotalDebit: montantTTC,
-      montantTotalCredit: montantTTC,
-      validee: processMode === 'AUTO', // Automatically validated if AUTO mode
-      referenceExterne: invoice.numeroFacture,
-      detailsEcriture: details,
-    };
-
-    setGeneratedEntry(entry);
-    setSelectedInvoice(invoice);
-  };
-
-  const handleValidateEntry = async () => {
-    if (!generatedEntry || !selectedInvoice) return;
-    setIsSubmitting(true);
+    setIsValidating(true);
     try {
-      if (processMode === 'AUTO') {
-        // Validation et enregistrement direct
-        if (invoiceType === 'SALE') {
-          await InvoiceAccountingService.accountCustomerInvoice(selectedInvoice as CustomerInvoiceDto);
-        } else {
-          await InvoiceAccountingService.accountSupplierInvoice(selectedInvoice as SupplierInvoiceDto);
-        }
-        toast.success('Écriture comptabilisée et validée avec succès');
-      } else {
-        // Sauvegarde en tant que brouillard (SEMI_AUTO)
-        const brouillardType = invoiceType === 'SALE' ? 'FACTURE_CLIENT' : 'FACTURE_FOURNISSEUR';
-        await DraftAccountingService.createBrouillard({
-          type: brouillardType as 'FACTURE_CLIENT' | 'FACTURE_FOURNISSEUR',
-          statut: 'EN_ATTENTE_VALIDATION',
-          numeroPiece: selectedInvoice.numeroFacture,
-          datePiece: selectedInvoice.dateFacturation,
-          libelle: generatedEntry.libelle,
-          montantTotal: generatedEntry.montantTotalDebit,
-          devise: 'XAF', // Adapt if currency is elsewhere
-          dataJson: generatedEntry as any // Contains the details and breakdown
-        });
-        toast.success('Brouillard d\'écriture généré avec succès. En attente de validation.');
-      }
-
-      setSelectedInvoice(null);
-      setGeneratedEntry(null);
-      await fetchInvoices();
-    } catch (error) {
-      console.error('Failed to save entry:', error);
-      toast.error('Erreur lors de l\'enregistrement');
+      await DraftAccountingService.validateBrouillard(selectedDraft.id, {
+        notes: "Validé depuis l'interface semi-automatique",
+        forceValidation: false
+      });
+      toast.success("Succès", { description: "Le brouillard a été validé et l'écriture a été enregistrée." });
+      await fetchDrafts(); // Refresh list
+    } catch (error: any) {
+      console.error("Failed to validate draft:", error);
+      toast.error("Erreur de validation", { description: error.message || "Impossible de valider le brouillard." });
     } finally {
-      setIsSubmitting(false);
+      setIsValidating(false);
     }
   };
 
-  const handleProcessFile = async () => {
-    if (!file) {
-      toast.error("Veuillez sélectionner un fichier à uploader");
-      return;
-    }
+  const currentPreviewLines = () => {
+    if (!selectedDraft) return [];
+    const data = selectedDraft.dataJson;
+    let details: Array<{ compte: string, libelle: string, sens: 'D' | 'C', debit: number, credit: number, journal: string }> = [];
 
-    setIsSubmitting(true);
-    try {
-      // 1. Upload file to backend for OCR/analysis
-      const uploadResponse = await AccountingInvoiceUploadService.upload({ file });
+    const journalCode = selectedDraft.journalCode || 'JV';
 
-      if (!uploadResponse.success || !uploadResponse.data) {
-        throw new Error(uploadResponse.message || "Erreur lors de l'analyse du document");
-      }
-
-      const facture = uploadResponse.data;
-      const tva = (facture.montant_ht || 0) * (facture.taux_tva || 0);
-      const ttc = (facture.montant_ht || 0) + tva;
-
-      // 2. Map AI response to our DetailEcritureDto structure
-      const details: DetailEcritureDto[] = [];
-      const isPurchase = facture.is_achat || docType === 'FACTURE_FOURNISSEUR';
-
-      if (!isPurchase) {
-        // VENTE
-        details.push({
-          compteComptableId: facture.get_debit_account || '411000',
-          libelle: facture.libelle || `Facture ${facture.id || ''}`,
-          sens: 'DEBIT',
-          montantDebit: ttc,
-          montantCredit: 0,
-          ecritureComptableId: '',
-        });
-        details.push({
-          compteComptableId: facture.get_credit_account || '701000',
-          libelle: 'Vente',
-          sens: 'CREDIT',
-          montantDebit: 0,
-          montantCredit: facture.montant_ht || 0,
-          ecritureComptableId: '',
-        });
-        if (tva > 0) {
-          details.push({
-            compteComptableId: '445710',
-            libelle: 'TVA collectée',
-            sens: 'CREDIT',
-            montantDebit: 0,
-            montantCredit: tva,
-            ecritureComptableId: '',
-          });
+    if (data) {
+      if (selectedDraft.type === BrouillardComptableDto.type.FACTURE_FOURNISSEUR) {
+        details.push({ compte: '601000', libelle: `Charge (HT) - ${data.numeroFacture || ''}`, sens: 'D', debit: data.montantHT || 0, credit: 0, journal: journalCode });
+        if (data.montantTVA && data.montantTVA > 0) {
+          details.push({ compte: '445200', libelle: `TVA Déductible`, sens: 'D', debit: data.montantTVA, credit: 0, journal: journalCode });
+        }
+        details.push({ compte: '401100', libelle: `Fournisseur (TTC)`, sens: 'C', debit: 0, credit: data.montantTTC || 0, journal: journalCode });
+      } else if (selectedDraft.type === BrouillardComptableDto.type.FACTURE_CLIENT) {
+        details.push({ compte: '411100', libelle: `Client (TTC)`, sens: 'D', debit: data.montantTTC || 0, credit: 0, journal: journalCode });
+        details.push({ compte: '701000', libelle: `Vente (HT) - ${data.numeroFacture || ''}`, sens: 'C', debit: 0, credit: data.montantHT || 0, journal: journalCode });
+        if (data.montantTVA && data.montantTVA > 0) {
+          details.push({ compte: '443100', libelle: `TVA Collectée`, sens: 'C', debit: 0, credit: data.montantTVA, journal: journalCode });
         }
       } else {
-        // ACHAT
-        details.push({
-          compteComptableId: facture.get_debit_account || '601000',
-          libelle: 'Achat',
-          sens: 'DEBIT',
-          montantDebit: facture.montant_ht || 0,
-          montantCredit: 0,
-          ecritureComptableId: '',
-        });
-        if (tva > 0) {
-          details.push({
-            compteComptableId: '445660',
-            libelle: 'TVA déductible',
-            sens: 'DEBIT',
-            montantDebit: tva,
-            montantCredit: 0,
-            ecritureComptableId: '',
-          });
-        }
-        details.push({
-          compteComptableId: facture.get_credit_account || '401000',
-          libelle: facture.libelle || `Facture ${facture.id || ''}`,
-          sens: 'CREDIT',
-          montantDebit: 0,
-          montantCredit: ttc,
-          ecritureComptableId: '',
-        });
+        details.push({ compte: '5XXXXX', libelle: selectedDraft.libelle || 'Mouvement', sens: 'D', debit: selectedDraft.montantTotal || 0, credit: 0, journal: journalCode });
+        details.push({ compte: 'XXXXXX', libelle: 'Contrepartie', sens: 'C', debit: 0, credit: selectedDraft.montantTotal || 0, journal: journalCode });
       }
-
-      const generated: EcritureComptableDto = {
-        libelle: facture.libelle || `Généré depuis ${file.name}`,
-        dateEcriture: facture.date || new Date().toISOString().split('T')[0],
-        journalComptableId: facture.journal_comptable_id || '',
-        periodeComptableId: facture.periode_comptable_id || '',
-        referenceExterne: facture.id || '',
-        montantTotalDebit: ttc,
-        montantTotalCredit: ttc,
-        validee: processMode === 'AUTO',
-        detailsEcriture: details,
-      };
-
-      // 3. Create a pseudo-invoice object to pass to Preview component
-      const pseudoInvoice: CustomerInvoiceDto | SupplierInvoiceDto = isPurchase ? {
-        idFacture: facture.id || 'new',
-        numeroFacture: facture.id || 'N/A',
-        dateFacturation: facture.date || new Date().toISOString().split('T')[0],
-        montantHT: facture.montant_ht,
-        montantTVA: tva,
-        montantTTC: ttc,
-        nomFournisseru: facture.libelle || 'Extraite du document',
-      } as SupplierInvoiceDto : {
-        idFacture: facture.id || 'new',
-        numeroFacture: facture.id || 'N/A',
-        dateFacturation: facture.date || new Date().toISOString().split('T')[0],
-        montantHT: facture.montant_ht,
-        montantTVA: tva,
-        montantTTC: ttc,
-        nomClient: facture.libelle || 'Extraite du document',
-      } as CustomerInvoiceDto;
-
-      setGeneratedEntry(generated);
-      setSelectedInvoice(pseudoInvoice);
-      toast.success("Document analysé avec succès. Vérifiez l'écriture générée.");
-      setFile(null);
-
-    } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : "Erreur lors du traitement du fichier");
-    } finally {
-      setIsSubmitting(false);
     }
+    return details;
   };
+
+  const previewLines = currentPreviewLines();
+  const totalDebit = previewLines.reduce((acc, l) => acc + l.debit, 0);
+  const totalCredit = previewLines.reduce((acc, l) => acc + l.credit, 0);
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50/50">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="p-4 space-y-4 max-w-[1400px] mx-auto min-h-[calc(100vh-100px)] flex flex-col bg-gray-50/50">
 
-        {/* ── HEADER ── */}
+      {/* Header and Actions */}
+      <div className="flex items-center justify-between pb-2 border-b">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Saisie et Comptabilisation</h1>
-          <p className="text-gray-500 mt-2">
-            Importez des documents ou traitez les brouillards existants (mode semi-automatique ou automatique).
-          </p>
+          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2 text-[#003366]">
+            <FileStack className="w-5 h-5" />
+            Saisie semi-automatique des écritures
+          </h1>
         </div>
+        <div className="space-x-2">
+          <Button onClick={fetchDrafts} variant="outline" size="sm" disabled={isLoading} className="h-8">
+            <RefreshCw className={`w-3.5 h-3.5 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
+        </div>
+      </div>
 
-        {/* ── INPUT HUB ── */}
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-600"></div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-6 flex items-center gap-2">
-            <UploadCloud className="h-5 w-5 text-blue-600" />
-            Nouveau Document à Comptabiliser
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            {/* Colonne gauche: Config */}
-            <div className="md:col-span-5 space-y-6">
-
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-gray-700">Type de Document</Label>
-                <Select value={docType} onValueChange={(val: DocumentType) => setDocType(val)}>
-                  <SelectTrigger className="w-full bg-gray-50/50">
-                    <SelectValue placeholder="Sélectionner le type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FACTURE_CLIENT">Facture Client</SelectItem>
-                    <SelectItem value="FACTURE_FOURNISSEUR">Facture Fournisseur</SelectItem>
-                    <SelectItem value="MOUVEMENT_STOCK">Mouvement de Stock</SelectItem>
-                    <SelectItem value="MOUVEMENT_CAISSE">Mouvement de Caisse</SelectItem>
-                    <SelectItem value="OPERATION_BANCAIRE">Opération Bancaire</SelectItem>
-                    <SelectItem value="AUTRE">Autre Document</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold text-gray-700">Mode de Traitement</Label>
-                <RadioGroup
-                  value={processMode}
-                  onValueChange={(val: ProcessMode) => setProcessMode(val)}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  <div>
-                    <RadioGroupItem value="SEMI_AUTO" id="m-semi" className="peer sr-only" />
-                    <Label
-                      htmlFor="m-semi"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50/50 cursor-pointer"
-                    >
-                      <Settings2 className="mb-2 h-5 w-5 text-gray-600 peer-data-[state=checked]:text-blue-600" />
-                      <span className="text-sm font-medium">Semi-Auto</span>
-                    </Label>
-                  </div>
-                  <div>
-                    <RadioGroupItem value="AUTO" id="m-auto" className="peer sr-only" />
-                    <Label
-                      htmlFor="m-auto"
-                      className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-gray-50 peer-data-[state=checked]:border-blue-600 peer-data-[state=checked]:bg-blue-50/50 cursor-pointer"
-                    >
-                      <Zap className="mb-2 h-5 w-5 text-amber-500" />
-                      <span className="text-sm font-medium">Automatique</span>
-                    </Label>
-                  </div>
-                </RadioGroup>
-                <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  {processMode === 'SEMI_AUTO'
-                    ? "Génère un brouillard comptable que vous devrez valider manuellement."
-                    : "Tente de générer et de valider l'écriture comptable instantanément sans intervention."}
-                </p>
-              </div>
-
+      {/* TOP PANEL: Filters & List */}
+      <Card className="rounded-md border shadow-sm">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Critères de consultation et Liste</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="flex items-center gap-4 p-3 border-b bg-white text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Exercice:</span>
+              <Select defaultValue="2024"><SelectTrigger className="w-24 h-8 text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="2024">2024</SelectItem></SelectContent></Select>
             </div>
-
-            {/* Colonne droite: Upload */}
-            <div className="md:col-span-7 flex flex-col justify-end">
-              <div
-                className={`border-2 border-dashed rounded-xl p-8 transition-colors flex flex-col items-center justify-center text-center h-full min-h-[220px] ${file ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-gray-300'}`}
-              >
-                <input
-                  type="file"
-                  id="doc-upload"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
-                />
-
-                {file ? (
-                  <div className="space-y-4">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 flex items-center gap-3">
-                      <FileUp className="h-8 w-8 text-blue-500" />
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-gray-800 line-clamp-1">{file.name}</p>
-                        <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 justify-center">
-                      <Button variant="outline" size="sm" onClick={() => setFile(null)}>Annuler</Button>
-                      <Button size="sm" onClick={handleProcessFile} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700">
-                        {isSubmitting ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : "Traiter ce document"}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <label htmlFor="doc-upload" className="cursor-pointer space-y-4 flex flex-col items-center">
-                    <div className="h-14 w-14 bg-white rounded-full shadow-sm flex items-center justify-center border border-gray-100">
-                      <UploadCloud className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <span className="text-blue-600 font-medium hover:underline">Cliquez pour importer</span> ou glissez-déposez un fichier
-                      <p className="text-xs text-gray-500 mt-2">PDF, JPG, PNG, XML supportés</p>
-                    </div>
-                  </label>
-                )}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-600">Type:</span>
+              <Select defaultValue="all"><SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="Tous les types" /></SelectTrigger><SelectContent><SelectItem value="all">Toutes opérations</SelectItem><SelectItem value="ventes">Les ventes</SelectItem><SelectItem value="achats">Les achats</SelectItem></SelectContent></Select>
+            </div>
+            <div className="flex items-center gap-2 flex-1 justify-end">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-2.5 top-2 text-gray-400" />
+                <Input placeholder="Rechercher..." className="pl-8 h-8 max-w-[200px] text-xs" />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── EXISTING DRAFTS LIST ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <FileText className="h-5 w-5 text-gray-600" />
-              Documents en Attente
-            </h2>
-            <Button variant="outline" size="sm" onClick={fetchInvoices} disabled={isLoading} className="bg-white">
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Actualiser
+          <div className="max-h-[220px] overflow-y-auto bg-white border-b">
+            <Table>
+              <TableHeader className="sticky top-0 bg-blue-50/80 backdrop-blur-sm z-10 shadow-sm text-xs">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[180px] h-8 text-blue-900 font-semibold border-r">N° Pièce / Facture</TableHead>
+                  <TableHead className="h-8 text-blue-900 font-semibold border-r">Type / Client / Fournisseur</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold border-r h-8">Mt HT</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold border-r h-8">Mt TVA</TableHead>
+                  <TableHead className="w-[120px] text-right text-blue-900 font-semibold h-8">Mt TTC</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Chargement...</TableCell></TableRow>
+                ) : drafts.length === 0 ? (
+                  <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Aucun brouillard en attente</TableCell></TableRow>
+                ) : drafts.map((draft, idx) => (
+                  <TableRow
+                    key={draft.id}
+                    className={`cursor-pointer transition-colors text-xs border-b ${selectedDraft?.id === draft.id ? 'bg-[#cce5ff] hover:bg-[#cce5ff]' : idx % 2 === 0 ? 'bg-white' : 'bg-[#fff5e6]'}`}
+                    onClick={() => setSelectedDraft(draft)}
+                  >
+                    <TableCell className="font-medium border-r py-1.5 px-3">
+                      {draft.numeroPiece || draft.sourceId}
+                    </TableCell>
+                    <TableCell className="border-r py-1.5 px-3 uppercase">
+                      {draft.type?.replace(/_/g, ' ')}
+                      <span className="text-gray-500 lowercase ml-2 capitalize truncate">{draft.libelle ? ` - ${draft.libelle}` : ''}</span>
+                    </TableCell>
+                    <TableCell className="text-right border-r py-1.5 px-3 font-mono">
+                      {draft.dataJson?.montantHT ? draft.dataJson.montantHT.toLocaleString() : '-'}
+                    </TableCell>
+                    <TableCell className="text-right border-r py-1.5 px-3 font-mono">
+                      {draft.dataJson?.montantTVA ? draft.dataJson.montantTVA.toLocaleString() : '0,00'}
+                    </TableCell>
+                    <TableCell className="text-right py-1.5 px-3 font-mono font-medium">
+                      {(draft.montantTotal || draft.dataJson?.montantTTC)?.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+
+      {/* MIDDLE PANEL: Document Header */}
+      <Card className="rounded-md border shadow-sm flex-shrink-0 opacity-100 transition-opacity">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Entête Écriture / Opération Comptable</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 bg-white space-y-4">
+          {selectedDraft ? (
+            <div className="grid grid-cols-12 gap-4 items-end text-sm">
+              <div className="col-span-8 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Pièce(s) Justificative(s)</label>
+                <Input readOnly value={`${selectedDraft.type?.replace(/_/g, ' ')} : ${selectedDraft.numeroPiece || selectedDraft.sourceId} du ${selectedDraft.datePiece ? format(new Date(selectedDraft.datePiece), 'dd/MM/yyyy') : 'N/A'}`} className="bg-gray-50 text-xs h-8 border-gray-300 font-medium text-gray-900" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">N° Saisie (Brouillard)</label>
+                <Input readOnly value={selectedDraft.id?.split('-')[0].toUpperCase()} className="bg-gray-50 text-xs h-8 text-right font-mono font-bold text-blue-900 border-gray-300" />
+              </div>
+
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Période / Exercice</label>
+                <Input readOnly value={selectedDraft.periodeCode || 'Exercice Courant'} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Date de création prévue</label>
+                <Input readOnly value={format(new Date(), 'dd/MM/yyyy')} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+              <div className="col-span-4 flex flex-col gap-1.5">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Journal</label>
+                <Input readOnly value={`${selectedDraft.journalCode || 'JV'} - ${selectedDraft.journalLibelle || 'Journal non spécifié'}`} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+
+              <div className="col-span-12 flex flex-col gap-1.5 mt-1">
+                <label className="text-[11px] font-semibold text-gray-500 uppercase">Description / Remarques</label>
+                <Input readOnly value={selectedDraft.libelle || `Saisie semi-automatique des données relatives à l'opération de type ${selectedDraft.type}`} className="bg-gray-50 text-xs h-8 border-gray-300" />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center p-6 text-sm text-gray-400">
+              Sélectionnez une ligne dans le tableau ci-dessus pour afficher l'entête.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+      {/* BOTTOM PANEL: Document Lines */}
+      <Card className="rounded-md border shadow-sm flex-1 flex flex-col min-h-0 mb-8">
+        <CardHeader className="py-2.5 px-4 bg-muted/40 border-b">
+          <CardTitle className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Détail écriture comptable</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 flex flex-col bg-white overflow-hidden relative">
+
+          <div className="flex-1 overflow-y-auto">
+            <Table>
+              <TableHeader className="bg-gray-50/80 sticky top-0 z-10 shadow-sm border-b text-xs">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-[120px] font-bold text-gray-700 h-8 border-r">N° Compte</TableHead>
+                  <TableHead className="font-bold text-gray-700 h-8 border-r">Intitulé</TableHead>
+                  <TableHead className="w-[60px] text-center font-bold text-gray-700 h-8 border-r">Sens</TableHead>
+                  <TableHead className="w-[150px] text-right font-bold text-gray-700 h-8 border-r">Débit</TableHead>
+                  <TableHead className="w-[150px] text-right font-bold text-gray-700 h-8 border-r">Crédit</TableHead>
+                  <TableHead className="w-[80px] text-center font-bold text-gray-700 h-8">Journal</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {!selectedDraft ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Sélectionnez une ligne ci-dessus pour prévisualiser les écritures comptables générées.</TableCell></TableRow>
+                ) : previewLines.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">Aucune ligne générée (Format non supporté ou données incomplètes).</TableCell></TableRow>
+                ) : (
+                  previewLines.map((line, idx) => (
+                    <TableRow key={idx} className="text-xs border-b hover:bg-gray-50/50">
+                      <TableCell className="font-mono border-r py-2">{line.compte}</TableCell>
+                      <TableCell className="border-r py-2 font-medium">{line.libelle}</TableCell>
+                      <TableCell className="text-center border-r py-2 font-medium">{line.sens}</TableCell>
+                      <TableCell className="text-right border-r py-2 font-mono text-gray-600 bg-red-50/20">
+                        {line.debit > 0 ? line.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right border-r py-2 font-mono text-gray-600 bg-blue-50/20">
+                        {line.credit > 0 ? line.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                      </TableCell>
+                      <TableCell className="text-center py-2 font-medium">{line.journal}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Bottom Total Footer & Actions */}
+          <div className="bg-gray-100/80 border-t p-3 flex items-center justify-between text-sm mt-auto shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-gray-600 text-xs">Utilisateur :</span>
+              <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-medium text-gray-700">Administrateur</span>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-600 text-xs">Débit :</span>
+                <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-mono font-bold text-red-600 min-w-[120px] justify-end">
+                  {totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-600 text-xs">Crédit :</span>
+                <span className="px-3 border border-gray-300 bg-white rounded flex items-center h-7 text-xs font-mono font-bold text-red-600 min-w-[120px] justify-end">
+                  {totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-muted/30 border-t p-2 flex justify-between items-center px-4">
+            <Button variant="ghost" className="text-red-500 h-8 text-xs hover:text-red-700 hover:bg-red-50" onClick={() => setSelectedDraft(null)} disabled={!selectedDraft}>
+              <XCircle className="w-4 h-4 mr-2" /> Effacer
+            </Button>
+
+            <Button
+              onClick={handleValidate}
+              disabled={!selectedDraft || isValidating || totalDebit !== totalCredit || totalDebit === 0}
+              className="bg-[#0055aa] hover:bg-[#004080] h-8 text-xs font-medium shadow-sm transition-all text-white"
+            >
+              {isValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileStack className="w-4 h-4 mr-2" />}
+              Valider & Enregistrer
             </Button>
           </div>
 
-          {selectedInvoice && generatedEntry ? (
-            <div className="bg-white rounded-xl shadow-sm border p-6 animate-in slide-in-from-bottom-4 duration-300">
-              <Button variant="ghost" onClick={() => { setSelectedInvoice(null); setGeneratedEntry(null); }} className="mb-4 text-gray-500 hover:text-gray-900">
-                ← Retour à la liste
-              </Button>
-              <SemiAutoEntryPreview
-                invoice={selectedInvoice}
-                generatedEntry={generatedEntry}
-                type={invoiceType}
-                onValidate={handleValidateEntry}
-                onCancel={() => { setSelectedInvoice(null); setGeneratedEntry(null); }}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <Tabs value={invoiceType} onValueChange={(value) => setInvoiceType(value as InvoiceType)} className="w-full">
-                <TabsList className="w-full justify-start rounded-none border-b bg-gray-50/50 p-0 h-14">
-                  <TabsTrigger
-                    value="SALE"
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:bg-white data-[state=active]:shadow-none rounded-none h-full px-6"
-                  >
-                    Factures Clients
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="PURCHASE"
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:bg-white data-[state=active]:shadow-none rounded-none h-full px-6"
-                  >
-                    Factures Fournisseurs
-                  </TabsTrigger>
-                </TabsList>
-                <TabsContent value="SALE" className="p-6 m-0">
-                  <SemiAutoEntryListView
-                    invoices={invoices}
-                    type="SALE"
-                    isLoading={isLoading}
-                    onInvoiceDoubleClick={generateEntry}
-                  />
-                </TabsContent>
-                <TabsContent value="PURCHASE" className="p-6 m-0">
-                  <SemiAutoEntryListView
-                    invoices={invoices}
-                    type="PURCHASE"
-                    isLoading={isLoading}
-                    onInvoiceDoubleClick={generateEntry}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </div>
+        </CardContent>
+      </Card>
 
-      </div>
     </div>
   );
 }

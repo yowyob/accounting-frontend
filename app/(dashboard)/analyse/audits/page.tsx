@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -105,7 +106,7 @@ export default function AuditJournalPage() {
     log.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+  if (isLoadingPeriods) return <CustomPageLoader />;
 
   return (
     <div className="min-h-screen p-4 bg-gray-50">

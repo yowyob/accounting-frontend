@@ -12,30 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Download, RefreshCw, AlertCircle, PieChart, TrendingUp, Wallet, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountingFinancialReportsService } from '@/src/lib2/services/AccountingFinancialReportsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
-
-interface SummaryData {
-  section: string;
-  total: number;
-  description: string;
-}
-
-const staticSummaryData: SummaryData[] = [
-  // Bilan
-  { section: 'Actifs', total: 3500000, description: 'Total des actifs' },
-  { section: 'Passifs', total: 1250000, description: 'Total des passifs' },
-  { section: 'Capitaux Propres', total: 2250000, description: 'Total des capitaux propres' },
-  // Compte de Résultat
-  { section: 'Produits', total: 2000000, description: 'Total des produits' },
-  { section: 'Charges', total: 700000, description: 'Total des charges' },
-  { section: 'Résultat Net', total: 1300000, description: 'Résultat net de l\'exercice' },
-  // Flux de Trésorerie
-  { section: 'Opérationnel', total: 570000, description: 'Flux opérationnels' },
-  { section: 'Investissement', total: -200000, description: 'Flux d\'investissement' },
-  { section: 'Financement', total: 150000, description: 'Flux de financement' },
-  { section: 'Flux Net', total: 520000, description: 'Variation nette de trésorerie' },
-];
 
 export default function GeneralSummaryPage() {
   const { nationalCurrency } = useNationalCurrency();
@@ -43,6 +23,8 @@ export default function GeneralSummaryPage() {
   const [periodes, setPeriodes] = useState<any[]>([]);
   const [selectedPeriodeId, setSelectedPeriodeId] = useState<string | null>(null);
   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [summaryData, setSummaryData] = useState<any>(null);
 
   const fetchPeriodesData = useCallback(async () => {
     setIsLoadingPeriods(true);
@@ -72,6 +54,44 @@ export default function GeneralSummaryPage() {
     fetchPeriodesData();
   }, [fetchPeriodesData]);
 
+  useEffect(() => {
+    const fetchSummary = async () => {
+      if (!selectedPeriodeId || periodes.length === 0) {
+        setSummaryData(null);
+        return;
+      }
+
+      const periode = periodes.find(p => p.id === selectedPeriodeId);
+      if (!periode) {
+        setSummaryData(null);
+        return;
+      }
+
+      setIsLoadingData(true);
+      try {
+        const response = await AccountingFinancialReportsService.generateExecutiveSummary(
+          periode.dateDebut.toString(),
+          periode.dateFin.toString()
+        );
+
+        if (response.success && response.data) {
+          setSummaryData(response.data);
+        } else {
+          setSummaryData(null);
+          toast.error("Erreur lors de la génération du résumé exécutif.");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la génération du résumé exécutif:", error);
+        toast.error("Erreur lors de la génération du résumé exécutif.");
+        setSummaryData(null);
+      } finally {
+        setIsLoadingData(false);
+      }
+    };
+
+    fetchSummary();
+  }, [selectedPeriodeId, periodes]);
+
   const handleGeneratePDF = () => {
     toast.info("L'export PDF sera disponible prochainement");
   };
@@ -80,7 +100,41 @@ export default function GeneralSummaryPage() {
     toast.info("L'export XLSX sera disponible prochainement");
   };
 
-  if (isLoadingPeriods) return <div className="flex items-center justify-center min-h-[400px]">Chargement des données...</div>;
+  // Helper variables for UI
+  const formatValue = (val: number | undefined) => {
+    if (val === undefined || val === null) return 0;
+    return val;
+  };
+
+  const formatCurrencyString = (amount: number) => {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currencyCode }).format(amount).replace(currencyCode, '').trim() + ' ' + currencyCode;
+  };
+
+  const totalActifs = summaryData?.bilan ? formatValue(summaryData.bilan.find((item: any) => item.description === 'Total Assets')?.total) : 0;
+  const totalPassifs = summaryData?.bilan ? formatValue(summaryData.bilan.find((item: any) => item.description === 'Total Liabilities')?.total) : 0;
+  const totalCapitaux = summaryData?.bilan ? formatValue(summaryData.bilan.find((item: any) => item.description === 'Total Equity')?.total) : 0;
+
+  const totalProduits = summaryData?.compteResultat ? formatValue(summaryData.compteResultat.find((item: any) => item.description === 'Total Products')?.total) : 0;
+  const totalCharges = summaryData?.compteResultat ? formatValue(summaryData.compteResultat.find((item: any) => item.description === 'Total Expenses')?.total) : 0;
+  const resultatNet = summaryData?.compteResultat ? formatValue(summaryData.compteResultat.find((item: any) => item.description === 'Net Result')?.total) : 0;
+
+  const totalOperationnel = summaryData?.fluxTresorerie ? formatValue(summaryData.fluxTresorerie.find((item: any) => item.category === 'operationnel')?.total) : 0;
+  const totalInvestissement = summaryData?.fluxTresorerie ? formatValue(summaryData.fluxTresorerie.find((item: any) => item.category === 'investissement')?.total) : 0;
+  const totalFinancement = summaryData?.fluxTresorerie ? formatValue(summaryData.fluxTresorerie.find((item: any) => item.category === 'financement')?.total) : 0;
+  const fluxNet = summaryData?.fluxTresorerie ? formatValue(summaryData.fluxTresorerie.find((item: any) => item.description === 'Net Cash Flow')?.total) : 0;
+
+  // Formatting for large numbers (M, K)
+  const formatShortNumber = (num: number) => {
+    if (Math.abs(num) >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    }
+    if (Math.abs(num) >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  if (isLoadingPeriods || isLoadingData) return <CustomPageLoader />;
 
   return (
     <div className="min-h-screen p-6 bg-gray-50/30">
@@ -88,23 +142,16 @@ export default function GeneralSummaryPage() {
         <div className="flex justify-between items-end">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Résumé Exécutif</h1>
-            <p className="text-gray-500 mt-2">Vue d'ensemble synthétique des indicateurs financiers clés (Mock).</p>
+            <p className="text-gray-500 mt-2">Vue d'ensemble synthétique des indicateurs financiers clés.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={handleGeneratePDF} disabled={!selectedPeriodeId}>
+            <Button variant="outline" onClick={handleGeneratePDF} disabled={!selectedPeriodeId || !summaryData}>
               <Download className="h-4 w-4 mr-2" /> PDF
             </Button>
-            <Button variant="outline" onClick={handleGenerateXLSX} disabled={!selectedPeriodeId}>
+            <Button variant="outline" onClick={handleGenerateXLSX} disabled={!selectedPeriodeId || !summaryData}>
               <Download className="h-4 w-4 mr-2" /> XLSX
             </Button>
           </div>
-        </div>
-
-        <div className="bg-amber-50 border-l-4 border-amber-400 p-4 flex gap-3 text-amber-700 text-sm">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-          <p>
-            <strong>Avertissement :</strong> Ce tableau de bord est en mode prévisualisation. Les indicateurs sont calculés sur la base de données de démonstration (Mock) pour la période sélectionnée.
-          </p>
         </div>
 
         <div className="flex gap-4 items-center">
@@ -134,7 +181,7 @@ export default function GeneralSummaryPage() {
                 </div>
                 <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest bg-blue-50/50 px-2 py-1 rounded">Actifs</span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">3.5M</h3>
+              <h3 className="text-2xl font-black text-gray-900">{formatShortNumber(totalActifs)}</h3>
               <p className="text-xs text-gray-400 mt-1">Valeur totale du patrimoine</p>
             </CardContent>
             <div className="h-1 bg-blue-500 w-full" />
@@ -148,7 +195,7 @@ export default function GeneralSummaryPage() {
                 </div>
                 <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-50/50 px-2 py-1 rounded">Chiffre d'affaires</span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">2.0M</h3>
+              <h3 className="text-2xl font-black text-gray-900">{formatShortNumber(totalProduits)}</h3>
               <p className="text-xs text-gray-400 mt-1">Total des produits générés</p>
             </CardContent>
             <div className="h-1 bg-emerald-500 w-full" />
@@ -162,7 +209,7 @@ export default function GeneralSummaryPage() {
                 </div>
                 <span className="text-[10px] font-bold text-purple-500 uppercase tracking-widest bg-purple-50/50 px-2 py-1 rounded">Trésorerie</span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">520K</h3>
+              <h3 className="text-2xl font-black text-gray-900">{formatShortNumber(fluxNet)}</h3>
               <p className="text-xs text-gray-400 mt-1">Variation nette de cash</p>
             </CardContent>
             <div className="h-1 bg-purple-500 w-full" />
@@ -176,7 +223,7 @@ export default function GeneralSummaryPage() {
                 </div>
                 <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest bg-indigo-50/50 px-2 py-1 rounded">Résultat Net</span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">1.3M</h3>
+              <h3 className="text-2xl font-black text-gray-900">{formatShortNumber(resultatNet)}</h3>
               <p className="text-xs text-gray-400 mt-1">Bénéfice net après charges</p>
             </CardContent>
             <div className="h-1 bg-indigo-500 w-full" />

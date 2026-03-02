@@ -299,7 +299,20 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
             const headers = await getHeaders(config, options);
 
             if (!onCancel.isCancelled) {
-                const response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+                let response: Response;
+                try {
+                    response = await sendRequest(config, options, url, body, formData, headers, onCancel);
+                } catch (fetchError: any) {
+                    // Stop network failures from crashing the UI
+                    console.warn(`[Network Error] Failed to fetch: ${url}`, fetchError);
+                    resolve({
+                        success: false,
+                        message: "Erreur de connexion au serveur",
+                        data: null
+                    } as any);
+                    return;
+                }
+
                 const responseBody = await getResponseBody(response);
                 const responseHeader = getResponseHeader(response, options.responseHeader);
 
@@ -311,12 +324,26 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions): C
                     body: responseHeader ?? responseBody,
                 };
 
-                catchErrorCodes(options, result);
-
-                resolve(result.body);
+                // Si le serveur retourne une erreur HTTP, on tente quand même de resolver avec le message
+                try {
+                    catchErrorCodes(options, result);
+                    resolve(result.body);
+                } catch (apiError: any) {
+                    console.warn(`[API Error] HTTP ${result.status} on ${url}`, apiError);
+                    resolve({
+                        success: false,
+                        message: apiError?.message || "Erreur retournée par le serveur",
+                        data: null
+                    } as any);
+                }
             }
         } catch (error) {
-            reject(error);
+            console.error("[General Error] Request execution failed", error);
+            resolve({
+                success: false,
+                message: "Erreur lors de l'exécution de la requête",
+                data: null
+            } as any);
         }
     });
 };

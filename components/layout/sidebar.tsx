@@ -4,14 +4,26 @@ import { MainNav } from "./main-nav";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/hooks/useSidebar";
 import { useNavigationStore } from "@/hooks/use-navigation-store";
-import { modules } from "@/config/navigation";
+import { modules, ModuleKey } from "@/config/navigation";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
   const { activeModule, setActiveModule } = useNavigationStore();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const currentModuleKey = Object.entries(modules).find(([key, module]) =>
+      module.sidebarLinks.some((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))
+    )?.[0] as ModuleKey;
+
+    if (currentModuleKey) {
+      setActiveModule(currentModuleKey);
+    }
+  }, [pathname, setActiveModule]);
 
   const currentModuleData = modules[activeModule];
 

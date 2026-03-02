@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarLink } from "@/config/navigation";
+import { useLoadingStore } from "@/hooks/use-loading-store";
 
 interface MainNavProps {
   links: SidebarLink[];
@@ -12,6 +13,7 @@ interface MainNavProps {
 
 export function MainNav({ links }: MainNavProps) {
   const pathname = usePathname();
+  const { startLoading } = useLoadingStore();
 
   return (
     <nav className="grid gap-1.5">
@@ -21,6 +23,11 @@ export function MainNav({ links }: MainNavProps) {
           <Link
             key={index}
             href={link.href}
+            onClick={(e) => {
+              if (pathname !== link.href) {
+                startLoading();
+              }
+            }}
             className={cn(
               "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
               isActive

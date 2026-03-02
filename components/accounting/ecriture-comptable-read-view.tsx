@@ -14,9 +14,11 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, FileText, Hash, Info, Notebook, Tag, AlertCircle } from 'lucide-react';
+import { Calendar, FileText, Hash, Info, Notebook, Tag, Download, Paperclip, AlertCircle } from 'lucide-react';
 import { AccountingComptesService } from '@/src/lib2/services/AccountingComptesService';
 import { CompteDto } from '@/src/lib2/models/CompteDto';
+import { AccountingAttachmentService } from '@/src/lib2/services/AccountingAttachmentService';
+import { Button } from '@/components/ui/button';
 
 interface EcritureComptableReadViewProps {
     ecriture: EcritureComptableDto;
@@ -33,6 +35,7 @@ const getRejectionReason = (notes?: string | null): string | null => {
 
 export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps> = ({ ecriture }) => {
     const [accounts, setAccounts] = useState<CompteDto[]>([]);
+    const [selectedAttachment, setSelectedAttachment] = useState<{ id: string, name: string } | null>(null);
 
     useEffect(() => {
         const fetchAccounts = async () => {
@@ -234,6 +237,106 @@ export const EcritureComptableReadView: React.FC<EcritureComptableReadViewProps>
                     </Table>
                 </div>
             </div>
+
+            {/* Attachments Section */}
+            {(() => {
+                let files: { id: string, name: string }[] = [];
+                if (ecriture.attachmentIds) {
+                    try {
+                        files = typeof ecriture.attachmentIds === 'string'
+                            ? JSON.parse(ecriture.attachmentIds)
+                            : ecriture.attachmentIds;
+                    } catch (e) {
+                        console.error('Failed to parse attachmentIds', e);
+                    }
+                }
+
+                if (files && files.length > 0) {
+                    return (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <div className="h-8 w-1.5 bg-indigo-500 rounded-full" />
+                                <h3 className="text-xl font-bold text-gray-800">Pièces Jointes</h3>
+                                <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700">{files.length}</Badge>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {files.map((file, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`flex items-center justify-between p-4 cursor-pointer border rounded-xl shadow-sm transition-all group ${selectedAttachment?.id === file.id
+                                            ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400 shadow-md'
+                                            : 'bg-white border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                                            }`}
+                                        onClick={() => setSelectedAttachment(file)}
+                                    >
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <div className={`p-2 rounded-lg transition-colors ${selectedAttachment?.id === file.id
+                                                ? 'bg-indigo-600 text-white'
+                                                : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100'
+                                                }`}>
+                                                <Paperclip className="h-5 w-5" />
+                                            </div>
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className={`text-sm font-semibold truncate ${selectedAttachment?.id === file.id ? 'text-indigo-900' : 'text-gray-700'
+                                                    }`} title={file.name}>{file.name}</span>
+                                                <span className={`text-xs ${selectedAttachment?.id === file.id ? 'text-indigo-600/80' : 'text-gray-400'
+                                                    }`}>Document joint</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="shrink-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                                                onClick={() => window.open(AccountingAttachmentService.getDownloadUrl(file.id), '_blank')}
+                                                title="Télécharger"
+                                            >
+                                                <Download className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+
+                            </div>
+
+                            {selectedAttachment && (
+                                <div className="mt-8 bg-gray-50/50 rounded-2xl border border-gray-200 overflow-hidden shadow-sm animate-in fade-in zoom-in-95 duration-300">
+                                    <div className="bg-indigo-600 px-4 py-3 flex items-center justify-between text-white">
+                                        <div className="flex items-center gap-2 overflow-hidden">
+                                            <Paperclip className="h-4 w-4 shrink-0 opacity-80" />
+                                            <span className="text-sm font-medium truncate">{selectedAttachment.name}</span>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 text-indigo-100 hover:text-white hover:bg-indigo-500/50"
+                                            onClick={() => setSelectedAttachment(null)}
+                                        >
+                                            Fermer
+                                        </Button>
+                                    </div>
+                                    <div className="w-full h-[600px] bg-gray-100 relative items-center justify-center flex">
+                                        {selectedAttachment.name.toLowerCase().match(/\.(jpeg|jpg|gif|png|webp)$/) != null ? (
+                                            <img
+                                                src={AccountingAttachmentService.getDownloadUrl(selectedAttachment.id)}
+                                                alt={selectedAttachment.name}
+                                                className="max-w-full max-h-full object-contain"
+                                            />
+                                        ) : (
+                                            <iframe
+                                                src={AccountingAttachmentService.getDownloadUrl(selectedAttachment.id)}
+                                                className="w-full h-full border-none"
+                                                title={selectedAttachment.name}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                }
+                return null;
+            })()}
 
             <div className="flex items-center justify-center p-4 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                 <p className="text-xs text-gray-400 flex items-center gap-2">
