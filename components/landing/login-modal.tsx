@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,8 @@ import {
     Building2,
     Chrome,
     Facebook,
-    Github
+    Github,
+    Loader2
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { AuthenticationService, OpenAPI } from '@/src/lib';
@@ -103,9 +104,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                             KSM
                         </DialogTitle>
                     </div>
-                    <p className="text-sm text-gray-500 text-center">
+                    <DialogDescription className="text-sm text-gray-500 text-center">
                         Accédez à votre espace de gestion commerciale
-                    </p>
+                    </DialogDescription>
                 </DialogHeader>
 
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
@@ -183,7 +184,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-sm"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Connexion..." : "Se connecter"}
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Connexion...
+                                    </>
+                                ) : (
+                                    "Se connecter"
+                                )}
                             </Button>
                         </form>
                     </TabsContent>
@@ -277,7 +285,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-sm"
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Création du compte..." : "Créer mon compte"}
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Création du compte...
+                                    </>
+                                ) : (
+                                    "Créer mon compte"
+                                )}
                             </Button>
                         </form>
                     </TabsContent>

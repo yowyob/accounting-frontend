@@ -9,6 +9,7 @@ import { AccountDetailView } from '@/components/accounting/account-detail-view';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ImportPlanComptableDialog } from '@/components/accounting/ImportPlanComptableDialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +28,7 @@ export default function ChartOfAccountsPage() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   const { onOpen, onClose: closeCompose } = useCompose();
 
@@ -248,7 +250,16 @@ export default function ChartOfAccountsPage() {
           onAddNew={handleAddNew}
           onRefresh={fetchAccounts}
           onInitPlan={handleInitPlan}
+          onImport={() => setIsImportOpen(true)}
           selectedId={selectedAccountId || undefined}
+        />
+
+        <ImportPlanComptableDialog
+          isOpen={isImportOpen}
+          onClose={() => setIsImportOpen(false)}
+          onSuccess={() => {
+            fetchAccounts();
+          }}
         />
 
         <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>

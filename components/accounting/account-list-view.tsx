@@ -32,6 +32,7 @@ interface AccountListViewProps {
   onRefresh: () => void;
   selectedId?: string;
   onInitPlan?: () => void;
+  onImport?: () => void;
 }
 
 const RowActions = ({ account, onEdit, onDelete }: { account: PlanComptableDto, onEdit: (id: string) => void, onDelete: (account: PlanComptableDto) => void }) => {
@@ -69,6 +70,7 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
   onRefresh,
   selectedId,
   onInitPlan,
+  onImport,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [classFilter, setClassFilter] = useState('');
@@ -155,6 +157,16 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Initialiser le Plan Comptable (OHADA 2025)
+              </Button>
+            )}
+
+            {onImport && (
+              <Button
+                onClick={onImport}
+                variant="outline"
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                Importer un Plan
               </Button>
             )}
           </div>
