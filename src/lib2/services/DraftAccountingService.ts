@@ -113,23 +113,7 @@ export class DraftAccountingService {
         });
     }
     /**
-<<<<<<< HEAD
-     * Upload an invoice/receipt for OCR and create a draft entry
-     * @param formData
-     * @returns ApiResponseWrapperBrouillardComptableDto OK
-     * @throws ApiError
-     */
-    public static uploadDraftFromInvoice(
-        formData?: {
-            file: Blob | File;
-        },
-    ): CancelablePromise<ApiResponseWrapperBrouillardComptableDto> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/accounting/brouillards/upload',
-            formData: formData,
-            mediaType: 'multipart/form-data',
-=======
+
      * Create a new draft entry
      * @param requestBody
      * @returns ApiResponseWrapperBrouillardComptableDto OK
@@ -143,7 +127,7 @@ export class DraftAccountingService {
             url: '/api/accounting/brouillards',
             body: requestBody,
             mediaType: 'application/json',
->>>>>>> 761ce6101cf9b2f452d9fdd3555c6de6a1ac70b6
+
         });
     }
 }
