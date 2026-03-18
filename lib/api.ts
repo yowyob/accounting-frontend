@@ -12,7 +12,7 @@ import {
   LedgerSettings, GeneralSettings
 } from "@/types/accounting";
 
-const API_BASE_URL = "http://localhost:8081";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081";
 
 const apiRequest = async <T>(endpoint: string, method: string = 'GET', body?: unknown): Promise<T> => {
   const config: RequestInit = {
@@ -155,7 +155,7 @@ export const createFiscalYear = (data: Omit<FiscalYear, 'id'>): Promise<FiscalYe
 export const updateFiscalYear = (id: UUID, data: Partial<FiscalYear>): Promise<FiscalYear> => apiRequest<FiscalYear>(`/fiscalYears/${id}`, 'PUT', data);
 
 //ACCOUNTING
-const API_ACCOUNTING_URL = "http://10.132.16.11:8081";
+const API_ACCOUNTING_URL = process.env.NEXT_PUBLIC_ACCOUNTING_API_URL || API_BASE_URL;
 
 const apiAccountingRequest = async <T>(endpoint: string, method: string = 'GET', body?: unknown): Promise<T> => {
   const config: RequestInit = {

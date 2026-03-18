@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import React, { Suspense } from "react";
 import { NavigationLoader } from "@/components/navigation-loader";
 import { Toaster } from "sonner";
 import { AuthInitializer } from "@/components/auth-initializer";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// Removed next/font/google due to build-time fetch issues in restricted environments.
+// We fallback to a high-quality system font stack.
 
 export const metadata: Metadata = {
   title: "KSM Pro",
@@ -20,8 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-
-      <body className={inter.className}>
+      <body className="antialiased">
         <AuthInitializer />
         <Suspense fallback={null}>
           <NavigationLoader />
