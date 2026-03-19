@@ -20,13 +20,23 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: 'http://localhost:8081',
+    // BASE URL is read from the environment variable, falling back to localhost for local development
+    BASE: typeof window !== 'undefined'
+        ? (window as any).__NEXT_PUBLIC_API_URL__ ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081'
+        : process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081',
     VERSION: '1.0.0',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
     TOKEN: () => Promise.resolve(typeof window !== 'undefined' ? localStorage.getItem('auth_token') ?? '' : ''),
     USERNAME: undefined,
     PASSWORD: undefined,
-    HEADERS: undefined,
+    // Inject X-Tenant-ID header dynamically from localStorage on every request
+    HEADERS: () => Promise.resolve(
+        typeof window !== 'undefined'
+            ? {
+                'X-Tenant-ID': localStorage.getItem('organization_id') ?? '',
+              }
+            : {}
+    ),
     ENCODE_PATH: undefined,
 };

@@ -52,14 +52,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         try {
             const response = await AuthenticationService.login(data);
             if (response && response.token) {
-                // Store token in localStorage
+                // Store credentials in localStorage
                 localStorage.setItem('auth_token', response.token);
                 if (response.user) {
                     localStorage.setItem('user', JSON.stringify(response.user));
+                    // Save organization_id for X-Tenant-ID header in all subsequent API calls
+                    if (response.user.organizationId) {
+                        localStorage.setItem('organization_id', response.user.organizationId);
+                    }
                 }
 
-                // Set token for subsequent API calls
+                // Set token and BASE URL for subsequent API calls
                 OpenAPI.TOKEN = response.token;
+                OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081';
 
                 router.push('/accounting/dashboard');
                 onClose();
