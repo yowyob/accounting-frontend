@@ -64,10 +64,15 @@ export default function AccountingSemiAutoEntryPage() {
 
     setIsValidating(true);
     try {
-      await DraftAccountingService.validateBrouillard(selectedDraft.id, {
+      const response = await DraftAccountingService.validateBrouillard(selectedDraft.id, {
         notes: "Validé depuis l'interface semi-automatique",
         forceValidation: false
       });
+      
+      if (response && response.success === false) {
+        throw new Error(response.message || "Impossible de valider le brouillard.");
+      }
+      
       toast.success("Succès", { description: "Le brouillard a été validé et l'écriture a été enregistrée." });
       await fetchDrafts(); // Refresh list
     } catch (error: any) {

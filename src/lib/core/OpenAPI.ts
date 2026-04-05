@@ -20,7 +20,7 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: 'https://rt-comops.onrender.com',
+    BASE: 'https://yowyob-backend.onrender.com',
     VERSION: '1',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
