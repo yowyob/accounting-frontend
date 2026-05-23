@@ -4,16 +4,19 @@ import { MainNav } from "./main-nav";
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/hooks/useSidebar";
 import { useNavigationStore } from "@/hooks/use-navigation-store";
-import { modules, ModuleKey } from "@/config/navigation";
+import { modules, ModuleKey, SidebarLink } from "@/config/navigation";
 import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { UserProfileWidget } from "./user-profile-widget";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
   const { activeModule, setActiveModule } = useNavigationStore();
   const pathname = usePathname();
+  const { accountingRole } = useAuth();
 
   useEffect(() => {
     const currentModuleKey = Object.entries(modules).find(([key, module]) =>
@@ -27,7 +30,27 @@ export function Sidebar() {
 
   const currentModuleData = modules[activeModule];
 
-  // The handleCompose function and related logic are removed as forms are no longer opened from the sidebar.
+  /**
+   * Filtre les liens de navigation selon le rôle de l'utilisateur.
+   * - Si allowedRoles est undefined → le lien est visible par tous.
+   * - Si allowedRoles est défini → le lien n'est visible que si le rôle de l'utilisateur y figure.
+   */
+  const filteredLinks: SidebarLink[] = currentModuleData.sidebarLinks.filter((link) => {
+    if (!link.allowedRoles) return true;
+    if (!accountingRole) return false;
+    return link.allowedRoles.includes(accountingRole);
+  });
+
+  /**
+   * Filtre les modules selon le rôle pour masquer l'icône de navigation (toggle).
+   * - Si allowedRoles est undefined → le module est visible par tous.
+   * - Si allowedRoles est défini → visible uniquement si le rôle y figure.
+   */
+  const visibleModules = Object.entries(modules).filter(([, module]) => {
+    if (!module.allowedRoles) return true;
+    if (!accountingRole) return false;
+    return module.allowedRoles.includes(accountingRole);
+  });
 
   return (
     <aside
@@ -39,7 +62,7 @@ export function Sidebar() {
       <div className="w-16 flex-shrink-0 flex flex-col items-center py-6 border-r border-sidebar-border bg-card/50 backdrop-blur-sm">
         <TooltipProvider delayDuration={0}>
           <div className="flex flex-col gap-3">
-            {Object.entries(modules).map(([key, module]) => {
+            {visibleModules.map(([key, module]) => {
               const Icon = module.icon;
               const isActive = activeModule === key;
               return (
@@ -70,7 +93,7 @@ export function Sidebar() {
       </div>
 
       {!isCollapsed && (
-        <div className="flex-1 flex flex-col pt-6 bg-gradient-to-b from-sidebar to-background">
+        <div className="flex-1 flex flex-col pt-6 bg-gradient-to-b from-sidebar to-background overflow-hidden">
           <div className="px-6 mb-6">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-blue-50 rounded-lg">
@@ -83,8 +106,10 @@ export function Sidebar() {
             <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-transparent rounded-full opacity-50" />
           </div>
           <div className="flex-1 overflow-y-auto px-4 pb-4">
-            <MainNav links={currentModuleData.sidebarLinks} />
+            <MainNav links={filteredLinks} />
           </div>
+          {/* User profile widget — visible to all roles */}
+          <UserProfileWidget />
         </div>
       )}
     </aside>

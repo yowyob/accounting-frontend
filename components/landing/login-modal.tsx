@@ -7,22 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import {
     Eye,
     EyeOff,
     Mail,
     Lock,
-    User,
     Building2,
-    Chrome,
-    Facebook,
-    Github,
-    Loader2
+    Loader2,
+    CheckCircle2,
+    XCircle,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { AuthenticationService, OpenAPI } from '@/src/lib';
+import { OpenAPI } from '@/src/lib';
 import { LoginData } from '@/types/personnel';
+import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -36,36 +35,93 @@ interface RegisterFormData {
     company: string;
     password: string;
     confirmPassword: string;
+    role: string;
+}
+
+// ─── Composant de feedback inline ────────────────────────────────────────────
+function FeedbackBanner({ type, message }: { type: 'success' | 'error'; message: string }) {
+    return (
+        <div className={cn(
+            "flex items-start gap-3 p-3 rounded-lg text-sm border",
+            type === 'success'
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-red-50 border-red-200 text-red-800"
+        )}>
+            {type === 'success'
+                ? <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-600" />
+                : <XCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+            }
+            <span>{message}</span>
+        </div>
+    );
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
+    const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('login');
 
+    // Feedback inline — remplace alert() et console.log()
+    const [loginFeedback, setLoginFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const [registerFeedback, setRegisterFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
     const loginForm = useForm<LoginData>({ mode: 'onChange' });
     const registerForm = useForm<RegisterFormData>({ mode: 'onChange' });
+    const { setUser } = useAuth();
 
     const handleLogin = async (data: LoginData) => {
         setIsLoading(true);
+        setLoginFeedback(null);
         try {
-            const response = await AuthenticationService.login(data);
-            if (response && response.token) {
-                // Store token in localStorage
-                localStorage.setItem('auth_token', response.token);
-                if (response.user) {
-                    localStorage.setItem('user', JSON.stringify(response.user));
-                }
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-                // Set token for subsequent API calls
-                OpenAPI.TOKEN = response.token;
+            const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+            const foundUser = mockUsers.find((u: any) => u.email === data.email && u.password === data.password);
 
-                router.push('/accounting/dashboard');
-                onClose();
+            let userObj;
+            if (foundUser) {
+                userObj = {
+                    id: foundUser.id,
+                    email: foundUser.email,
+                    firstName: foundUser.firstName,
+                    lastName: foundUser.lastName,
+                    roles: [foundUser.role]
+                };
+            } else {
+                // Fallback pour test rapide sans inscription préalable
+                userObj = {
+                    id: 'default-admin-1',
+                    email: data.email,
+                    firstName: 'Utilisateur',
+                    lastName: 'Test',
+                    roles: ['RESPONSABLE_COMPTABLE']
+                };
             }
+
+            const response = {
+                token: 'mock-jwt-token-123456789',
+                user: userObj
+            };
+
+            localStorage.setItem('auth_token', response.token);
+            localStorage.setItem('user', JSON.stringify(response.user));
+            setUser(response.user);
+            OpenAPI.TOKEN = response.token;
+
+            setLoginFeedback({ type: 'success', message: `Bienvenue, ${userObj.firstName} !` });
+
+            // Courte pause pour que l'utilisateur voie le message avant la redirection
+            await new Promise(resolve => setTimeout(resolve, 600));
+            router.push('/accounting/dashboard');
+            onClose();
         } catch (error: any) {
-            alert(error.message || 'Erreur de connexion');
+            setLoginFeedback({
+                type: 'error',
+                message: error.message || 'Identifiants incorrects. Veuillez réessayer.'
+            });
         } finally {
             setIsLoading(false);
         }
@@ -73,23 +129,50 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
     const handleRegister = async (data: RegisterFormData) => {
         setIsLoading(true);
+        setRegisterFeedback(null);
         try {
-            const { confirmPassword, ...registerData } = data;
-            const newUser = await AuthenticationService.register(registerData);
-            if (newUser) {
-                alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-                setActiveTab('login');
-                loginForm.reset({ email: newUser.email, password: '' });
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            // Vérifier si l'email existe déjà
+            const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+            if (mockUsers.find((u: any) => u.email === data.email)) {
+                setRegisterFeedback({
+                    type: 'error',
+                    message: 'Un compte avec cet email existe déjà.'
+                });
+                return;
             }
+
+            const newUser = {
+                id: Math.random().toString(36).substring(2, 9),
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                password: data.password,
+                role: data.role || 'AIDE_COMPTABLE'
+            };
+
+            mockUsers.push(newUser);
+            localStorage.setItem('mock_users', JSON.stringify(mockUsers));
+
+            setRegisterFeedback({
+                type: 'success',
+                message: `Compte créé avec succès ! Vous pouvez maintenant vous connecter.`
+            });
+
+            // Basculer vers l'onglet connexion après un délai
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            setActiveTab('login');
+            loginForm.reset({ email: newUser.email, password: newUser.password });
+            setRegisterFeedback(null);
         } catch (error: any) {
-            alert(error.message || "Erreur d'inscription");
+            setRegisterFeedback({
+                type: 'error',
+                message: error.message || "Une erreur est survenue lors de l'inscription."
+            });
         } finally {
             setIsLoading(false);
         }
-    };
-
-    const handleSocialLogin = (provider: string) => {
-        console.log(`Connexion avec ${provider}`);
     };
 
     return (
@@ -109,12 +192,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     </DialogDescription>
                 </DialogHeader>
 
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-2">
+                <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setLoginFeedback(null); setRegisterFeedback(null); }} className="w-full mt-2">
                     <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg mb-2">
                         <TabsTrigger value="login">Connexion</TabsTrigger>
                         <TabsTrigger value="register">Inscription</TabsTrigger>
                     </TabsList>
+
+                    {/* ── Onglet Connexion ── */}
                     <TabsContent value="login" className="space-y-4 mt-6">
+                        {loginFeedback && (
+                            <FeedbackBanner type={loginFeedback.type} message={loginFeedback.message} />
+                        )}
                         <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
@@ -127,10 +215,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                         className="pl-10"
                                         {...loginForm.register('email', {
                                             required: 'Email requis',
-                                            pattern: {
-                                                value: /^\S+@\S+$/i,
-                                                message: 'Email invalide'
-                                            }
+                                            pattern: { value: /^\S+@\S+$/i, message: 'Email invalide' }
                                         })}
                                     />
                                 </div>
@@ -147,9 +232,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Votre mot de passe"
                                         className="pl-10 pr-10"
-                                        {...loginForm.register('password', {
-                                            required: 'Mot de passe requis'
-                                        })}
+                                        {...loginForm.register('password', { required: 'Mot de passe requis' })}
                                     />
                                     <Button
                                         type="button"
@@ -159,11 +242,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                         onClick={() => setShowPassword(!showPassword)}
                                         tabIndex={-1}
                                     >
-                                        {showPassword ? (
-                                            <EyeOff className="h-4 w-4" />
-                                        ) : (
-                                            <Eye className="h-4 w-4" />
-                                        )}
+                                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
                                 </div>
                                 {loginForm.formState.errors.password && (
@@ -185,18 +264,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Connexion...
-                                    </>
-                                ) : (
-                                    "Se connecter"
-                                )}
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Connexion...</>
+                                ) : "Se connecter"}
                             </Button>
                         </form>
                     </TabsContent>
 
+                    {/* ── Onglet Inscription ── */}
                     <TabsContent value="register" className="space-y-4 mt-6">
+                        {registerFeedback && (
+                            <FeedbackBanner type={registerFeedback.type} message={registerFeedback.message} />
+                        )}
                         <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -230,10 +308,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                     placeholder="votre@email.com"
                                     {...registerForm.register('email', {
                                         required: 'Email requis',
-                                        pattern: {
-                                            value: /^\S+@\S+$/i,
-                                            message: 'Email invalide'
-                                        }
+                                        pattern: { value: /^\S+@\S+$/i, message: 'Email invalide' }
                                     })}
                                 />
                                 {registerForm.formState.errors.email && (
@@ -252,30 +327,75 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                 )}
                             </div>
                             <div className="space-y-2">
+                                <Label htmlFor="role">Rôle (Profil souhaité)</Label>
+                                <select
+                                    id="role"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {...registerForm.register('role', { required: 'Veuillez sélectionner un rôle' })}
+                                >
+                                    <option value="" disabled>Sélectionnez votre rôle</option>
+                                    <option value="AIDE_COMPTABLE">Aide-comptable</option>
+                                    <option value="COMPTABLE">Comptable</option>
+                                    <option value="RESPONSABLE_COMPTABLE">Responsable comptable</option>
+                                </select>
+                                {registerForm.formState.errors.role && (
+                                    <p className="text-sm text-red-600">{registerForm.formState.errors.role.message}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
                                 <Label htmlFor="registerPassword">Mot de passe</Label>
-                                <Input
-                                    id="registerPassword"
-                                    type="password"
-                                    placeholder="Minimum 6 caractères"
-                                    {...registerForm.register('password', {
-                                        required: 'Mot de passe requis',
-                                        minLength: { value: 6, message: 'Minimum 6 caractères' }
-                                    })}
-                                />
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    <Input
+                                        id="registerPassword"
+                                        type={showRegisterPassword ? "text" : "password"}
+                                        placeholder="Minimum 6 caractères"
+                                        className="pl-10 pr-10"
+                                        {...registerForm.register('password', {
+                                            required: 'Mot de passe requis',
+                                            minLength: { value: 6, message: 'Minimum 6 caractères' }
+                                        })}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-1 top-1 h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
+                                        onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                                        tabIndex={-1}
+                                    >
+                                        {showRegisterPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                                 {registerForm.formState.errors.password && (
                                     <p className="text-sm text-red-600">{registerForm.formState.errors.password.message}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                                <Input
-                                    id="confirmPassword"
-                                    type="password"
-                                    {...registerForm.register('confirmPassword', {
-                                        required: 'Confirmation requise',
-                                        validate: value => value === registerForm.watch('password') || 'Les mots de passe ne correspondent pas'
-                                    })}
-                                />
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                                    <Input
+                                        id="confirmPassword"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        placeholder="Confirmez"
+                                        className="pl-10 pr-10"
+                                        {...registerForm.register('confirmPassword', {
+                                            required: 'Confirmation requise',
+                                            validate: value => value === registerForm.watch('password') || 'Les mots de passe ne correspondent pas'
+                                        })}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="absolute right-1 top-1 h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        tabIndex={-1}
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                    </Button>
+                                </div>
                                 {registerForm.formState.errors.confirmPassword && (
                                     <p className="text-sm text-red-600">{registerForm.formState.errors.confirmPassword.message}</p>
                                 )}
@@ -286,13 +406,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Création du compte...
-                                    </>
-                                ) : (
-                                    "Créer mon compte"
-                                )}
+                                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Création du compte...</>
+                                ) : "Créer mon compte"}
                             </Button>
                         </form>
                     </TabsContent>
@@ -301,3 +416,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </Dialog>
     );
 }
+
+interface LoginModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+interface RegisterFormData {
+    firstName: string;
+    lastName: string;
+    email: string;
+    company: string;
+    password: string;
+    confirmPassword: string;
+    role: string;
+}
+

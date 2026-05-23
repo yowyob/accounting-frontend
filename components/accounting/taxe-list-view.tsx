@@ -16,6 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { TaxeDto } from '@/src/lib2/models/TaxeDto';
 import { Edit, Trash2, Plus, RefreshCw, Search, Loader2 } from 'lucide-react';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface TaxeListViewProps {
   taxes: TaxeDto[];
@@ -34,22 +35,26 @@ const RowActions = ({ taxe, onEdit, onDelete }: {
   return (
     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); onEdit(taxe.id!); }}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Modifier la taxe</p></TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(taxe); }}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Supprimer la taxe</p></TooltipContent>
-        </Tooltip>
+        <PermissionGuard feature="taxes" action="update">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:bg-blue-50" onClick={(e) => { e.stopPropagation(); onEdit(taxe.id!); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Modifier la taxe</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
+        <PermissionGuard feature="taxes" action="delete">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-red-600 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); onDelete(taxe); }}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Supprimer la taxe</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
       </TooltipProvider>
     </div>
   );
@@ -92,10 +97,12 @@ export const TaxeListView: React.FC<TaxeListViewProps> = ({
 
         {/* Bottom Row: Action buttons (New left, Refresh right) */}
         <div className="flex items-center justify-between w-full">
-          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Nouvelle Taxe
-          </Button>
+          <PermissionGuard feature="taxes" action="create">
+            <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouvelle Taxe
+            </Button>
+          </PermissionGuard>
           <Button onClick={onRefresh} variant="outline" size="icon" className="h-10 w-10">
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>

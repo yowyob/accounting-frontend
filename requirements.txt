@@ -1,0 +1,2174 @@
+Conception et Modélisation
+du Module Comptabilité
+Inspiré du framework
+
+Document de spécifications fonctionnelles et techniques
+Périmètre
+
+Module Comptabilité
+
+Fonctionnalités couvertes :
+Gestion des Rôles Comptables
+Gestion Budgétaire et Analytique
+Gestion des Immobilisations
+Packs de Localisation Fiscale
+
+Conception et Modélisation – Module Comptabilité
+
+1
+
+Table des matières
+1 Introduction
+
+3
+
+2 Gestion des Rôles Comptables
+4
+2.1 Définition de l’utilité, du besoin et de l’utilisabilité . . . . . . . . . . . . . 4
+2.2 Exigences fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+2.3 Exigences non fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+2.4 Diagrammes de modélisation . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+2.4.1 Diagramme de cas d’utilisation . . . . . . . . . . . . . . . . . . . . 5
+2.4.2 Diagramme de séquence – Attribution d’un rôle . . . . . . . . . . . 5
+2.5 Descriptions textuelles des cas d’utilisation . . . . . . . . . . . . . . . . . . 5
+2.5.1 Liste exhaustive des cas d’utilisation . . . . . . . . . . . . . . . . . 5
+2.5.2 CU-R01 : Consulter la liste des utilisateurs et leurs rôles comptables 6
+2.5.3 CU-R02 : Attribuer un rôle comptable à un utilisateur . . . . . . . 6
+2.5.4 CU-R03 : Modifier le rôle comptable d’un utilisateur . . . . . . . . 7
+2.5.5 CU-R04 : Consulter le journal des modifications de rôles . . . . . . 7
+2.5.6 CU-R05 : Accéder aux fonctions autorisées pour l’Aide-comptable . 8
+2.5.7 CU-R06 : Accéder aux fonctions autorisées pour le Comptable . . . 8
+2.5.8 CU-R07 : Accéder aux fonctions autorisées pour le Responsable
+comptable . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.5.9 CU-R08 : Être bloqué sur une action non autorisée . . . . . . . . . 9
+2.6 Maquettes de pages . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.6.1 Page de gestion des utilisateurs et des rôles . . . . . . . . . . . . . . 10
+3 Gestion Budgétaire et Analytique
+3.1 Définition de l’utilité, du besoin et de l’utilisabilité . . . . . . . . . . . . .
+3.2 Exigences fonctionnelles – Volet Analytique . . . . . . . . . . . . . . . . .
+3.3 Exigences fonctionnelles – Volet Budgétaire . . . . . . . . . . . . . . . . . .
+3.4 Exigences non fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.5 Diagrammes de modélisation . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.5.1 Diagramme de cas d’utilisation . . . . . . . . . . . . . . . . . . . .
+3.5.2 Diagramme de séquence – Imputation analytique . . . . . . . . . .
+3.6 Descriptions textuelles des cas d’utilisation . . . . . . . . . . . . . . . . . .
+3.6.1 Liste exhaustive des cas d’utilisation . . . . . . . . . . . . . . . . .
+3.6.2 CU-A01 : Créer un axe analytique . . . . . . . . . . . . . . . . . . .
+3.6.3 CU-A03 : Créer un compte analytique . . . . . . . . . . . . . . . .
+3.6.4 CU-A05 : Imputer manuellement une ligne à un compte analytique
+3.6.5 CU-B01 : Créer un budget . . . . . . . . . . . . . . . . . . . . . . .
+3.6.6 CU-B03 : Verrouiller un budget . . . . . . . . . . . . . . . . . . . .
+3.6.7 CU-B04 : Consulter le tableau Budget versus Réalisé . . . . . . . .
+3.7 Maquettes de pages . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+3.7.1 Page de création et de suivi d’un budget . . . . . . . . . . . . . . .
+3.7.2 Pop-up d’imputation analytique . . . . . . . . . . . . . . . . . . . .
+
+11
+11
+11
+11
+12
+12
+12
+12
+13
+13
+13
+14
+14
+15
+15
+16
+16
+16
+17
+
+Conception et Modélisation – Module Comptabilité
+
+2
+
+4 Gestion des Immobilisations
+4.1 Définition de l’utilité, du besoin et de l’utilisabilité . . . . . . . . . . . . .
+4.2 Exigences fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3 Exigences non fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4 Diagrammes de modélisation . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4.1 Diagramme de cas d’utilisation . . . . . . . . . . . . . . . . . . . .
+4.4.2 Diagramme d’états – Cycle de vie d’une immobilisation . . . . . . .
+4.5 Descriptions textuelles des cas d’utilisation . . . . . . . . . . . . . . . . . .
+4.5.1 Liste exhaustive des cas d’utilisation . . . . . . . . . . . . . . . . .
+4.5.2 CU-I01 : Créer une catégorie d’immobilisation . . . . . . . . . . . .
+4.5.3 CU-I04 : Créer une immobilisation depuis une facture fournisseur .
+4.5.4 CU-I09 : Céder une immobilisation . . . . . . . . . . . . . . . . . .
+4.6 Maquettes de pages . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.6.1 Page de détail d’une immobilisation . . . . . . . . . . . . . . . . . .
+
+18
+18
+18
+19
+19
+19
+19
+20
+20
+20
+21
+22
+22
+22
+
+5 Packs de Localisation Fiscale
+5.1 Définition de l’utilité, du besoin et de l’utilisabilité . . . . . . . . . . . . .
+5.2 Exigences fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3 Exigences non fonctionnelles . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.4 Diagrammes de modélisation . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.4.1 Diagramme de cas d’utilisation . . . . . . . . . . . . . . . . . . . .
+5.4.2 Diagramme d’activité – Installation d’un pack . . . . . . . . . . . .
+5.5 Descriptions textuelles des cas d’utilisation . . . . . . . . . . . . . . . . . .
+5.5.1 Liste exhaustive des cas d’utilisation . . . . . . . . . . . . . . . . .
+5.5.2 CU-L01 : Consulter la liste des packs de localisation disponibles . .
+5.5.3 CU-L03 : Installer un pack de localisation fiscale . . . . . . . . . . .
+5.5.4 CU-L04 : Mettre à jour un pack de localisation installé . . . . . . .
+5.5.5 CU-L08 : Exporter le Fichier des Écritures Comptables . . . . . . .
+5.5.6 CU-L09 : Générer une déclaration de TVA pré-remplie . . . . . . .
+5.6 Maquettes de pages . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.6.1 Page de gestion des packs de localisation . . . . . . . . . . . . . . .
+5.6.2 Page d’export du Fichier des Écritures Comptables . . . . . . . . .
+
+23
+23
+23
+24
+25
+25
+25
+26
+26
+26
+26
+27
+28
+28
+31
+31
+31
+
+6 Conclusion
+
+32
+
+A Périmètres détaillés des rôles comptables
+A.1 Rôle Aide-comptable . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+A.2 Rôle Comptable . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+A.3 Rôle Responsable comptable . . . . . . . . . . . . . . . . . . . . . . . . . .
+A.4 Récapitulatif synoptique . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+32
+32
+34
+35
+36
+
+Conception et Modélisation – Module Comptabilité
+
+1
+
+3
+
+Introduction
+
+Le présent document constitue le dossier de conception et de modélisation de quatre
+fonctionnalités essentielles au module Comptabilité, retenues pour leur pertinence métier
+et leur impact sur la qualité de la gestion financière d’une organisation. Ces fonctionnalités
+sont la gestion des rôles comptables, la gestion budgétaire et analytique, la gestion des
+immobilisations, et les packs de localisation fiscale.
+L’objectif est de fournir une spécification complète et rigoureuse de chaque fonctionnalité, en décrivant son utilité, ses exigences fonctionnelles et non fonctionnelles, ses diagrammes de modélisation, ses cas d’utilisation détaillés, ainsi que des maquettes d’interface utilisateur. Ce document s’adresse aux chefs de projet, développeurs, architectes
+logiciels et parties prenantes métier impliqués dans la réalisation ou l’évolution du module
+Comptabilité.
+La structure adoptée pour chaque fonctionnalité suit une méthodologie éprouvée. Elle
+débute par une définition de l’utilité, du besoin et de l’utilisabilité, se poursuit par l’énoncé
+des exigences fonctionnelles et non fonctionnelles, présente les diagrammes de modélisation
+pertinents, déroule la description textuelle exhaustive des cas d’utilisation, et s’achève par
+les maquettes de pages correspondantes. Cette approche garantit une couverture complète
+du besoin, depuis la vision métier jusqu’aux spécifications techniques détaillées.
+
+Conception et Modélisation – Module Comptabilité
+
+2
+
+Gestion des Rôles Comptables
+
+2.1
+
+Définition de l’utilité, du besoin et de l’utilisabilité
+
+4
+
+La gestion des rôles comptables constitue le socle de la sécurité et de l’organisation du
+module Comptabilité. Son utilité première est de garantir que chaque utilisateur n’accède
+qu’aux fonctions strictement nécessaires à l’exercice de ses responsabilités, instaurant
+ainsi une séparation claire entre les tâches opérationnelles quotidiennes, la supervision
+des travaux, et la configuration sensible du système.
+Le besoin auquel répond cette fonctionnalité est directement lié à la réalité organisationnelle des services comptables. Dans toute structure, les intervenants sur la comptabilité possèdent des niveaux de responsabilité hétérogènes. Un aide-comptable chargé de la
+saisie des factures n’a pas vocation à modifier le plan comptable ou à verrouiller un exercice. Sans une gestion fine des rôles, une simple erreur humaine ou un accès non contrôlé
+pourrait entraîner des modifications non désirées sur des écritures validées, des paramètres
+fiscaux, ou des données de clôture, avec des conséquences potentiellement graves sur la
+fiabilité des états financiers.
+L’utilisabilité de cette fonctionnalité repose sur deux principes fondamentaux. Pour
+l’administrateur, l’attribution ou le retrait d’un rôle doit s’effectuer simplement, sans
+intervention technique complexe, via une interface dédiée accessible depuis les paramètres
+utilisateurs. Pour l’utilisateur final, le système doit adapter dynamiquement l’interface
+en ne présentant que les menus et les actions correspondant à ses droits effectifs, sans le
+perturber par des éléments inaccessibles qui nuiraient à son efficacité.
+
+2.2
+
+Exigences fonctionnelles
+
+Référence
+EF-R01
+EF-R02
+EF-R03
+EF-R04
+
+EF-R05
+EF-R06
+
+EF-R07
+
+2.3
+
+Exigence
+Le système doit proposer des rôles prédéfinis : Aide-comptable,
+Comptable, et Responsable comptable.
+Le Responsable comptable, disposant des droits d’administration,
+doit pouvoir attribuer un rôle à un utilisateur existant.
+Le Responsable comptable doit pouvoir modifier le rôle d’un
+utilisateur existant.
+Le système doit restreindre l’accès aux menus et actions en
+fonction du rôle attribué. À titre d’exemple, seul le Responsable
+comptable voit les paramètres du plan comptable.
+Le système doit interdire à un Aide-comptable de modifier le plan
+comptable, les taxes, ou de verrouiller une période.
+Le système doit interdire à un Comptable de modifier la
+configuration du module, notamment le plan comptable, les
+journaux et les taxes.
+Une interface dédiée doit permettre de visualiser la liste des
+utilisateurs avec leur rôle comptable actuel.
+
+Exigences non fonctionnelles
+
+Conception et Modélisation – Module Comptabilité
+Référence
+ENF-R01
+
+ENF-R02
+
+ENF-R03
+
+5
+
+Exigence
+Sécurité : Toute action de modification des rôles doit être
+journalisée, en enregistrant l’auteur de la modification, le rôle
+modifié, et l’horodatage de l’opération.
+Performance : Le filtrage des menus et des actions par rôle ne doit
+pas entraîner de latence perceptible par l’utilisateur. Le temps de
+réponse doit être inférieur à 200 millisecondes.
+Utilisabilité : En cas de tentative d’accès à une fonction non
+autorisée, un message clair et explicite doit informer l’utilisateur
+qu’il ne dispose pas des droits suffisants pour effectuer cette
+action.
+
+2.4
+
+Diagrammes de modélisation
+
+2.4.1
+
+Diagramme de cas d’utilisation
+
+Le diagramme de cas d’utilisation ci-dessous présente les interactions entre les acteurs
+et le système pour la gestion des rôles comptables. Le Responsable comptable est l’acteur central disposant du pouvoir d’administration des droits. Les Comptables et Aidescomptables interagissent avec le système uniquement pour accéder aux fonctions que leur
+rôle autorise.
+2.4.2
+
+Diagramme de séquence – Attribution d’un rôle
+
+Le diagramme de séquence qui suit détaille le processus d’attribution d’un rôle comptable à un utilisateur par le Responsable comptable. Il met en évidence les échanges
+entre l’interface utilisateur, la couche métier du système, et la base de données, jusqu’à
+la journalisation de l’action.
+
+2.5
+
+Descriptions textuelles des cas d’utilisation
+
+2.5.1
+
+Liste exhaustive des cas d’utilisation
+
+Réf.
+CU-R01
+CU-R02
+
+Cas d’utilisation
+Consulter la liste des utilisateurs et leurs
+rôles comptables
+Attribuer un rôle comptable à un utilisateur
+
+CU-R03
+
+Modifier le rôle comptable d’un utilisateur
+
+CU-R04
+
+Consulter le journal des modifications de
+rôles
+Accéder aux fonctions autorisées pour
+l’Aide-comptable
+Accéder aux fonctions autorisées pour le
+Comptable
+Accéder aux fonctions autorisées pour le
+Responsable comptable
+
+CU-R05
+CU-R06
+CU-R07
+
+Acteur
+Responsable
+comptable
+Responsable
+comptable
+Responsable
+comptable
+Responsable
+comptable
+Aide-comptable
+Comptable
+Responsable
+comptable
+
+Conception et Modélisation – Module Comptabilité
+
+CU-R08
+
+Être bloqué sur une action non autorisée
+
+6
+
+Aide-comptable,
+Comptable
+
+Table 3 – Liste des cas d’utilisation – Gestion des Rôles Comptables
+2.5.2
+
+CU-R01 : Consulter la liste des utilisateurs et leurs rôles comptables
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’acteur est authentifié. Il possède le rôle de Responsable comptable et
+les droits d’administration généraux .
+Scénario nominal
+L’acteur accède au menu Paramètres, puis Utilisateurs. Le système affiche la liste complète des utilisateurs enregistrés. Chaque ligne de la
+liste présente le nom de l’utilisateur, son adresse électronique, et son rôle
+comptable actuel. L’acteur peut filtrer la liste par rôle comptable via
+un menu déroulant situé en haut de la liste. Il peut également trier les
+résultats par nom ou par rôle en cliquant sur les en-têtes de colonnes
+correspondants.
+Post-conditions
+L’acteur dispose d’une vision claire et synthétique de la répartition des
+rôles au sein du module Comptabilité.
+Scénario alternatif
+Si aucun utilisateur ne s’est encore vu attribuer de rôle comptable, la
+colonne dédiée affiche la mention Aucun rôle pour l’ensemble des utilisateurs. L’acteur peut alors procéder aux attributions nécessaires.
+2.5.3
+
+CU-R02 : Attribuer un rôle comptable à un utilisateur
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’acteur est positionné sur la liste des utilisateurs. L’utilisateur cible n’a
+pas encore de rôle comptable attribué.
+Scénario nominal
+L’acteur clique sur le nom de l’utilisateur cible dans la liste. Le système affiche le formulaire détaillé de l’utilisateur. L’acteur ouvre l’onglet
+Comptabilité situé dans la barre d’onglets du formulaire. Un champ déroulant intitulé Rôle comptable propose les trois choix disponibles : Aidecomptable, Comptable, et Responsable comptable. L’acteur sélectionne
+le rôle souhaité, par exemple Comptable. Il clique ensuite sur le bouton
+Enregistrer. Le système met à jour les droits de l’utilisateur, journalise
+l’action en enregistrant l’auteur, la date et le rôle attribué, puis affiche un
+message de confirmation indiquant que le rôle a été attribué avec succès.
+
+Conception et Modélisation – Module Comptabilité
+
+7
+
+Post-conditions
+L’utilisateur cible dispose désormais de l’ensemble des droits correspondant à son nouveau rôle. L’action est tracée de manière permanente dans
+le journal des modifications.
+Scénario alternatif
+Si l’acteur sélectionne un rôle puis clique sur Annuler au lieu d’Enregistrer, le rôle n’est pas modifié et aucune trace n’est conservée dans le
+journal.
+2.5.4
+
+CU-R03 : Modifier le rôle comptable d’un utilisateur
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’utilisateur cible possède déjà un rôle comptable.
+Scénario nominal
+L’acteur clique sur le nom de l’utilisateur cible dans la liste. Il ouvre
+l’onglet Comptabilité dans le formulaire. Le champ Rôle comptable affiche le rôle actuel de l’utilisateur, par exemple Aide-comptable. L’acteur
+sélectionne un nouveau rôle dans le menu déroulant, par exemple Responsable comptable. Il clique sur Enregistrer. Le système met à jour les
+droits de l’utilisateur en supprimant les permissions de l’ancien rôle et
+en accordant celles du nouveau. Le système journalise le changement en
+conservant l’ancien rôle et le nouveau rôle. Un message de confirmation
+indique que le rôle a été modifié avec succès.
+Post-conditions
+L’utilisateur perd les droits de son ancien rôle et acquiert ceux du nouveau rôle. La modification est enregistrée dans le journal d’audit.
+Scénario alternatif
+Si l’acteur tente de modifier le dernier Responsable comptable en un rôle
+inférieur, le système affiche un avertissement explicite indiquant qu’il n’y
+aura plus aucun Responsable comptable actif et demande une confirmation expresse avant d’exécuter la modification.
+2.5.5
+
+CU-R04 : Consulter le journal des modifications de rôles
+
+Acteur principal
+Responsable comptable
+Préconditions
+Au moins une modification de rôle a été effectuée dans le système.
+Scénario nominal
+L’acteur accède au menu Paramètres, puis Journal des actions. Il utilise
+le filtre par type d’action et sélectionne Modification de rôle. Le système
+affiche la liste chronologique des modifications de rôles, avec pour chaque
+entrée la date et l’heure de l’action, le nom de l’auteur de la modification,
+l’utilisateur concerné, l’ancien rôle et le nouveau rôle attribué. L’acteur
+peut exporter cette liste dans un format exploitable, tel que CSV ou
+Excel, pour les besoins d’un audit externe.
+
+Conception et Modélisation – Module Comptabilité
+
+8
+
+Post-conditions
+L’acteur dispose d’une piste d’audit complète et inaltérable de l’ensemble
+des modifications d’habilitations réalisées sur le module Comptabilité.
+Scénario alternatif
+Si aucune modification n’a encore été effectuée, la liste est simplement
+vide et affiche un message informatif.
+2.5.6
+
+CU-R05 : Accéder aux fonctions autorisées pour l’Aide-comptable
+
+Acteur principal
+Aide-comptable
+Préconditions
+L’acteur est authentifié avec le rôle Aide-comptable.
+Scénario nominal
+L’utilisateur se connecte au système. Le système affiche uniquement les
+menus et les actions correspondant aux droits de l’Aide-comptable, à savoir le tableau de bord comptable, les pièces comptables en saisie et en
+consultation, le grand livre, la balance comptable, le compte de résultat
+et le bilan en consultation, les immobilisations en création et consultation, le plan analytique en consultation et imputation, les budgets en
+consultation, et les journaux en lecture seule. Les menus Paramètres, Plan
+comptable en édition, et Verrouillage de période sont absents de l’interface. L’utilisateur peut créer une pièce comptable, imputer une ligne à
+un compte analytique, consulter les états financiers et le tableau de bord
+budgétaire.
+Post-conditions
+L’utilisateur travaille dans un périmètre strictement sécurisé, sans aucun
+risque de modifier accidentellement la configuration comptable ou les
+données de clôture.
+Scénario alternatif
+Si l’utilisateur tente d’accéder directement par URL à une page correspondant à une fonction interdite, le système intercepte la requête et
+affiche une page indiquant que l’accès est refusé en raison de droits insuffisants.
+2.5.7
+
+CU-R06 : Accéder aux fonctions autorisées pour le Comptable
+
+Acteur principal
+Comptable
+Préconditions
+L’acteur est authentifié avec le rôle Comptable.
+Scénario nominal
+L’utilisateur se connecte au système. Le système affiche tous les menus
+visibles par l’Aide-comptable, auxquels s’ajoutent les fonctions de création, modification et suppression des comptes comptables, la création et
+la modification partielle des journaux, la consultation et la configuration
+
+Conception et Modélisation – Module Comptabilité
+
+9
+
+basique des taxes, la création et la modification des budgets, et la modification des immobilisations en cours d’amortissement. Les menus Packs de
+localisation, Verrouillage définitif et Gestion des utilisateurs demeurent
+absents.
+Post-conditions
+L’utilisateur peut réaliser l’ensemble des opérations courantes et de supervision comptable, sans pouvoir altérer la configuration fondamentale
+du module ni les droits des autres utilisateurs.
+Scénario alternatif
+Le comportement en cas de tentative d’accès à une page interdite est
+identique au cas CU-R05.
+2.5.8
+
+CU-R07 : Accéder aux fonctions autorisées pour le Responsable comptable
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’acteur est authentifié avec le rôle Responsable comptable et dispose
+des droits d’administration généraux .
+Scénario nominal
+L’utilisateur se connecte au système. Le système affiche l’intégralité des
+menus du module Comptabilité sans aucune restriction. L’utilisateur
+peut installer ou désinstaller un pack de localisation fiscale, verrouiller
+ou déverrouiller une période comptable, modifier les rôles des autres utilisateurs, et accéder à tous les paramètres de configuration du module.
+Post-conditions
+L’utilisateur dispose d’un accès total et sans restriction au module Comptabilité.
+Scénario alternatif
+Si l’acteur possède le rôle Responsable comptable sans les droits d’administration généraux, il voit tous les menus comptables mais le menu de
+gestion des utilisateurs est masqué.
+2.5.9
+
+CU-R08 : Être bloqué sur une action non autorisée
+
+Acteur principal
+Aide-comptable ou Comptable
+Préconditions
+L’acteur tente d’effectuer une action qui se situe en dehors de son périmètre d’habilitation.
+Scénario nominal
+L’utilisateur, par exemple un Aide-comptable, tente d’accéder au menu
+de modification du plan comptable. Ce menu n’est pas visible dans son
+interface. S’il tente de forcer l’accès en saisissant directement l’URL de
+la page dans son navigateur, le système intercepte la requête avant tout
+traitement métier. Il vérifie les droits de l’utilisateur, constate l’absence
+
+Conception et Modélisation – Module Comptabilité
+
+10
+
+d’habilitation, et affiche une page d’erreur explicite indiquant que l’accès
+est refusé et que l’utilisateur ne dispose pas des droits suffisants pour
+cette action. Le système journalise la tentative d’accès non autorisé à des
+fins de surveillance.
+Post-conditions
+L’action est totalement bloquée. La sécurité et l’intégrité du module
+Comptabilité sont préservées.
+Scénario alternatif
+Le comportement est strictement identique quel que soit le rôle de l’utilisateur tentant l’accès : toute action hors périmètre est bloquée et journalisée.
+
+2.6
+
+Maquettes de pages
+
+2.6.1
+
+Page de gestion des utilisateurs et des rôles
+
+La maquette ci-dessous représente l’interface de gestion des utilisateurs et des rôles
+comptables. Elle se divise en deux zones principales. La partie supérieure affiche la liste
+des utilisateurs avec leur rôle comptable actuel, sous forme d’un tableau comportant les
+colonnes Nom, Email et Rôle comptable. Un champ de recherche permet de filtrer les
+utilisateurs. La partie inférieure présente un panneau de modification de rôle, qui s’affiche
+lorsqu’un utilisateur est sélectionné. Ce panneau contient le nom de l’utilisateur, son rôle
+actuel, un menu déroulant pour choisir un nouveau rôle parmi les trois disponibles, ainsi
+que les boutons Enregistrer et Annuler.
+
+Conception et Modélisation – Module Comptabilité
+
+3
+
+Gestion Budgétaire et Analytique
+
+3.1
+
+Définition de l’utilité, du besoin et de l’utilisabilité
+
+11
+
+La gestion budgétaire et analytique constitue l’outil de pilotage financier intégré au
+module Comptabilité. Son utilité fondamentale est de permettre à l’entreprise de découper
+son activité selon des axes pertinents, tels que les projets, les départements ou les lignes
+de produits, et de comparer en temps réel les réalisations aux prévisions budgétaires.
+Cette double capacité d’analyse et de projection transforme la comptabilité d’une fonction
+purement déclarative en un véritable instrument de contrôle de gestion.
+Le besoin auquel répond cette fonctionnalité est unanimement reconnu par les directions financières. Sans comptabilité analytique, une organisation est incapable de déterminer avec précision quel projet est rentable, quel service consomme le plus de ressources, ou
+quelle ligne de produits génère la meilleure marge. Sans gestion budgétaire, elle navigue
+sans visibilité, incapable d’anticiper les dérives et de prendre les mesures correctives nécessaires en cours d’exercice. Ces deux composantes sont donc indissociables et essentielles
+à toute organisation qui souhaite maîtriser durablement sa performance économique.
+L’utilisabilité de la fonctionnalité repose sur la simplicité et la progressivité des actions.
+Le Comptable et le Responsable comptable doivent pouvoir créer des axes analytiques représentant les dimensions d’analyse de l’entreprise, puis définir des comptes analytiques
+rattachés à ces axes, correspondant aux entités concrètes à suivre. Lors de la saisie courante, l’imputation d’une ligne d’écriture à un compte analytique doit se faire en quelques
+clics, éventuellement assistée par des modèles de distribution prédéfinis. Enfin, les budgets
+sont définis sur les mêmes axes et comptes analytiques, et le tableau de bord Budget versus Réalisé se met à jour automatiquement, offrant une vision dynamique et permanente
+de la performance.
+
+3.2
+
+Exigences fonctionnelles – Volet Analytique
+
+Référence
+EF-A01
+EF-A02
+EF-A03
+
+EF-A04
+
+EF-A05
+
+3.3
+
+Exigence
+Le système doit permettre de créer des axes analytiques, par
+exemple Projets, Départements, ou Produits.
+Chaque axe doit pouvoir contenir plusieurs comptes analytiques,
+comme Projet Alpha et Projet Beta pour l’axe Projets.
+Lors de la saisie d’une pièce comptable, chaque ligne doit
+permettre l’imputation à un ou plusieurs comptes analytiques,
+avec une répartition pouvant être exprimée en pourcentage ou en
+montant absolu.
+L’imputation analytique doit être réalisable manuellement ou via
+des modèles de distribution prédéfinis, afin d’accélérer les saisies
+répétitives.
+Le système doit générer des rapports analytiques, notamment la
+balance par compte analytique et le résultat par axe analytique.
+
+Exigences fonctionnelles – Volet Budgétaire
+
+Conception et Modélisation – Module Comptabilité
+Référence
+EF-B01
+
+EF-B02
+EF-B03
+
+EF-B04
+
+EF-B05
+
+EF-B06
+
+3.4
+
+12
+
+Exigence
+Le système doit permettre de créer un budget associé à un axe ou
+à un compte analytique, avec une période de validité et un
+montant prévisionnel.
+Le budget peut être défini de manière globale ou détaillée par
+compte comptable, selon le niveau de granularité souhaité.
+Le système doit calculer automatiquement le montant réalisé à
+partir des écritures comptables imputées au compte analytique
+correspondant.
+Le système doit afficher un tableau de bord comparant le budget
+au réalisé, avec l’écart exprimé en valeur absolue et en
+pourcentage.
+Le système doit alerter visuellement l’utilisateur lorsque le réalisé
+dépasse un seuil configurable, par exemple 80 pour cent du budget
+alloué.
+Le Responsable comptable doit pouvoir verrouiller un budget, ce
+qui empêche toute modification ultérieure de ses montants
+prévisionnels.
+
+Exigences non fonctionnelles
+
+Référence
+ENF-BA01
+
+ENF-BA02
+
+ENF-BA03
+
+Exigence
+Performance : L’affichage du tableau de bord Budget versus
+Réalisé doit se faire en moins de deux secondes, même sur un
+exercice complet comportant plusieurs milliers d’écritures
+comptables.
+Traçabilité : Toute modification d’un budget après sa validation
+initiale doit être journalisée, en enregistrant la date, l’auteur, et le
+détail des modifications effectuées.
+Utilisabilité : L’imputation analytique sur une ligne de pièce
+comptable ne doit pas nécessiter plus de deux actions
+supplémentaires par rapport à une saisie sans analytique.
+
+3.5
+
+Diagrammes de modélisation
+
+3.5.1
+
+Diagramme de cas d’utilisation
+
+Le diagramme ci-dessous présente les interactions pour l’ensemble de la fonctionnalité budgétaire et analytique. Le Responsable comptable intervient sur la création et la
+modification des structures, tandis que le Comptable et l’Aide-comptable se partagent les
+actions d’imputation et de consultation.
+3.5.2
+
+Diagramme de séquence – Imputation analytique
+
+Ce diagramme détaille le processus d’imputation d’une ligne comptable à un compte
+analytique, depuis l’ouverture de la pop-up de distribution jusqu’à l’enregistrement de
+l’imputation.
+
+Conception et Modélisation – Module Comptabilité
+
+13
+
+3.6
+
+Descriptions textuelles des cas d’utilisation
+
+3.6.1
+
+Liste exhaustive des cas d’utilisation
+
+Réf.
+CU-A01
+CU-A02
+CU-A03
+
+Cas d’utilisation
+Créer un axe analytique
+Modifier un axe analytique
+Créer un compte analytique
+
+CU-A04
+
+Modifier un compte analytique
+
+CU-A05
+
+Imputer manuellement une ligne à un
+compte analytique
+Définir un modèle de distribution
+analytique
+Appliquer un modèle de distribution
+
+CU-A06
+CU-A07
+CU-A08
+CU-A09
+
+Consulter la balance par compte
+analytique
+Consulter le résultat par axe analytique
+
+CU-B01
+
+Créer un budget
+
+CU-B02
+
+Modifier un budget non verrouillé
+
+CU-B03
+CU-B04
+
+Verrouiller un budget
+Consulter le tableau Budget vs Réalisé
+
+CU-B05
+
+Recevoir une alerte de dépassement
+budgétaire
+Clôturer un budget en fin d’exercice
+
+CU-B06
+
+Acteur
+Responsable comptable
+Responsable comptable
+Responsable comptable,
+Comptable
+Responsable comptable,
+Comptable
+Aide-comptable,
+Comptable
+Comptable
+Aide-comptable,
+Comptable
+Aide-comptable,
+Comptable, Resp.
+Comptable, Responsable
+comptable
+Responsable comptable,
+Comptable
+Responsable comptable,
+Comptable
+Responsable comptable
+Aide-comptable,
+Comptable, Resp.
+Comptable, Responsable
+comptable
+Responsable comptable
+
+Table 7 – Liste des cas d’utilisation – Gestion Budgétaire et Analytique
+3.6.2
+
+CU-A01 : Créer un axe analytique
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’acteur est authentifié en tant que Responsable comptable.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Paramètres, puis Axes analytiques. Il clique sur le bouton Créer. Le système affiche un formulaire
+vierge comportant deux champs : un champ Code destiné à recevoir un
+identifiant court, par exemple PROJ, et un champ Libellé destiné au
+nom complet de l’axe, par exemple Projets. L’acteur renseigne ces deux
+champs et clique sur Enregistrer. Le système valide l’unicité du code,
+enregistre le nouvel axe, et affiche un message de confirmation indiquant
+
+Conception et Modélisation – Module Comptabilité
+
+14
+
+que l’axe a été créé avec succès. Le nouvel axe est immédiatement disponible pour la création de comptes analytiques.
+Post-conditions
+Un nouvel axe analytique est disponible dans le système.
+Scénario alternatif
+Si l’acteur saisit un code déjà utilisé par un autre axe, le système refuse
+l’enregistrement et affiche un message indiquant que ce code est déjà
+utilisé. L’acteur doit alors modifier le code avant de pouvoir enregistrer.
+3.6.3
+
+CU-A03 : Créer un compte analytique
+
+Acteur principal
+Responsable comptable ou Comptable
+Préconditions
+Au moins un axe analytique existe dans le système.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Paramètres, puis Comptes
+analytiques. Il clique sur le bouton Créer. Le système affiche un formulaire
+comportant un champ obligatoire Axe sous forme de menu déroulant
+listant tous les axes disponibles, un champ Nom destiné à recevoir le
+libellé du compte, par exemple Projet Alpha, et deux champs optionnels
+Date de début et Date de fin pour borner la période d’utilisation du
+compte. L’acteur sélectionne l’axe, saisit le nom, et enregistre. Le système
+crée le compte analytique et le rend disponible pour imputation sur les
+écritures comptables.
+Post-conditions
+Le compte analytique est créé et peut être utilisé immédiatement.
+Scénario alternatif
+Si l’acteur ne sélectionne pas d’axe, le système refuse l’enregistrement et
+met en évidence le champ manquant.
+3.6.4
+
+CU-A05 : Imputer manuellement une ligne à un compte analytique
+
+Acteur principal
+Aide-comptable ou Comptable
+Préconditions
+Une pièce comptable est en cours de saisie et se trouve à l’état Brouillon.
+Au moins un compte analytique existe.
+Scénario nominal
+L’acteur saisit les lignes de la pièce comptable normalement. Sur une ligne
+donnée, il clique sur l’icône représentant une cible ou un diagramme, associée à la fonction analytique. Le système ouvre une fenêtre contextuelle
+intitulée Imputation analytique. Cette fenêtre affiche une grille vide ou
+pré-remplie avec deux colonnes : Compte analytique et Part en pourcentage. L’acteur sélectionne un compte analytique, par exemple Projet
+Alpha, et saisit la part correspondante, par exemple 100 pour cent. Il
+clique sur le bouton Appliquer. La fenêtre se ferme et la ligne de la pièce
+
+Conception et Modélisation – Module Comptabilité
+
+15
+
+comptable est désormais marquée d’une indication visuelle confirmant
+l’imputation.
+Post-conditions
+La ligne comptable est imputée au compte analytique sélectionné. Elle
+sera prise en compte dans les rapports analytiques et dans le calcul du
+réalisé budgétaire.
+Scénario alternatif
+L’acteur peut répartir une ligne sur plusieurs comptes analytiques en
+ajoutant des lignes dans la grille, par exemple 60 pour cent sur Projet
+Alpha et 40 pour cent sur Projet Beta. Le système accepte des répartitions dont le total n’atteint pas exactement 100 pour cent, sans bloquer
+la validation.
+3.6.5
+
+CU-B01 : Créer un budget
+
+Acteur principal
+Responsable comptable ou Comptable
+Préconditions
+Un axe analytique et au moins un compte analytique existent dans le
+système.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Budgets. Il clique sur Créer.
+Le système affiche un formulaire de création de budget. L’acteur saisit
+un nom explicite, par exemple Budget Projet Alpha 2026. Il sélectionne
+l’axe Projets dans un menu déroulant, puis le compte analytique Projet
+Alpha. Il définit la période budgétaire en renseignant une date de début,
+par exemple le premier janvier 2026, et une date de fin, par exemple le
+31 décembre 2026. Il remplit ensuite le tableau des prévisions, soit en
+saisissant un montant global, soit en détaillant par compte comptable. Il
+clique sur Enregistrer. Le système calcule automatiquement les totaux et
+affiche le budget avec le statut Actif.
+Post-conditions
+Le budget est créé et apparaît dans la liste des budgets. Les colonnes Réalisé et Écart se mettront automatiquement à jour au fil des imputations
+comptables.
+Scénario alternatif
+Si la période définie chevauche celle d’un budget existant sur le même
+compte analytique, le système affiche un avertissement informatif mais
+n’empêche pas la création.
+3.6.6
+
+CU-B03 : Verrouiller un budget
+
+Acteur principal
+Responsable comptable
+Préconditions
+Le budget est au statut Actif. La période budgétaire est achevée ou la
+direction financière souhaite figer les prévisions.
+
+Conception et Modélisation – Module Comptabilité
+
+16
+
+Scénario nominal
+L’acteur ouvre le budget concerné depuis la liste des budgets. Il clique sur
+le bouton Verrouiller. Le système affiche une boîte de dialogue de confirmation demandant si l’acteur souhaite réellement verrouiller ce budget,
+en précisant qu’il ne pourra plus être modifié après cette action. L’acteur confirme sa décision. Le système fait passer le statut du budget à
+Verrouillé, désactive le bouton Modifier, et journalise l’action.
+Post-conditions
+Le budget est figé. Il reste consultable dans son intégralité mais aucune
+modification de ses montants prévisionnels n’est plus possible.
+Scénario alternatif
+Si un Comptable tente d’accéder au budget, le bouton Verrouiller n’est
+pas visible dans son interface.
+3.6.7
+
+CU-B04 : Consulter le tableau Budget versus Réalisé
+
+Acteur principal
+Aide-comptable, Comptable, ou Responsable comptable
+Préconditions
+Un budget a été créé et au moins une écriture comptable imputée au
+même compte analytique a été validée.
+Scénario nominal
+L’acteur ouvre le budget depuis la liste. Le système affiche le tableau de
+bord de suivi budgétaire. Ce tableau présente, pour chaque ligne budgétée, quatre colonnes : le montant budgété, le montant réalisé issu des
+écritures comptables, l’écart en valeur absolue, et l’écart en pourcentage.
+Les lignes dont le réalisé dépasse le budget apparaissent en rouge, accompagnées d’une icône d’alerte en forme de triangle. L’acteur peut cliquer
+sur un montant de la colonne Réalisé pour accéder au détail des écritures
+comptables qui le composent.
+Post-conditions
+L’acteur dispose d’une visibilité immédiate et complète sur l’état d’exécution du budget.
+Scénario alternatif
+Si aucune écriture n’a encore été imputée, la colonne Réalisé affiche zéro
+euro pour toutes les lignes.
+
+3.7
+
+Maquettes de pages
+
+3.7.1
+
+Page de création et de suivi d’un budget
+
+La maquette ci-dessous illustre l’interface de consultation d’un budget. La partie supérieure rappelle le nom du budget, son statut et sa période. Le tableau central présente la
+comparaison entre les montants budgétés et les montants réalisés, avec les écarts calculés
+automatiquement. Une alerte visuelle en bas du tableau signale les dépassements de seuil.
+
+Conception et Modélisation – Module Comptabilité
+3.7.2
+
+17
+
+Pop-up d’imputation analytique
+
+La maquette suivante représente la fenêtre contextuelle qui s’ouvre lors de l’imputation
+analytique d’une ligne d’écriture comptable. Elle permet de répartir le montant entre
+plusieurs comptes analytiques et d’appliquer un modèle de distribution prédéfini.
+
+Conception et Modélisation – Module Comptabilité
+
+4
+
+Gestion des Immobilisations
+
+4.1
+
+Définition de l’utilité, du besoin et de l’utilisabilité
+
+18
+
+La gestion des immobilisations permet de suivre l’intégralité du cycle de vie des biens
+durables de l’entreprise, depuis leur date d’acquisition jusqu’à leur sortie définitive du patrimoine. Elle englobe les immobilisations corporelles, telles que les machines, les véhicules
+et le matériel informatique, ainsi que les immobilisations incorporelles, comme les brevets
+et les licences. Sa fonction centrale est d’automatiser le calcul et la comptabilisation des
+amortissements conformément aux règles comptables et fiscales en vigueur.
+Le besoin auquel répond cette fonctionnalité est à la fois opérationnel et réglementaire.
+Sans un module dédié aux immobilisations, le comptable devrait calculer manuellement
+les dotations aux amortissements à chaque période de clôture, avec un risque d’erreur proportionnel au nombre de biens suivis. La traçabilité des informations essentielles, comme
+la date d’acquisition, la durée de vie retenue et la valeur nette comptable à chaque instant, serait dispersée dans des tableurs difficiles à maintenir. Par ailleurs, l’entreprise doit
+être en mesure de justifier ses dotations auprès des commissaires aux comptes et de l’administration fiscale. Un module structuré garantit cette traçabilité et cette justification
+permanente.
+L’utilisabilité du module repose sur une automatisation transparente et une progressivité des actions. Le Comptable et le Responsable comptable disposent des droits de
+création des catégories d’immobilisation et de confirmation des biens. L’Aide-comptable
+peut créer une immobilisation et consulter les tableaux d’amortissement, sans pouvoir
+altérer la configuration. La création d’une immobilisation peut s’effectuer manuellement
+ou automatiquement depuis une ligne de facture fournisseur, ce qui élimine les doubles
+saisies. Une fois confirmée, l’immobilisation est prise en charge par le système qui génère
+automatiquement les écritures d’amortissement en brouillon à chaque échéance, prêtes à
+être validées par le comptable.
+
+4.2
+
+Exigences fonctionnelles
+
+Référence
+EF-I01
+EF-I02
+
+EF-I03
+EF-I04
+
+EF-I05
+
+Exigence
+Le système doit permettre de créer des catégories
+d’immobilisation, par exemple Matériel informatique ou Véhicules.
+Chaque catégorie doit définir la méthode d’amortissement, linéaire
+ou dégressif, la durée de vie exprimée en mois ou en années, et les
+comptes comptables associés, à savoir le compte d’actif, le compte
+d’amortissement et le compte de dotation.
+Le système doit permettre de créer une immobilisation de manière
+entièrement manuelle.
+Le système doit permettre de créer une immobilisation
+automatiquement depuis une ligne de facture fournisseur, en
+associant la catégorie d’immobilisation à la ligne concernée.
+L’immobilisation doit posséder plusieurs statuts reflétant son cycle
+de vie : Brouillon, Confirmée, Amortie et Cédée.
+
+Conception et Modélisation – Module Comptabilité
+Référence
+EF-I06
+
+EF-I07
+
+EF-I08
+
+EF-I09
+
+EF-I10
+
+4.3
+
+19
+
+Exigence
+Le système doit calculer automatiquement le tableau
+d’amortissement prévisionnel complet dès la confirmation de
+l’immobilisation.
+Le système doit générer automatiquement les écritures comptables
+d’amortissement à chaque période, mensuelle ou annuelle, selon la
+configuration de la catégorie.
+Le système doit permettre de reprendre un historique
+d’amortissement en saisissant un montant déjà amorti, afin de ne
+traiter que la valeur résiduelle.
+Le système doit gérer la cession d’une immobilisation en calculant
+automatiquement la plus-value ou la moins-value par rapport à la
+valeur nette comptable au jour de la cession.
+Le système doit générer l’écriture comptable de sortie du
+patrimoine en cas de cession, englobant la contrepartie de l’actif,
+la reprise de l’amortissement cumulé, et le produit ou la charge de
+cession.
+
+Exigences non fonctionnelles
+
+Référence
+ENF-I01
+
+ENF-I02
+
+ENF-I03
+
+ENF-I04
+
+Exigence
+Fiabilité : Le calcul des amortissements doit être exact à l’euro
+près, y compris pour les années incomplètes nécessitant un prorata
+temporis.
+Traçabilité : Toute modification d’une immobilisation après sa
+confirmation doit être journalisée, en enregistrant la nature de la
+modification, l’auteur et l’horodatage.
+Performance : La génération des écritures d’amortissement pour
+un parc de mille immobilisations ne doit pas excéder trente
+secondes de traitement.
+Utilisabilité : L’écran de création d’une immobilisation doit guider
+l’utilisateur en identifiant clairement les champs obligatoires avant
+l’enregistrement.
+
+4.4
+
+Diagrammes de modélisation
+
+4.4.1
+
+Diagramme de cas d’utilisation
+
+4.4.2
+
+Diagramme d’états – Cycle de vie d’une immobilisation
+
+Le diagramme d’états ci-dessous représente le cycle de vie complet d’une immobilisation dans le système, de sa création en état Brouillon jusqu’à sa sortie du patrimoine par
+amortissement total ou par cession.
+
+Conception et Modélisation – Module Comptabilité
+
+20
+
+Brouillon
+Confirmer
+
+Confirmée
+Génération automatique
+
+En cours d’amort.
+Fin de durée
+
+Amortie (fin de durée)
+
+Cession
+
+Cédée (vente)
+
+Figure 1 – Diagramme d’états – Cycle de vie d’une immobilisation
+
+4.5
+
+Descriptions textuelles des cas d’utilisation
+
+4.5.1
+
+Liste exhaustive des cas d’utilisation
+
+Réf.
+CU-I01
+CU-I02
+CU-I03
+
+Cas d’utilisation
+Créer une catégorie d’immobilisation
+Modifier une catégorie d’immobilisation
+Créer une immobilisation manuellement
+
+CU-I04
+CU-I05
+
+Créer une immobilisation depuis une
+facture fournisseur
+Confirmer une immobilisation
+
+CU-I06
+
+Consulter le tableau d’amortissement
+
+CU-I07
+CU-I08
+
+Générer et valider les écritures
+d’amortissement
+Reprendre un historique d’amortissement
+
+CU-I09
+CU-I10
+
+Céder une immobilisation
+Consulter le rapport des immobilisations
+
+Acteur
+Responsable comptable
+Responsable comptable
+Aide-comptable,
+Comptable, Resp.
+Comptable, Responsable
+comptable
+Comptable, Responsable
+comptable
+Aide-comptable,
+Comptable, Resp.
+Comptable, Responsable
+comptable
+Comptable, Responsable
+comptable
+Responsable comptable
+Aide-comptable,
+Comptable, Resp.
+
+Table 10 – Liste des cas d’utilisation – Gestion des Immobilisations
+4.5.2
+
+CU-I01 : Créer une catégorie d’immobilisation
+
+Acteur principal
+Responsable comptable
+
+Conception et Modélisation – Module Comptabilité
+
+21
+
+Préconditions
+L’acteur est authentifié en tant que Responsable comptable. Les comptes
+comptables nécessaires, à savoir le compte d’actif, le compte d’amortissement et le compte de dotation, existent déjà dans le plan comptable.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Paramètres, puis Catégories
+d’immobilisation. Il clique sur Créer. Le système affiche un formulaire de
+création. L’acteur saisit un nom explicite, par exemple Matériel informatique. Il sélectionne la méthode d’amortissement Linéaire dans un menu
+déroulant. Il saisit la durée de vie, par exemple 36 mois. Il sélectionne
+ensuite les trois comptes comptables obligatoires : le compte d’actif de
+la classe 2, le compte d’amortissement de la classe 28, et le compte de
+dotation de la classe 68. Il clique sur Enregistrer. Le système valide les
+informations et crée la catégorie.
+Post-conditions
+La catégorie est disponible pour être utilisée lors de la création de toute
+nouvelle immobilisation.
+Scénario alternatif
+Si la méthode dégressive est sélectionnée, un champ supplémentaire Coefficient dégressif apparaît et doit être obligatoirement renseigné.
+4.5.3
+
+CU-I04 : Créer une immobilisation depuis une facture fournisseur
+
+Acteur principal
+Comptable ou Responsable comptable
+Préconditions
+Une facture fournisseur est en cours de saisie ou a été importée. Une
+catégorie d’immobilisation existe.
+Scénario nominal
+Sur une ligne de la facture fournisseur, l’acteur sélectionne le produit ou
+saisit la description de la dépense. Dans le champ Catégorie d’immobilisation, il choisit la catégorie correspondante, par exemple Matériel informatique. Il sélectionne le compte d’actif approprié, par exemple 218300.
+Il valide ensuite la facture fournisseur. Le système détecte la présence
+d’une catégorie d’immobilisation sur une ligne de facture et crée automatiquement une nouvelle immobilisation au statut Brouillon, en reprenant
+les informations de la ligne : la valeur d’acquisition, la date de la facture,
+et la catégorie. Un message de confirmation indique que l’immobilisation
+a été créée avec succès en mentionnant son nom.
+Post-conditions
+L’immobilisation est créée et rattachée à la facture d’origine. Elle apparaît dans la liste des immobilisations avec le statut Brouillon.
+Scénario alternatif
+Si aucune catégorie d’immobilisation n’est sélectionnée sur la ligne, le
+système ne crée pas d’immobilisation et la facture est traitée comme une
+charge classique.
+
+Conception et Modélisation – Module Comptabilité
+4.5.4
+
+22
+
+CU-I09 : Céder une immobilisation
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’immobilisation est au statut Confirmée et n’a pas déjà été cédée.
+Scénario nominal
+L’acteur ouvre l’immobilisation depuis la liste. Il clique sur le bouton
+Vendre ou céder. Le système ouvre une fenêtre contextuelle. L’acteur
+saisit la date de cession et le prix de vente convenu, par exemple 1 500
+euros. Il sélectionne le compte de produit de cession, par exemple 775200.
+Il valide la fenêtre. Le système calcule la valeur nette comptable de l’immobilisation à la date de cession, en déduisant l’amortissement cumulé
+de la valeur d’acquisition. Il détermine la plus-value si le prix de vente
+est supérieur à la valeur nette comptable, ou la moins-value dans le cas
+contraire. Il génère automatiquement l’écriture comptable de sortie du
+patrimoine : débit du compte d’amortissement pour le cumul, crédit du
+compte d’actif pour la valeur d’acquisition, et comptabilisation de la différence en produit ou charge de cession. Le statut de l’immobilisation
+passe à Cédée.
+Post-conditions
+L’immobilisation est sortie du patrimoine comptable. Aucune dotation
+future ne sera générée pour ce bien.
+Scénario alternatif
+En cas de cession sans prix de vente, correspondant à une mise au rebut,
+le prix de vente est fixé à zéro euro. Le système constate alors une moinsvalue égale à la valeur nette comptable résiduelle.
+
+4.6
+
+Maquettes de pages
+
+4.6.1
+
+Page de détail d’une immobilisation
+
+La maquette suivante illustre la fiche de détail d’une immobilisation confirmée. La
+partie supérieure rappelle les informations essentielles du bien. Le tableau central présente
+le plan d’amortissement prévisionnel avec les colonnes Date, Dotation, Cumul et Valeur
+nette comptable. Les boutons d’action permettent de céder le bien ou de consulter les
+écritures liées.
+
+Conception et Modélisation – Module Comptabilité
+
+5
+
+Packs de Localisation Fiscale
+
+5.1
+
+Définition de l’utilité, du besoin et de l’utilisabilité
+
+23
+
+Les packs de localisation fiscale constituent le mécanisme par lequel le module Comptabilité s’adapte automatiquement aux exigences légales et fiscales d’un pays donné. Leur
+utilité est de pré-configurer l’ensemble des éléments comptables fondamentaux, à savoir
+le plan comptable standard, les taxes en vigueur, les formats de déclaration fiscale, et les
+interfaces avec les administrations compétentes, afin que l’entreprise démarre son activité
+dans un cadre immédiatement conforme.
+Le besoin auquel répondent ces packs est dicté par la diversité des normes comptables
+nationales. Chaque pays possède ses propres règles : un plan comptable spécifique, des
+taux de TVA différenciés, des formats de déclaration de TVA normalisés, et des obligations croissantes de facturation électronique comme Chorus Pro en France ou KSeF en
+Pologne. Une entreprise qui opère dans un ou plusieurs pays ne peut raisonnablement pas
+configurer manuellement ces centaines de paramètres sans s’exposer à des risques d’erreur,
+d’omission, et en définitive de non-conformité fiscale. Le pack de localisation apporte une
+base fiable, élaborée et maintenue par des experts de la réglementation locale.
+L’utilisabilité de cette fonctionnalité est pensée pour la simplicité et la sécurité. Seul
+le Responsable comptable dispose des droits suffisants pour installer, mettre à jour ou
+désinstaller un pack de localisation. L’installation s’effectue en une seule action depuis une
+liste de packs disponibles classés par pays. Une fois le pack installé, le plan comptable, les
+taxes, les journaux et les rapports sont créés automatiquement. L’utilisateur peut ensuite
+consulter ces éléments, et le cas échéant créer des comptes ou des taxes additionnels, sans
+pouvoir altérer la structure fondamentale du pack. En cas d’évolution de la législation,
+une simple mise à jour du pack permet d’appliquer les nouveaux taux ou les nouvelles
+normes sans intervention manuelle.
+
+5.2
+
+Exigences fonctionnelles
+
+Référence
+EF-L01
+EF-L02
+
+EF-L03
+
+EF-L04
+
+EF-L05
+EF-L06
+
+Exigence
+Le système doit proposer une liste de packs de localisation
+disponibles, classés par pays et affichant leur statut d’installation.
+Le système doit permettre l’installation d’un pack de localisation
+en une seule action, depuis la consultation de son détail jusqu’à la
+confirmation.
+L’installation d’un pack doit créer automatiquement le plan
+comptable standard du pays, les taxes en vigueur, les journaux
+comptables par défaut, et les formats de rapports légaux.
+Le système doit permettre la mise à jour d’un pack déjà installé,
+afin de prendre en compte les évolutions législatives, par exemple
+un changement de taux de TVA.
+Le système doit permettre la désinstallation d’un pack, avec un
+avertissement explicite sur les conséquences de cette action.
+Le système doit permettre d’exporter les écritures comptables au
+format légal requis par le pays, par exemple le Fichier des
+Écritures Comptables pour la France.
+
+Conception et Modélisation – Module Comptabilité
+Référence
+EF-L07
+
+EF-L08
+
+EF-L09
+
+5.3
+
+Exigence
+Le système doit permettre d’importer un plan comptable
+personnalisé si le plan standard du pack ne correspond pas
+exactement aux besoins de l’entreprise.
+Le système doit supporter l’installation de plusieurs packs
+distincts dans le cas d’une configuration multi-sociétés, chaque
+société utilisant le pack de son pays.
+Le système doit générer des déclarations de TVA pré-remplies au
+format du pays, en calculant automatiquement la TVA collectée,
+la TVA déductible et le solde à payer ou le crédit de TVA.
+
+Exigences non fonctionnelles
+
+Référence
+ENF-L01
+
+ENF-L02
+
+ENF-L03
+
+ENF-L04
+
+Exigence
+Fiabilité : L’installation d’un pack ne doit jamais écraser des
+données comptables existantes sans un avertissement explicite et
+une confirmation de l’utilisateur.
+Performance : L’installation complète d’un pack, incluant le plan
+comptable, les taxes et les rapports, doit s’exécuter en moins de
+dix secondes.
+Traçabilité : L’installation, la mise à jour et la désinstallation d’un
+pack doivent être systématiquement journalisées avec la date et
+l’identité de l’auteur.
+Conformité : Le pack doit afficher clairement la version de la
+législation à laquelle il se conforme, par exemple une mention
+indiquant qu’il est valable pour l’exercice 2026.
+
+24
+
+Conception et Modélisation – Module Comptabilité
+
+25
+
+5.4
+
+Diagrammes de modélisation
+
+5.4.1
+
+Diagramme de cas d’utilisation
+
+5.4.2
+
+Diagramme d’activité – Installation d’un pack
+
+Début
+
+Lister les packs disponibles
+
+Sélectionner un pack
+
+Vérifier l’existence
+de données comptables
+
+Données
+existantes ?
+
+Oui
+
+Non
+
+Afficher avertissement
+
+Non
+
+Confirmer ?
+Oui
+
+Installer le plan comptable,
+les taxes, les journaux
+et les rapports
+
+Journaliser l’action
+
+Fin
+Figure 2 – Diagramme d’activité – Processus d’installation d’un pack de localisation
+
+Conception et Modélisation – Module Comptabilité
+
+26
+
+5.5
+
+Descriptions textuelles des cas d’utilisation
+
+5.5.1
+
+Liste exhaustive des cas d’utilisation
+
+Réf.
+CU-L01
+CU-L02
+CU-L03
+CU-L04
+CU-L05
+CU-L06
+CU-L07
+CU-L08
+CU-L09
+
+Cas d’utilisation
+Consulter la liste des packs de
+localisation disponibles
+Consulter le détail d’un pack avant
+installation
+Installer un pack de localisation fiscale
+Mettre à jour un pack de localisation
+installé
+Désinstaller un pack de localisation
+Consulter les éléments installés (plan
+comptable, taxes, journaux)
+Consulter le plan comptable et les taxes
+en lecture seule
+Exporter le Fichier des Écritures
+Comptables
+Générer une déclaration de TVA
+pré-remplie
+
+Acteur
+Responsable comptable
+Responsable comptable
+Responsable comptable
+Responsable comptable
+Responsable comptable
+Comptable, Responsable
+comptable
+Aide-comptable
+Responsable comptable,
+Comptable
+Responsable comptable,
+Comptable
+
+Table 13 – Liste des cas d’utilisation – Packs de Localisation Fiscale
+5.5.2
+
+CU-L01 : Consulter la liste des packs de localisation disponibles
+
+Acteur principal
+Responsable comptable
+Préconditions
+L’acteur est authentifié en tant que Responsable comptable.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Paramètres, puis Packs de
+localisation fiscale. Le système affiche la liste complète des packs disponibles, organisée par pays, par exemple France, Belgique, Suisse, Maroc.
+Pour chaque pack, un indicateur de statut précise si le pack est non installé, installé, ou si une mise à jour est disponible. Une barre de recherche
+en haut de la liste permet de trouver rapidement un pays en saisissant
+son nom.
+Post-conditions
+L’acteur identifie les packs disponibles et leur statut d’installation.
+Scénario alternatif
+En cas de problème de connexion réseau empêchant la récupération de
+la liste, le système affiche un message d’erreur explicite et propose de
+réessayer.
+5.5.3
+
+CU-L03 : Installer un pack de localisation fiscale
+
+Acteur principal
+Responsable comptable
+
+Conception et Modélisation – Module Comptabilité
+
+27
+
+Préconditions
+Le pack sélectionné n’est pas encore installé.
+Scénario nominal
+Depuis le détail du pack, l’acteur clique sur le bouton Installer. Le système vérifie si des données comptables existent déjà dans la base. Si le
+plan comptable est vide, l’installation se poursuit directement. Si des
+comptes ou des taxes existent déjà, le système affiche un avertissement
+indiquant qu’un plan comptable existe et propose deux options : fusionner les données ou écraser les données existantes. L’acteur fait son choix
+et confirme. Le système procède alors à l’installation complète qui comprend la création du plan comptable standard du pays, la création des
+taxes en vigueur avec leurs taux et leurs comptes de contrepartie, la
+création des journaux comptables par défaut, la création des formats de
+rapports légaux tels que le Bilan et le Compte de résultat, et la création
+du format d’export FEC. Un résumé final indique le nombre d’éléments
+créés. L’action est journalisée.
+Post-conditions
+Le module Comptabilité est entièrement configuré pour opérer conformément aux normes du pays sélectionné.
+Scénario alternatif
+Si l’acteur annule après l’avertissement, le système retourne à la liste des
+packs sans qu’aucune modification n’ait été appliquée. En cas d’erreur
+technique pendant l’installation, le système effectue un retour arrière
+complet et affiche un message indiquant qu’aucune modification n’a été
+appliquée.
+5.5.4
+
+CU-L04 : Mettre à jour un pack de localisation installé
+
+Acteur principal
+Responsable comptable
+Préconditions
+Un pack est déjà installé et une version plus récente est disponible, par
+exemple suite à une mise à jour annuelle des taux de TVA.
+Scénario nominal
+Dans la liste des packs, celui qui est installé affiche le statut Mise à
+jour disponible. L’acteur clique sur le pack concerné puis sur le bouton
+Mettre à jour. Le système affiche le détail des changements inclus dans
+la mise à jour, par exemple une modification du taux de TVA réduit qui
+passe de 5,5 pour cent à 5,0 pour cent, ou l’ajout de nouveaux comptes
+comptables obligatoires. L’acteur confirme la mise à jour. Le système
+applique les modifications : les nouveaux comptes sont créés, les taux de
+taxes sont mis à jour. Un message confirme la réussite de l’opération.
+Post-conditions
+Les taxes et les comptes sont conformes à la législation en vigueur. Les
+écritures comptables déjà passées conservent leurs taux historiques.
+Scénario alternatif
+Si des comptes ont été modifiés manuellement par l’utilisateur, le système
+
+Conception et Modélisation – Module Comptabilité
+
+28
+
+les préserve et ne les écrase pas lors de la mise à jour, en affichant un
+avertissement informatif.
+5.5.5
+
+CU-L08 : Exporter le Fichier des Écritures Comptables
+
+Acteur principal
+Responsable comptable ou Comptable
+Préconditions
+Le pack de localisation correspondant au pays est installé. Des écritures
+comptables validées existent sur l’exercice demandé.
+Scénario nominal
+L’acteur accède au menu Comptabilité, puis Rapports, puis Export FEC.
+Il sélectionne l’exercice comptable souhaité dans un menu déroulant, par
+exemple 2025. Il clique sur le bouton Générer. Le système collecte l’ensemble des écritures comptables validées sur la période, les formate selon
+la norme légale en vigueur, avec les colonnes obligatoires et le séparateur
+requis, et génère un fichier texte. Le fichier est automatiquement proposé
+au téléchargement. Un message de confirmation indique que le FEC de
+l’exercice sélectionné a été généré avec succès.
+Post-conditions
+Le fichier est prêt à être transmis à l’administration fiscale ou à l’expertcomptable dans le cadre des obligations déclaratives.
+Scénario alternatif
+Si aucune écriture n’existe sur l’exercice sélectionné, le système affiche
+un message indiquant qu’il n’y a aucune écriture à exporter pour cet
+exercice.
+5.5.6
+
+CU-L09 : Générer une déclaration de TVA pré-remplie
+
+Élément
+Acteur principal
+Acteur secondaire
+Préconditions
+
+Garanties
+minimales
+
+Description
+Responsable comptable, Comptable
+Système, qui assure le calcul automatique des montants de TVA
+Le pack de localisation fiscale du pays concerné est installé et
+correctement configuré. La période fiscale pour laquelle la
+déclaration doit être générée est identifiée. Des écritures
+comptables validées comportant des lignes de TVA collectée et de
+TVA déductible existent sur la période. Les comptes de TVA sont
+correctement paramétrés dans le plan comptable. Le régime de
+TVA applicable, mensuel ou trimestriel, est défini dans la
+configuration du module.
+En cas d’échec de la génération, les données comptables existantes
+ne sont pas altérées. Le système conserve l’intégralité des écritures
+dans leur état antérieur à la tentative de génération.
+
+Conception et Modélisation – Module Comptabilité
+
+Scénario nominal
+
+Post-conditions
+
+29
+
+1. L’acteur accède au menu Comptabilité, puis Rapports, puis
+Déclaration de TVA. Le système affiche un écran de sélection de
+la période fiscale avec un champ pour choisir le mois et l’année,
+ainsi qu’un rappel du régime de TVA applicable tel que défini
+dans le pack de localisation installé.
+2. L’acteur sélectionne la période souhaitée dans le menu
+déroulant, par exemple Janvier 2026. Le système affiche également
+la date limite de télédéclaration correspondant à cette période,
+information extraite du pack de localisation.
+3. L’acteur clique sur le bouton Calculer ou Générer. Le système
+lance alors le processus de calcul automatique.
+4. Le système parcourt l’ensemble des écritures comptables
+validées sur la période sélectionnée et identifie toutes les lignes
+mouvementant les comptes de TVA collectée, les comptes de TVA
+déductible, et les comptes de TVA sur immobilisations.
+5. Le système agrège les montants par taux de TVA et par nature,
+distinguant la TVA collectée, la TVA déductible, la TVA
+intracommunautaire et la TVA sur importations, conformément
+au formulaire officiel du pays.
+6. Le système affiche le rapport de déclaration de TVA pré-rempli
+dans un tableau structuré comportant les lignes suivantes : TVA
+collectée au taux normal, TVA collectée au taux réduit, TVA
+collectée au taux intermédiaire le cas échéant, TVA sur
+acquisitions intracommunautaires, TVA déductible sur achats de
+biens et services, TVA déductible sur immobilisations, crédit de
+TVA reporté de la période précédente, et TVA à payer ou crédit
+de TVA résultant. Chaque ligne présente le montant calculé
+automatiquement par le système.
+7. L’acteur visualise le détail de chaque montant en cliquant sur
+celui-ci. Le système affiche alors la liste des écritures comptables
+ayant contribué au calcul, avec pour chaque écriture son numéro,
+sa date, son libellé, le compte mouvementé, le montant de la base
+hors taxe et le montant de la TVA.
+8. L’acteur vérifie la cohérence des montants avec ses propres
+pointages et rapprochements.
+9. L’acteur clique sur Exporter pour générer le fichier au format
+requis par l’administration fiscale du pays.
+10. Le système génère le fichier de déclaration dans le format
+attendu et le propose au téléchargement.
+La déclaration de TVA est générée et les montants sont
+pré-remplis automatiquement. Le fichier est disponible pour
+télédéclaration sur le portail de l’administration fiscale. Une trace
+de la génération est conservée dans le journal des actions du
+système.
+
+Conception et Modélisation – Module Comptabilité
+
+Scénario alternatif
+A
+
+Scénario alternatif
+B
+
+Scénario alternatif
+C
+
+Scénario alternatif
+D
+
+Exception 1
+
+Exception 2
+
+Exception 3
+
+Exception 4
+
+30
+
+Période non close. L’acteur sélectionne une période pour
+laquelle des écritures sont encore en brouillon ou non validées. Le
+système affiche un avertissement indiquant que la période
+sélectionnée contient des écritures non validées et que les
+montants calculés peuvent être incomplets. Deux options sont
+proposées : poursuivre le calcul avec les seules écritures validées,
+ou annuler pour valider les écritures manquantes avant de relancer
+la déclaration.
+Aucune écriture de TVA sur la période. L’acteur lance le
+calcul sur une période ne comportant aucune écriture
+mouvementant des comptes de TVA. Le système affiche un
+message informatif indiquant qu’aucune opération soumise à TVA
+n’a été enregistrée sur cette période et qu’une déclaration néant
+peut être générée. Le système propose alors de générer une
+déclaration avec tous les montants à zéro, conforme à l’obligation
+déclarative même en l’absence d’activité.
+Rectification d’une période antérieure. L’acteur a besoin de
+générer une déclaration rectificative pour une période déjà
+déclarée. Il coche une case Déclaration rectificative avant de lancer
+le calcul. Le système ajuste le formulaire pour mentionner le
+caractère rectificatif et intègre automatiquement les écritures de
+régularisation passées depuis la déclaration initiale.
+Déclaration avec crédit de TVA antérieur. Si un crédit de
+TVA a été constaté sur la période précédente et n’a pas fait l’objet
+d’un remboursement, le système le reporte automatiquement dans
+la ligne Crédit de TVA reporté de la déclaration en cours.
+Taux de TVA inconnu. Le système rencontre une écriture dont
+le code de taxe ne correspond à aucun taux défini dans le pack de
+localisation. Le calcul est interrompu et un message d’erreur est
+affiché indiquant le numéro de la pièce concernée et invitant
+l’acteur à vérifier la configuration des taxes. L’acteur doit corriger
+l’anomalie avant de pouvoir générer la déclaration.
+Comptes de TVA non configurés. Le système ne trouve pas
+les comptes de TVA obligatoires dans le plan comptable. Un
+message est affiché indiquant que les comptes de TVA ne sont pas
+correctement configurés et invitant l’acteur à vérifier l’installation
+du pack de localisation fiscale.
+Période déjà déclarée. L’acteur tente de générer une nouvelle
+déclaration pour une période ayant déjà fait l’objet d’une
+déclaration validée. Le système affiche un avertissement
+mentionnant la date de la précédente déclaration et demande si
+l’acteur souhaite générer une déclaration rectificative.
+Incohérence de taux. Le système détecte une incohérence entre
+le taux de TVA appliqué sur une facture et le taux en vigueur à la
+date de la facture selon le pack de localisation. Un avertissement
+est émis listant les écritures concernées, sans bloquer la génération
+de la déclaration.
+
+Conception et Modélisation – Module Comptabilité
+
+Règle métier 1
+
+Règle métier 2
+
+Règle métier 3
+
+Règle métier 4
+
+Règle métier 5
+
+31
+
+Les montants sont calculés sur la base des écritures validées à la
+date de génération de la déclaration. Toute écriture en brouillon
+est exclue du calcul.
+La TVA sur les factures fournisseurs est déductible à la date de la
+facture, sauf option pour les débits explicitement configurée dans
+le module.
+La TVA collectée est exigible à la date de la facture client, sauf
+option pour les encaissements explicitement configurée dans le
+module.
+Les arrondis sont effectués à l’euro le plus proche pour chaque
+ligne de la déclaration, conformément à la réglementation fiscale
+en vigueur.
+Le crédit de TVA est automatiquement reporté sur la période
+suivante, sauf demande expresse de remboursement formulée par
+l’acteur via une case à cocher dans le formulaire de déclaration.
+
+5.6
+
+Maquettes de pages
+
+5.6.1
+
+Page de gestion des packs de localisation
+
+La maquette ci-dessous illustre l’interface de gestion des packs de localisation fiscale.
+La partie supérieure affiche la liste des packs disponibles avec leur pays, leur version et
+leur statut. La partie inférieure présente le détail du pack sélectionné avec le contenu
+prévisionnel de l’installation et les actions disponibles.
+5.6.2
+
+Page d’export du Fichier des Écritures Comptables
+
+La maquette suivante illustre l’interface de génération du FEC. Un sélecteur d’exercice
+permet de choisir la période. Un bouton unique déclenche la génération et le téléchargement du fichier.
+
+Conception et Modélisation – Module Comptabilité
+
+6
+
+32
+
+Conclusion
+
+Le présent document a déroulé la conception et la modélisation complètes de quatre
+fonctionnalités fondamentales du module Comptabilité. La gestion des rôles comptables
+établit le socle de sécurité et d’organisation en définissant trois niveaux d’habilitation
+aux périmètres strictement délimités. La gestion budgétaire et analytique transforme la
+comptabilité en outil de pilotage en permettant le découpage fin de l’activité par axes
+et la comparaison dynamique entre prévisions et réalisations. La gestion des immobilisations automatise le suivi du patrimoine durable sur l’intégralité de son cycle de vie, de
+l’acquisition à la cession, en garantissant la fiabilité des calculs d’amortissement. Enfin,
+les packs de localisation fiscale assurent la conformité légale immédiate du module par
+l’installation automatisée du plan comptable, des taxes et des formats déclaratifs propres
+à chaque pays.
+Pour chaque fonctionnalité, la démarche adoptée a permis de couvrir l’ensemble du
+spectre de spécification, depuis l’expression du besoin métier jusqu’aux maquettes d’interface, en passant par les exigences fonctionnelles et non fonctionnelles, les diagrammes
+de modélisation, et les descriptions textuelles exhaustives des cas d’utilisation. Ce niveau
+de détail offre une base solide et partagée pour les phases ultérieures du cycle de développement, qu’il s’agisse de l’architecture technique, de la réalisation, ou de la recette
+fonctionnelle.
+L’ensemble des éléments présentés dans ce document est strictement circonscrit au
+module Comptabilité, sans empiéter sur les modules connexes tels que la Facturation, les
+Ventes, les Achats ou les Services bancaires, conformément à la demande initiale.
+
+A
+
+Périmètres détaillés des rôles comptables
+
+La présente annexe détaille, pour chacun des trois rôles comptables, les éléments visibles dans l’interface, les actions autorisées, les éléments masqués et les actions interdites.
+Ce périmètre est strictement limité au module Comptabilité, à l’exclusion de tout autre
+module.
+
+A.1
+
+Rôle Aide-comptable
+
+Éléments visibles
+Tableau de bord comptable
+Pièces comptables (Journal Entry)
+Grand livre
+Balance comptable
+Compte de résultat
+Bilan
+
+Actions autorisées
+Créer, modifier et supprimer une pièce
+comptable au statut Brouillon
+Valider une pièce comptable
+Consulter toutes les pièces
+comptables, y compris celles validées
+Créer une immobilisation
+manuellement
+Modifier une immobilisation non
+encore amortie
+Consulter le tableau d’amortissement
+d’une immobilisation
+
+Conception et Modélisation – Module Comptabilité
+
+Comptes en lecture seule
+Immobilisations en lecture et création
+Plan analytique en lecture et
+imputation
+Budgets en lecture et suivi
+Journaux en lecture seule
+Éléments non visibles
+Paramètres du module Comptabilité
+Menu de verrouillage de période
+Menu de gestion des utilisateurs
+Journal des actions et logs
+
+Imputer une ligne comptable à un
+compte analytique
+Créer des axes et des comptes
+analytiques
+Consulter et filtrer les budgets
+Consulter les journaux comptables
+Consulter le plan comptable
+Actions interdites
+Créer, modifier ou supprimer un
+compte comptable
+Créer, modifier ou supprimer un
+journal comptable
+Modifier la devise d’un journal
+Modifier les paramètres comptables
+Installer ou configurer un pack de
+localisation fiscale
+Modifier les taxes
+Verrouiller ou déverrouiller une
+période comptable
+Supprimer une immobilisation déjà
+amortie
+Attribuer ou modifier des rôles
+comptables
+Valider une écriture sur une période
+verrouillée
+Consulter le journal des modifications
+
+33
+
+Conception et Modélisation – Module Comptabilité
+
+A.2
+
+34
+
+Rôle Comptable
+
+Le rôle Comptable reprend l’intégralité des droits du rôle Aide-comptable. Le tableau
+ci-dessous présente uniquement les éléments supplémentaires qui s’ajoutent à ceux déjà
+décrits pour l’Aide-comptable.
+Éléments visibles en plus
+Comptes en création, modification et
+suppression
+Taxes en lecture et configuration
+partielle
+Journaux en modification partielle
+Journal de configuration et logs
+
+Actions autorisées en plus
+Créer, modifier et supprimer des
+comptes comptables
+Modifier le type, les tags et le code
+d’un compte
+Créer des journaux comptables
+Modifier le nom et la séquence d’un
+journal
+Modifier les comptes de contrepartie
+par défaut des taxes
+Créer de nouvelles taxes
+Modifier une immobilisation en cours
+d’amortissement
+Forcer manuellement une dotation aux
+amortissements
+Clôturer une immobilisation cédée
+Mettre à jour les tableaux de bord
+financiers
+Consulter le journal des actions
+
+Éléments non visibles
+Menu Packs de localisation fiscale
+Menu de verrouillage définitif de
+période
+Menu de gestion des utilisateurs
+
+Actions interdites
+Modifier la structure fiscale d’une taxe
+Installer un pack de localisation fiscale
+Verrouiller ou déverrouiller
+définitivement une période
+Modifier les rôles comptables des
+utilisateurs
+Accéder aux paramètres avancés du
+module Comptabilité
+Supprimer un journal comportant des
+écritures rattachées
+
+Conception et Modélisation – Module Comptabilité
+
+A.3
+
+35
+
+Rôle Responsable comptable
+
+Le rôle Responsable comptable dispose d’un accès intégral au module Comptabilité.
+Le tableau ci-dessous présente les éléments qui s’ajoutent à ceux déjà décrits pour le
+Comptable, ainsi que les rares actions qui demeurent interdites.
+Éléments visibles en plus
+Tous les menus du module
+Comptabilité sans exception
+Paramètres du module Comptabilité
+Packs de localisation fiscale
+Menu de verrouillage de période
+Menu de gestion des utilisateurs et
+rôles (si droits d’administration
+généraux)
+Journal complet des actions et logs
+
+Éléments non visibles
+Aucun élément n’est masqué pour ce
+rôle
+
+Actions autorisées en plus
+Créer, modifier ou supprimer tout
+compte ou journal
+Installer, mettre à jour ou désinstaller
+un pack de localisation fiscale
+Modifier les paramètres de séquence,
+date et devise
+Verrouiller une période comptable de
+manière définitive
+Déverrouiller une période en cas
+exceptionnel
+Attribuer et modifier les rôles
+comptables des utilisateurs
+Consulter et auditer le journal
+complet des modifications
+Modifier les règles de comptabilisation
+automatique
+Actions interdites
+Supprimer une écriture comptable
+validée et postée
+Contourner le verrouillage d’une
+période sans déverrouillage explicite et
+tracé
+Accéder aux données de sociétés pour
+lesquelles il n’est pas autorisé
+(contexte multi-sociétés)
+
+Conception et Modélisation – Module Comptabilité
+
+A.4
+
+36
+
+Récapitulatif synoptique
+
+Le tableau synoptique ci-dessous présente une vue comparative des trois rôles sur les
+fonctions essentielles du module Comptabilité.
+Fonctionnalité
+Consulter les écritures et
+journaux
+Créer et modifier des pièces
+comptables
+Imputer une ligne à un
+compte analytique
+Créer une immobilisation
+Consulter le tableau
+d’amortissement
+Consulter les budgets et le
+réalisé
+Consulter le plan comptable
+Créer, modifier ou supprimer
+un compte comptable
+Créer ou modifier un journal
+comptable
+Créer ou modifier une taxe
+Modifier une immobilisation
+en cours d’amortissement
+Céder une immobilisation
+Créer un budget
+Verrouiller un budget
+Installer un pack de
+localisation fiscale
+Verrouiller une période
+comptable
+Attribuer ou modifier des
+rôles comptables
+Consulter le journal des
+actions
+
+Aidecomptable
+Oui
+
+Comptable
+
+Responsable
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+Oui
+
+Oui
+Oui
+
+Oui
+Oui
+
+Oui
+
+Oui
+
+Oui
+
+Oui
+Non
+
+Oui
+Oui
+
+Oui
+Oui
+
+Non
+
+Oui
+
+Oui
+
+Non
+Non
+
+Partiel
+Oui
+
+Oui
+Oui
+
+Non
+Non
+Non
+Non
+
+Oui
+Oui
+Non
+Non
+
+Oui
+Oui
+Oui
+Oui
+
+Non
+
+Non
+
+Oui
+
+Non
+
+Non
+
+Oui
+
+Non
+
+Oui
+
+Oui
+
+

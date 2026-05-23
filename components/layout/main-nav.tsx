@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { SidebarLink } from "@/config/navigation";
 import { useLoadingStore } from "@/hooks/use-loading-store";
+import { useAuth } from "@/hooks/use-auth";
 
 interface MainNavProps {
   links: SidebarLink[];
@@ -14,10 +15,18 @@ interface MainNavProps {
 export function MainNav({ links }: MainNavProps) {
   const pathname = usePathname();
   const { startLoading } = useLoadingStore();
+  const { accountingRole } = useAuth();
+
+  // Filter links based on allowedRoles — if no allowedRoles defined, the link is visible to all
+  const visibleLinks = links.filter((link) => {
+    if (!link.allowedRoles || link.allowedRoles.length === 0) return true;
+    if (!accountingRole) return false;
+    return link.allowedRoles.includes(accountingRole);
+  });
 
   return (
     <nav className="grid gap-1.5">
-      {links.map((link, index) => {
+      {visibleLinks.map((link, index) => {
         const isActive = pathname === link.href;
         return (
           <Link

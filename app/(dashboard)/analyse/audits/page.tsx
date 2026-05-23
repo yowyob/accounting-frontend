@@ -12,7 +12,7 @@ import { CustomPageLoader } from '@/components/ui/custom-page-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Search, RefreshCw, Eye } from 'lucide-react';
+import { Download, Search, RefreshCw, Eye, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -22,6 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getPeriodeComptables, getAudits } from '@/lib/api';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface SystemAudit {
   id: string;
@@ -109,6 +110,24 @@ export default function AuditJournalPage() {
   if (isLoadingPeriods) return <CustomPageLoader />;
 
   return (
+    <PermissionGuard
+      feature="audit_log"
+      action="read"
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center space-y-4 p-8 bg-white rounded-xl border border-gray-200 shadow-sm max-w-md">
+            <div className="p-4 bg-red-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto">
+              <ShieldOff className="h-8 w-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800">Accès refusé</h2>
+            <p className="text-sm text-gray-500">
+              Vous n'avez pas les droits nécessaires pour consulter le journal d'audit.
+              Cette fonctionnalité est réservée aux Comptables et Responsables comptables.
+            </p>
+          </div>
+        </div>
+      }
+    >
     <div className="min-h-screen p-4 bg-gray-50">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
@@ -267,5 +286,6 @@ export default function AuditJournalPage() {
         </div>
       </div>
     </div>
+    </PermissionGuard>
   );
 }

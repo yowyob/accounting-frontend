@@ -15,6 +15,7 @@ import { useCompose } from '@/hooks/use-compose-store';
 import { EcritureComptableDetailView } from '@/components/accounting/ecriture-comptable-detail-view';
 import { request as __request } from '@/src/lib2/core/request';
 import { OpenAPI } from '@/src/lib2/core/OpenAPI';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 export default function EcritureComptableDetailsPage() {
     const params = useParams();
@@ -143,12 +144,16 @@ export default function EcritureComptableDetailsPage() {
 
                 {!ecriture.validee && (
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={handleEdit} className="text-blue-600 border-blue-200 bg-blue-50">
-                            <Edit className="mr-2 h-4 w-4" /> Modifier
-                        </Button>
-                        <Button variant="destructive" onClick={() => setEcritureToDelete(ecriture)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Supprimer
-                        </Button>
+                        <PermissionGuard feature="journal_entries" action="update">
+                            <Button variant="outline" onClick={handleEdit} className="text-blue-600 border-blue-200 bg-blue-50">
+                                <Edit className="mr-2 h-4 w-4" /> Modifier
+                            </Button>
+                        </PermissionGuard>
+                        <PermissionGuard feature="journal_entries" action="delete">
+                            <Button variant="destructive" onClick={() => setEcritureToDelete(ecriture)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Supprimer
+                            </Button>
+                        </PermissionGuard>
                     </div>
                 )}
             </div>

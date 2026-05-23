@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DraftAccountingService } from '@/src/lib2/services/DraftAccountingService';
+import { AccountingInvoiceUploadService } from '@/src/lib2/services/AccountingInvoiceUploadService';
 import { BrouillardComptableDto } from '@/src/lib2/models/BrouillardComptableDto';
 import { format } from 'date-fns';
 import {
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 export default function AccountingSemiAutoEntryPage() {
   const [drafts, setDrafts] = useState<BrouillardComptableDto[]>([]);
@@ -86,7 +88,7 @@ export default function AccountingSemiAutoEntryPage() {
     const loadingToastId = toast.loading("Analyse du document en cours par l'OCR...");
 
     try {
-      const response = await DraftAccountingService.uploadDraftFromInvoice({ file });
+      const response = await AccountingInvoiceUploadService.upload({ file: file as any });
       if (response && response.success) {
         toast.success("Facture importée", {
           id: loadingToastId,
@@ -377,14 +379,24 @@ export default function AccountingSemiAutoEntryPage() {
               <XCircle className="w-4 h-4 mr-2" /> Effacer
             </Button>
 
-            <Button
-              onClick={handleValidate}
-              disabled={!selectedDraft || isValidating || totalDebit !== totalCredit || totalDebit === 0}
-              className="bg-[#0055aa] hover:bg-[#004080] h-8 text-xs font-medium shadow-sm transition-all text-white"
+            <PermissionGuard
+              feature="journal_entries"
+              action="validate"
+              fallback={
+                <span className="text-xs text-gray-400 italic px-3 py-1 bg-gray-100 rounded border border-gray-200">
+                  Validation réservée au Comptable ou Responsable comptable
+                </span>
+              }
             >
-              {isValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileStack className="w-4 h-4 mr-2" />}
-              Valider & Enregistrer
-            </Button>
+              <Button
+                onClick={handleValidate}
+                disabled={!selectedDraft || isValidating || totalDebit !== totalCredit || totalDebit === 0}
+                className="bg-[#0055aa] hover:bg-[#004080] h-8 text-xs font-medium shadow-sm transition-all text-white"
+              >
+                {isValidating ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <FileStack className="w-4 h-4 mr-2" />}
+                Valider & Enregistrer
+              </Button>
+            </PermissionGuard>
           </div>
 
         </CardContent>
