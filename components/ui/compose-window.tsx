@@ -21,7 +21,7 @@ export function ComposeWindow() {
         if (isOpen && pos === null) {
             const height = window.innerHeight * 0.7;
             setPos({
-                left: window.innerWidth - WINDOW_WIDTH - 64, // right-16 = 64px
+                left: window.innerWidth - WINDOW_WIDTH - 64,
                 top: window.innerHeight - height,
             });
         }
@@ -54,18 +54,26 @@ export function ComposeWindow() {
 
     const isDraggable = !isMaximized && !isMinimized;
 
-    // Build inline style: maximized uses full viewport, otherwise use tracked coordinates
-    const style: React.CSSProperties = isMaximized
-        ? { top: 0, left: 0, width: '100vw', height: '100vh' }
-        : pos
-            ? { top: pos.top, left: pos.left, width: WINDOW_WIDTH, height: isMinimized ? 48 : '70vh' }
-            : { bottom: 0, right: 64, width: WINDOW_WIDTH, height: isMinimized ? 48 : '70vh' };
+    // Minimisé → barre collée en bas à droite, indépendamment de pos
+    // Maximisé → plein écran
+    // Normal → position trackée ou ancre bas-droite par défaut
+    let style: React.CSSProperties;
+    if (isMaximized) {
+        style = { top: 0, left: 0, width: '100vw', height: '100vh' };
+    } else if (isMinimized) {
+        // Forcer bottom/right sans top/left pour coller en bas
+        style = { bottom: 0, right: 64, width: WINDOW_WIDTH, height: 48, top: 'auto', left: 'auto' };
+    } else if (pos) {
+        style = { top: pos.top, left: pos.left, width: WINDOW_WIDTH, height: '70vh' };
+    } else {
+        style = { bottom: 0, right: 64, width: WINDOW_WIDTH, height: '70vh' };
+    }
 
     return (
         <div
             style={style}
             className={cn(
-                "fixed z-50 flex flex-col bg-white shadow-2xl border border-gray-200",
+                "fixed z-50 flex flex-col bg-white shadow-2xl border border-gray-200 transition-all duration-300",
                 isMaximized ? "rounded-none" : "rounded-t-lg"
             )}
         >
@@ -73,7 +81,8 @@ export function ComposeWindow() {
                 className={cn(
                     "flex items-center justify-between px-4 py-2 bg-blue-600 text-white select-none",
                     isMaximized ? "rounded-none" : "rounded-t-lg",
-                    isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"
+                    isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-pointer",
+                    isMinimized && "opacity-90"
                 )}
                 onMouseDown={handleMouseDown}
                 onClick={() => isMinimized && onToggleMinimize()}
@@ -84,22 +93,44 @@ export function ComposeWindow() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-blue-700"
-                        onClick={(e) => { e.stopPropagation(); onToggleMinimize(); }}>
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isMaximized) {
+                                // Quitter le plein écran puis réduire
+                                onToggleMaximize();
+                                setTimeout(() => onToggleMinimize(), 50);
+                            } else {
+                                onToggleMinimize();
+                            }
+                        }}
+                        title={isMinimized ? "Restaurer" : "Réduire"}>
                         <Minus className="h-4 w-4" />
                     </Button>
+                    {/* Bouton Expand/Maximize — visible aussi quand minimisé pour agrandir */}
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-blue-700"
-                        onClick={(e) => { e.stopPropagation(); onToggleMaximize(); }}>
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (isMinimized) {
+                                // Depuis la barre minimisée : restaurer d'abord, puis maximiser
+                                onToggleMinimize();
+                                setTimeout(() => onToggleMaximize(), 50);
+                            } else {
+                                onToggleMaximize();
+                            }
+                        }}
+                        title={isMaximized ? "Restaurer" : "Plein écran"}>
                         {isMaximized ? <Minimize className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
                     </Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-blue-700"
-                        onClick={(e) => { e.stopPropagation(); onClose(); }}>
+                        onClick={(e) => { e.stopPropagation(); onClose(); }}
+                        title="Fermer">
                         <X className="h-4 w-4" />
                     </Button>
                 </div>
             </header>
 
             {!isMinimized && (
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 overflow-hidden flex flex-col">
                     {content}
                 </div>
             )}

@@ -21,6 +21,7 @@ import {
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import { Edit, Trash2, RefreshCw, Search, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface AccountListViewProps {
   accounts: PlanComptableDto[];
@@ -39,22 +40,26 @@ const RowActions = ({ account, onEdit, onDelete }: { account: PlanComptableDto, 
   return (
     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(account.id || ''); }}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Modifier</p></TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(account); }}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Supprimer</p></TooltipContent>
-        </Tooltip>
+        <PermissionGuard feature="accounts" action="update">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(account.id || ''); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Modifier</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
+        <PermissionGuard feature="accounts" action="delete">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(account); }}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Supprimer</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
       </TooltipProvider>
     </div>
   );
@@ -140,34 +145,40 @@ export const AccountListView: React.FC<AccountListViewProps> = ({
         {/* Bottom Row: Action buttons (New left, Refresh right) */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button
-              onClick={onAddNew}
-              className="bg-blue-600 hover:bg-blue-700"
-              disabled={accounts.length === 0}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Nouveau Compte
-            </Button>
+            <PermissionGuard feature="accounts" action="create">
+              <Button
+                onClick={onAddNew}
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={accounts.length === 0}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Nouveau Compte
+              </Button>
+            </PermissionGuard>
 
             {accounts.length === 0 && !isLoading && onInitPlan && (
-              <Button
-                onClick={onInitPlan}
-                variant="outline"
-                className="text-orange-600 border-orange-200 hover:bg-orange-50"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Initialiser le Plan Comptable (OHADA 2025)
-              </Button>
+              <PermissionGuard feature="accounts" action="create">
+                <Button
+                  onClick={onInitPlan}
+                  variant="outline"
+                  className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Initialiser le Plan Comptable (OHADA 2025)
+                </Button>
+              </PermissionGuard>
             )}
 
             {onImport && (
-              <Button
-                onClick={onImport}
-                variant="outline"
-                className="text-blue-600 border-blue-200 hover:bg-blue-50"
-              >
-                Importer un Plan
-              </Button>
+              <PermissionGuard feature="accounts" action="create">
+                <Button
+                  onClick={onImport}
+                  variant="outline"
+                  className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                >
+                  Importer un Plan
+                </Button>
+              </PermissionGuard>
             )}
           </div>
           <Button onClick={onRefresh} variant="outline" size="icon">

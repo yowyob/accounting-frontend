@@ -15,6 +15,7 @@ import {
   Wallet
 } from 'lucide-react';
 import Link from 'next/link';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface ReportCardProps {
   title: string;
@@ -85,13 +86,15 @@ export default function AccountingReportsPage() {
             icon={<BarChart3 className="h-6 w-6 text-amber-600" />}
             color="#d97706"
           />
-          <ReportCard
-            title="Journal d'Audit"
-            description="Tracez toutes les actions effectuées dans le système pour une transparence totale."
-            href="/analyse/audits"
-            icon={<ShieldCheck className="h-6 w-6 text-red-600" />}
-            color="#dc2626"
-          />
+          <PermissionGuard feature="audit_log" action="read">
+            <ReportCard
+              title="Journal d'Audit"
+              description="Tracez toutes les actions effectuées dans le système pour une transparence totale."
+              href="/analyse/audits"
+              icon={<ShieldCheck className="h-6 w-6 text-red-600" />}
+              color="#dc2626"
+            />
+          </PermissionGuard>
           <ReportCard
             title="Flux de Trésorerie"
             description="Suivez les entrées et sorties de cash réelles par nature d'activité."

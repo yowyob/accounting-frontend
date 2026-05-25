@@ -25,6 +25,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Badge } from '@/components/ui/badge';
 import { useNationalCurrency } from '@/hooks/use-national-currency';
 
+import { useAuth } from '@/hooks/use-auth';
+import { hasPermission } from '@/src/lib/auth/roles';
+
 // Helper: detect if an entry was rejected (rejection reason stored in notes)
 const getRejectionReason = (notes?: string | null): string | null => {
   if (!notes) return null;
@@ -48,20 +51,26 @@ interface EcritureComptableListViewProps {
 }
 
 const RowActions = ({ ecriture, onEdit, onDelete, onDeactivate }: { ecriture: EcritureComptableDto, onEdit: (id: string) => void, onDelete: (ecriture: EcritureComptableDto) => void, onDeactivate?: (ecriture: EcritureComptableDto) => void }) => {
+  const { accountingRole } = useAuth();
+  const canDelete = hasPermission(accountingRole, 'journal_entries', 'delete');
+  const canUpdate = hasPermission(accountingRole, 'journal_entries', 'update');
+
   if (ecriture.validee) return null; // Hide actions if validated
 
   return (
     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(ecriture.id || '')}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Modifier</p></TooltipContent>
-        </Tooltip>
-        {onDeactivate && (
+        {canUpdate && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-blue-600 hover:bg-blue-50" onClick={() => onEdit(ecriture.id || '')}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Modifier</p></TooltipContent>
+          </Tooltip>
+        )}
+        {onDeactivate && canDelete && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-orange-600 hover:bg-orange-50" onClick={() => onDeactivate(ecriture)}>
@@ -71,14 +80,16 @@ const RowActions = ({ ecriture, onEdit, onDelete, onDeactivate }: { ecriture: Ec
             <TooltipContent><p>Désactiver</p></TooltipContent>
           </Tooltip>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(ecriture)}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Supprimer</p></TooltipContent>
-        </Tooltip>
+        {canDelete && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-red-600 hover:bg-red-50" onClick={() => onDelete(ecriture)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Supprimer</p></TooltipContent>
+          </Tooltip>
+        )}
       </TooltipProvider>
     </div>
   );

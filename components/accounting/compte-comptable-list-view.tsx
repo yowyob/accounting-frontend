@@ -22,6 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface CompteComptableListViewProps {
     comptes: CompteDto[];
@@ -64,42 +65,46 @@ const RowActions = ({
                 <TooltipContent>Voir les détails</TooltipContent>
             </Tooltip>
         </TooltipProvider>
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-green-50"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onEdit(compte.id || '');
-                        }}
-                    >
-                        <Edit className="h-4 w-4 text-green-600" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Modifier</TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-red-50"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onDelete(compte.id || '');
-                        }}
-                    >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>Supprimer</TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <PermissionGuard feature="accounts" action="update">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-green-50"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEdit(compte.id || '');
+                            }}
+                        >
+                            <Edit className="h-4 w-4 text-green-600" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Modifier</TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </PermissionGuard>
+        <PermissionGuard feature="accounts" action="delete">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-red-50"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(compte.id || '');
+                            }}
+                        >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Supprimer</TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        </PermissionGuard>
     </div>
 );
 
@@ -144,10 +149,12 @@ export const CompteComptableListView: React.FC<CompteComptableListViewProps> = (
             <div className="flex items-center justify-between">
                 <div>
                     {onAddNew && (
-                        <Button size="sm" onClick={onAddNew} className="bg-[#007bff] hover:bg-[#0069d9]">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Nouveau Compte
-                        </Button>
+                        <PermissionGuard feature="accounts" action="create">
+                            <Button size="sm" onClick={onAddNew} className="bg-[#007bff] hover:bg-[#0069d9]">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Nouveau Compte
+                            </Button>
+                        </PermissionGuard>
                     )}
                 </div>
                 <div>

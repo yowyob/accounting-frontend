@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect } from 'react';
-import { OpenAPI } from '@/src/lib2/core/OpenAPI';
+import { OpenAPI } from '@/src/lib';
+import { useAuth } from '@/hooks/use-auth';
 
 export function AuthInitializer() {
+    const { initFromStorage } = useAuth();
+
     useEffect(() => {
-        // Restore token
+        // Initialise le token OpenAPI (logique originale conservée)
         const token = localStorage.getItem('auth_token');
         if (token) {
             OpenAPI.TOKEN = token;
         }
-        // Ensure BASE points to the correct backend (not hardcoded localhost)
-        OpenAPI.BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081';
-    }, []);
+
+        // Initialise le store de rôles/utilisateur depuis localStorage
+        initFromStorage();
+    }, [initFromStorage]);
 
     return null;
 }

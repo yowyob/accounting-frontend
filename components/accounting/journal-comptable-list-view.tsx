@@ -17,6 +17,7 @@ import { JournalComptableDto } from '@/src/lib2/models/JournalComptableDto';
 import { Edit, Trash2, RefreshCw, Search, Plus } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface JournalComptableListViewProps {
   journals: JournalComptableDto[];
@@ -37,22 +38,26 @@ const RowActions = ({ journal, onEdit, onDelete }: {
   return (
     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(journal.id!); }}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Modifier le journal</p></TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(journal); }}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent><p>Supprimer le journal</p></TooltipContent>
-        </Tooltip>
+        <PermissionGuard feature="journals" action="update">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(journal.id!); }}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Modifier le journal</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
+        <PermissionGuard feature="journals" action="delete">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onDelete(journal); }}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent><p>Supprimer le journal</p></TooltipContent>
+          </Tooltip>
+        </PermissionGuard>
       </TooltipProvider>
     </div>
   );
@@ -102,10 +107,12 @@ export const JournalComptableListView: React.FC<JournalComptableListViewProps> =
 
         {/* Bottom Row: Action buttons (New left, Refresh right) */}
         <div className="flex items-center justify-between">
-          <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="mr-2 h-4 w-4" />
-            Nouveau Journal
-          </Button>
+          <PermissionGuard feature="journals" action="create">
+            <Button onClick={onAddNew} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="mr-2 h-4 w-4" />
+              Nouveau Journal
+            </Button>
+          </PermissionGuard>
           <Button onClick={onRefresh} variant="outline" size="icon">
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           </Button>
