@@ -88,7 +88,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     email: foundUser.email,
                     firstName: foundUser.firstName,
                     lastName: foundUser.lastName,
-                    roles: [foundUser.role]
+                    roles: [foundUser.role],
+                    organizationId: foundUser.organizationId || null,
+                    company: foundUser.company || null,
                 };
             } else {
                 // Fallback pour test rapide sans inscription préalable
@@ -97,7 +99,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     email: data.email,
                     firstName: 'Utilisateur',
                     lastName: 'Test',
-                    roles: ['RESPONSABLE_COMPTABLE']
+                    roles: ['RESPONSABLE_COMPTABLE'],
+                    organizationId: 'default-org',
+                    company: 'Organisation par défaut',
                 };
             }
 
@@ -149,7 +153,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 lastName: data.lastName,
                 email: data.email,
                 password: data.password,
-                role: data.role || 'AIDE_COMPTABLE'
+                role: data.role || 'AIDE_COMPTABLE',
+                // L'entreprise sert d'identifiant d'organisation pour le filtrage multi-tenant
+                organizationId: data.company.trim().toLowerCase().replace(/\s+/g, '-'),
+                company: data.company,
             };
 
             mockUsers.push(newUser);

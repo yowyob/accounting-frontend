@@ -22,7 +22,8 @@ import {
     Notebook,
     Scale,
     ListChecks,
-    Layers
+    Layers,
+    ClipboardCheck
 } from "lucide-react";
 
 export type SidebarLink = {
@@ -113,6 +114,7 @@ export const modules: Record<ModuleKey, Module> = {
             { title: "Validation Écritures", icon: ShieldCheck, href: "/accounting/validation", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE'] },
             { title: "Paramètre général", icon: Settings, href: "/accounting/settings", allowedRoles: ['RESPONSABLE_COMPTABLE'] },
             { title: "Budgets", icon: BarChart3, href: "/accounting/budgets", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE'] },
+            { title: "Validation Budgets", icon: ClipboardCheck, href: "/accounting/budget-validation", allowedRoles: ['RESPONSABLE_COMPTABLE'] },
         ],
     },
     configuration: {

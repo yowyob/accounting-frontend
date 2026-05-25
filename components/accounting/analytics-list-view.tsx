@@ -39,6 +39,7 @@ interface AnalyticsListViewProps {
     axes: AxeAnalytique[];
     isLoading: boolean;
     onEdit: (id: string) => void;
+    onView?: (id: string) => void;
     onDelete: (axe: AxeAnalytique) => void;
     onAddNew: () => void;
     onRefresh: () => void;
@@ -48,6 +49,7 @@ export function AnalyticsListView({
     axes,
     isLoading,
     onEdit,
+    onView,
     onDelete,
     onAddNew,
     onRefresh
@@ -157,7 +159,10 @@ export function AnalyticsListView({
                                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                             </Button>
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell
+                                            className={onView ? "cursor-pointer" : ""}
+                                            onClick={() => onView && onView(axe.id)}
+                                        >
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1.5 bg-blue-50 rounded">
                                                     <Layers className="h-4 w-4 text-blue-600" />

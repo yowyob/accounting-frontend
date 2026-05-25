@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
     Select,
     SelectContent,
@@ -12,9 +13,9 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Trash2, HelpCircle, Save, CheckCircle, X, PlusCircle, Target, Calendar } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Trash2, HelpCircle, Save, CheckCircle, PlusCircle, Target, Calendar, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 import { AxeAnalytique } from './analytics-list-view';
 
 interface BudgetLine {
@@ -32,72 +33,71 @@ interface BudgetFormProps {
 
 export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
     const [nom, setNom] = useState('');
-    const [axeId, setAxeId] = useState('');
-    const [compteAnalytiqueId, setCompteAnalytiqueId] = useState('');
+    const [selectedAxeIds, setSelectedAxeIds] = useState<string[]>([]);
+    const [axeSearch, setAxeSearch] = useState('');
     const [dateDebut, setDateDebut] = useState('2026-01-01');
     const [dateFin, setDateFin] = useState('2026-12-31');
     const [seuilAlerte, setSeuilAlerte] = useState('80');
     const [typeBudget, setTypeBudget] = useState('DETAILED');
-    const [montantGlobal, setMontantGlobal] = useState<number>(0);
-    const [lines, setLines] = useState<(BudgetLine & { pourcentage: number })[]>([
-        { id: '1', compteComptableId: '', montantAlloue: 0, description: '', pourcentage: 100 }
+    const [lines, setLines] = useState<BudgetLine[]>([
+        { id: '1', compteComptableId: '', montantAlloue: 0, description: '' }
     ]);
 
-    const selectedAxe = axes.find(a => a.id === axeId);
-    const mockComptesAnalytiques = selectedAxe ? [
-        { id: 'ca1', libelle: `Compte 1 - ${selectedAxe.libelle}` },
-        { id: 'ca2', libelle: `Compte 2 - ${selectedAxe.libelle}` },
-    ] : [];
+    // Uniquement les axes actifs
+    const activeAxes = useMemo(() => axes.filter(a => a.actif), [axes]);
+
+    // Axes filtrés par la recherche
+    const filteredAxes = useMemo(() =>
+        activeAxes.filter(a =>
+            a.libelle.toLowerCase().includes(axeSearch.toLowerCase()) ||
+            (a.code && a.code.toLowerCase().includes(axeSearch.toLowerCase()))
+        ), [activeAxes, axeSearch]);
+
+    const selectedAxes = activeAxes.filter(a => selectedAxeIds.includes(a.id));
+
+    // Union des comptes de tous les axes sélectionnés
+    const allComptes = useMemo(() =>
+        selectedAxes.flatMap(a => a.comptes || []),
+        [selectedAxes]);
+
+    // Montant global = somme des montants des lignes
+    const montantGlobal = lines.reduce((acc, l) => acc + (l.montantAlloue || 0), 0);
+
+    const toggleAxe = (id: string) => {
+        setSelectedAxeIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
 
     const addLine = () => {
-        setLines([...lines, { id: Math.random().toString(36).substr(2, 9), compteComptableId: '', montantAlloue: 0, description: '', pourcentage: 0 }]);
+        setLines([...lines, { id: Math.random().toString(36).substr(2, 9), compteComptableId: '', montantAlloue: 0, description: '' }]);
     };
 
     const removeLine = (id: string) => {
-        if (lines.length > 1) {
-            setLines(lines.filter(l => l.id !== id));
-        }
+        if (lines.length > 1) setLines(lines.filter(l => l.id !== id));
     };
 
     const updateLine = (id: string, field: string, value: any) => {
-        setLines(lines.map(l => {
-            if (l.id === id) {
-                const updatedLine = { ...l, [field]: value };
-                if (field === 'pourcentage') {
-                    updatedLine.montantAlloue = (montantGlobal * (parseFloat(value) || 0)) / 100;
-                } else if (field === 'montantAlloue') {
-                    updatedLine.pourcentage = montantGlobal > 0 ? ((parseFloat(value) || 0) / montantGlobal) * 100 : 0;
-                }
-                return updatedLine;
-            }
-            return l;
-        }));
+        setLines(lines.map(l => l.id === id ? { ...l, [field]: value } : l));
     };
 
-    // Update lines when total budget changes
-    useEffect(() => {
-        setLines(prev => prev.map(l => ({
-            ...l,
-            montantAlloue: (montantGlobal * (l.pourcentage || 0)) / 100
-        })));
-    }, [montantGlobal]);
-
-    const totalPercentage = lines.reduce((acc, line) => acc + (line.pourcentage || 0), 0);
-    const totalBudget = lines.reduce((acc, line) => acc + (line.montantAlloue || 0), 0);
-
     const handleSubmit = (status: 'DRAFT' | 'ACTIVE') => {
-        if (!nom || !axeId || !compteAnalytiqueId || montantGlobal <= 0) {
-            toast.error('Veuillez remplir les champs obligatoires (*) et un montant global valide');
+        if (!nom || selectedAxeIds.length === 0) {
+            toast.error('Veuillez remplir le nom et sélectionner au moins un axe analytique (*)');
             return;
         }
-
-        if (status === 'ACTIVE' && Math.round(totalPercentage) !== 100) {
-            toast.error('La répartition doit être égale à exactement 100% pour activer le budget');
+        if (status === 'ACTIVE' && montantGlobal <= 0) {
+            toast.error('Le montant global doit être supérieur à 0 pour activer le budget');
             return;
         }
 
         onSubmit({
-            nom, axeId, compteAnalytiqueId, dateDebut, dateFin, seuilAlerte, typeBudget, lines, status, totalBudget, montantGlobal
+            nom,
+            axeId: selectedAxeIds[0],
+            axeIds: selectedAxeIds,
+            axeLibelle: selectedAxes.map(a => a.libelle).join(', '),
+            dateDebut, dateFin, seuilAlerte, typeBudget, lines, status,
+            totalBudget: montantGlobal, montantGlobal,
         });
     };
 
@@ -109,6 +109,8 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                     <CardTitle className="text-lg font-semibold text-slate-800">Informations générales du budget</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
+
+                    {/* Nom */}
                     <div className="space-y-2">
                         <Label className="text-slate-700 font-medium">Nom du budget <span className="text-red-500">*</span></Label>
                         <Input
@@ -117,53 +119,102 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                             onChange={(e) => setNom(e.target.value)}
                             className="border-slate-300 focus:ring-blue-500"
                         />
-                        <p className="text-xs text-slate-500">Donnez un nom explicite à votre budget pour le retrouver facilement.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 font-medium">Axe analytique <span className="text-red-500">*</span></Label>
-                            <Select value={axeId} onValueChange={setAxeId}>
-                                <SelectTrigger className="border-slate-300">
-                                    <SelectValue placeholder="Sélectionner un axe..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {axes.map(axe => (
-                                        <SelectItem key={axe.id} value={axe.id}>{axe.libelle}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-slate-500">L'axe détermine la dimension d'analyse : projet, département ou produit.</p>
+                    {/* Sélection multiple d'axes actifs */}
+                    <div className="space-y-2">
+                        <Label className="text-slate-700 font-medium">
+                            Axes analytiques <span className="text-red-500">*</span>
+                            <span className="ml-2 text-xs text-slate-400 font-normal">(uniquement les axes actifs)</span>
+                        </Label>
+
+                        {/* Champ de recherche */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input
+                                placeholder="Rechercher un axe..."
+                                value={axeSearch}
+                                onChange={(e) => setAxeSearch(e.target.value)}
+                                className="pl-9 border-slate-300 h-9 text-sm"
+                            />
                         </div>
 
-                        <div className="space-y-2">
-                            <Label className="text-slate-700 font-medium">Compte analytique <span className="text-red-500">*</span></Label>
-                            <Select value={compteAnalytiqueId} onValueChange={setCompteAnalytiqueId} disabled={!axeId}>
-                                <SelectTrigger className="border-slate-300">
-                                    <SelectValue placeholder={axeId ? "Sélectionner un compte..." : "Sélectionner d'abord un axe..."} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {mockComptesAnalytiques.map(ca => (
-                                        <SelectItem key={ca.id} value={ca.id}>{ca.libelle}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <p className="text-xs text-slate-500">Le compte analytique correspond à l'entité spécifique à budgéter.</p>
+                        {/* Liste scrollable avec checkboxes */}
+                        <div className="border border-slate-200 rounded-lg overflow-hidden">
+                            <div className="max-h-48 overflow-y-auto divide-y divide-slate-100">
+                                {filteredAxes.length === 0 ? (
+                                    <div className="px-4 py-6 text-center text-sm text-slate-400">
+                                        {activeAxes.length === 0
+                                            ? 'Aucun axe actif disponible. Créez d\'abord des axes analytiques actifs.'
+                                            : 'Aucun axe ne correspond à la recherche.'}
+                                    </div>
+                                ) : (
+                                    filteredAxes.map(axe => (
+                                        <label
+                                            key={axe.id}
+                                            className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors"
+                                        >
+                                            <Checkbox
+                                                checked={selectedAxeIds.includes(axe.id)}
+                                                onCheckedChange={() => toggleAxe(axe.id)}
+                                                className="shrink-0"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-slate-800 truncate">{axe.libelle}</p>
+                                                <p className="text-xs text-slate-400">
+                                                    {axe.code && <span className="font-mono mr-2">{axe.code}</span>}
+                                                    {axe.type}
+                                                    {axe.comptes && axe.comptes.length > 0 && (
+                                                        <span className="ml-2 text-emerald-600">{axe.comptes.length} compte(s)</span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </label>
+                                    ))
+                                )}
+                            </div>
                         </div>
+
+                        {/* Axes sélectionnés comme badges */}
+                        {selectedAxes.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {selectedAxes.map(axe => (
+                                    <Badge
+                                        key={axe.id}
+                                        variant="secondary"
+                                        className="bg-blue-50 text-blue-700 border border-blue-200 gap-1 pr-1"
+                                    >
+                                        {axe.libelle}
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleAxe(axe.id)}
+                                            className="ml-1 hover:text-red-600 transition-colors"
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </button>
+                                    </Badge>
+                                ))}
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedAxeIds([])}
+                                    className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                                >
+                                    Tout désélectionner
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Montant global calculé */}
                         <div className="space-y-2">
                             <Label className="text-slate-700 font-semibold flex items-center gap-2">
-                                <Target className="h-4 w-4 text-blue-600" /> Montant Global (XAF) <span className="text-red-500">*</span>
+                                <Target className="h-4 w-4 text-blue-600" /> Montant Global (XAF)
                             </Label>
-                            <Input
-                                type="number"
-                                placeholder="Ex: 5000000"
-                                value={montantGlobal || ''}
-                                onChange={(e) => setMontantGlobal(parseFloat(e.target.value) || 0)}
-                                className="h-11 border-slate-300 focus:ring-blue-600 font-bold text-lg text-blue-700"
-                            />
+                            <div className="h-11 border border-slate-200 rounded-md bg-slate-50 flex items-center px-3 font-bold text-lg text-blue-700 font-mono">
+                                {montantGlobal.toLocaleString('fr-FR')}
+                            </div>
+                            <p className="text-xs text-slate-500">Calculé automatiquement depuis les lignes.</p>
                         </div>
 
                         <div className="space-y-2">
@@ -185,7 +236,7 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                             <Label className="text-slate-700 font-medium">Seuil d'alerte</Label>
                             <Select value={seuilAlerte} onValueChange={setSeuilAlerte}>
                                 <SelectTrigger className="border-slate-300">
-                                    <SelectValue placeholder="80% - Alerte standard" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="50">50% - Alerte précoce</SelectItem>
@@ -194,14 +245,12 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                     <SelectItem value="100">100% - Budget épuisé</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <p className="text-xs text-slate-500">Une notification sera envoyée lorsque le réalisé dépassera ce pourcentage du budget alloué.</p>
                         </div>
-
                         <div className="space-y-2">
                             <Label className="text-slate-700 font-medium">Type de budget</Label>
                             <Select value={typeBudget} onValueChange={setTypeBudget}>
                                 <SelectTrigger className="border-slate-300">
-                                    <SelectValue placeholder="Détaillé par compte" />
+                                    <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="GLOBAL">Global (Montant unique)</SelectItem>
@@ -213,7 +262,7 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                 </CardContent>
             </Card>
 
-            {/* Allocation budgétaire par compte */}
+            {/* Allocation budgétaire */}
             {typeBudget === 'DETAILED' && (
                 <Card className="border-slate-200 shadow-sm overflow-hidden">
                     <CardHeader className="bg-slate-50/50 border-b py-4">
@@ -222,12 +271,11 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                     <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-100/80 text-[11px] uppercase tracking-wider text-slate-600 font-bold border-b text-center">
+                                <thead className="bg-slate-100/80 text-[11px] uppercase tracking-wider text-slate-600 font-bold border-b">
                                     <tr>
-                                        <th className="px-4 py-3 text-left">Compte Comptable</th>
+                                        <th className="px-4 py-3 text-left">Compte Analytique</th>
                                         <th className="px-4 py-3">Description</th>
-                                        <th className="px-4 py-3 w-[120px]">Répartition (%)</th>
-                                        <th className="px-4 py-3 w-[180px] text-right">Montant (XAF)</th>
+                                        <th className="px-4 py-3 w-[200px] text-right">Montant (XAF)</th>
                                         <th className="px-4 py-3 w-[80px]">Actions</th>
                                     </tr>
                                 </thead>
@@ -235,17 +283,26 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                     {lines.map((line) => (
                                         <tr key={line.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-4 py-3 w-64">
-                                                <Select value={line.compteComptableId} onValueChange={(val) => updateLine(line.id, 'compteComptableId', val)}>
-                                                    <SelectTrigger className="h-10 border-slate-300">
-                                                        <SelectValue placeholder="Choisir..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="601">601 - Matières premières</SelectItem>
-                                                        <SelectItem value="613">613 - Loyers</SelectItem>
-                                                        <SelectItem value="623">623 - Publicité</SelectItem>
-                                                        <SelectItem value="641">641 - Salaires</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                {allComptes.length > 0 ? (
+                                                    <Select value={line.compteComptableId} onValueChange={(val) => updateLine(line.id, 'compteComptableId', val)}>
+                                                        <SelectTrigger className="h-10 border-slate-300">
+                                                            <SelectValue placeholder="Choisir un compte..." />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {allComptes.map(c => (
+                                                                <SelectItem key={c.id} value={c.id}>{c.libelle}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : (
+                                                    <Input
+                                                        placeholder={selectedAxeIds.length === 0 ? "Sélectionnez d'abord un axe..." : "Aucun compte dans les axes sélectionnés"}
+                                                        value={line.compteComptableId}
+                                                        onChange={(e) => updateLine(line.id, 'compteComptableId', e.target.value)}
+                                                        className="h-10 border-slate-300"
+                                                        disabled={selectedAxeIds.length === 0}
+                                                    />
+                                                )}
                                             </td>
                                             <td className="px-4 py-3">
                                                 <Input
@@ -256,28 +313,16 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                                 />
                                             </td>
                                             <td className="px-4 py-3">
-                                                <div className="relative">
-                                                    <Input
-                                                        type="number"
-                                                        className="h-10 text-center border-slate-300 font-bold text-blue-600 pr-7"
-                                                        value={line.pourcentage || ''}
-                                                        onChange={(e) => updateLine(line.id, 'pourcentage', e.target.value)}
-                                                    />
-                                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs mt-0.5">%</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3">
                                                 <Input
                                                     type="number"
                                                     className="h-10 text-right border-slate-300 font-mono font-medium"
                                                     value={line.montantAlloue || ''}
-                                                    onChange={(e) => updateLine(line.id, 'montantAlloue', e.target.value)}
+                                                    onChange={(e) => updateLine(line.id, 'montantAlloue', parseFloat(e.target.value) || 0)}
                                                 />
                                             </td>
                                             <td className="px-4 py-3 text-center">
                                                 <Button
-                                                    variant="ghost"
-                                                    size="icon"
+                                                    variant="ghost" size="icon"
                                                     className="h-9 w-9 text-slate-400 hover:text-red-600 hover:bg-red-50"
                                                     onClick={() => removeLine(line.id)}
                                                     disabled={lines.length === 1}
@@ -290,44 +335,29 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                 </tbody>
                             </table>
                         </div>
-
                         <div className="p-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between">
                             <Button variant="outline" size="sm" onClick={addLine} className="text-blue-600 border-blue-200 hover:bg-blue-50 border-dashed">
-                                <PlusCircle className="h-4 w-4 mr-2" /> Ajouter une ligne d'imputation
+                                <PlusCircle className="h-4 w-4 mr-2" /> Ajouter une ligne
                             </Button>
-
-                            <div className="flex items-center gap-6">
-                                <div className={cn(
-                                    "flex items-center gap-2 px-4 py-2 rounded-lg border font-bold",
-                                    Math.round(totalPercentage) === 100
-                                        ? "bg-green-50 text-green-700 border-green-200"
-                                        : "bg-red-50 text-red-700 border-red-200"
-                                )}>
-                                    Total: {totalPercentage.toFixed(1)}%
-                                    {Math.round(totalPercentage) !== 100 && (
-                                        <span className="text-[10px] font-normal ml-1">(Doit être 100%)</span>
-                                    )}
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold">Total Budget</p>
-                                    <p className="text-lg font-black text-slate-900">{totalBudget.toLocaleString()} XAF</p>
-                                </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-slate-500 uppercase font-bold">Total Budget</p>
+                                <p className="text-lg font-black text-slate-900">{montantGlobal.toLocaleString('fr-FR')} XAF</p>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
             )}
 
-            {/* Résumé du budget */}
+            {/* Résumé */}
             <Card className="border-slate-200 shadow-sm">
                 <CardHeader className="bg-slate-50/50 border-b py-4">
                     <CardTitle className="text-lg font-semibold text-slate-800">Résumé du budget</CardTitle>
                 </CardHeader>
                 <CardContent className="py-8 text-center text-slate-400 italic">
-                    {!nom || !axeId || !compteAnalytiqueId ? (
+                    {!nom || selectedAxeIds.length === 0 ? (
                         <div className="flex flex-col items-center gap-2">
                             <HelpCircle className="h-8 w-8 opacity-20" />
-                            <p>Remplissez les informations ci-dessus pour voir le résumé.</p>
+                            <p>Remplissez le nom et sélectionnez au moins un axe pour voir le résumé.</p>
                         </div>
                     ) : (
                         <div className="text-left text-slate-700 not-italic space-y-4">
@@ -338,13 +368,13 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total Alloué</p>
-                                    <p className="text-2xl font-black text-blue-600">{totalBudget.toLocaleString('fr-FR')} XAF</p>
+                                    <p className="text-2xl font-black text-blue-600">{montantGlobal.toLocaleString('fr-FR')} XAF</p>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-2">
                                 <div>
-                                    <p className="text-xs text-slate-500 font-bold">Axe</p>
-                                    <p className="text-sm font-medium">{selectedAxe?.libelle}</p>
+                                    <p className="text-xs text-slate-500 font-bold">Axes</p>
+                                    <p className="text-sm font-medium">{selectedAxes.map(a => a.libelle).join(', ')}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500 font-bold">Période</p>
@@ -356,7 +386,7 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                                 </div>
                                 <div>
                                     <p className="text-xs text-slate-500 font-bold">Lignes</p>
-                                    <p className="text-sm font-medium">{lines.length} comptes</p>
+                                    <p className="text-sm font-medium">{lines.length} compte(s)</p>
                                 </div>
                             </div>
                         </div>
@@ -364,7 +394,7 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                 </CardContent>
             </Card>
 
-            {/* Footer Buttons */}
+            {/* Footer */}
             <div className="sticky bottom-0 bg-slate-50/90 backdrop-blur-sm p-6 border-t border-slate-200 flex items-center justify-end gap-4 mt-6 -mx-8 -mb-14">
                 <Button variant="outline" onClick={onCancel} className="h-11 px-8 border-slate-300 bg-white hover:bg-slate-50 font-semibold text-slate-600">
                     Annuler
@@ -379,6 +409,7 @@ export function BudgetForm({ onCancel, onSubmit, axes }: BudgetFormProps) {
                 <Button
                     onClick={() => handleSubmit('ACTIVE')}
                     className="h-11 px-8 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200"
+                    disabled={montantGlobal <= 0}
                 >
                     <CheckCircle className="h-4 w-4 mr-2" /> Activer le budget
                 </Button>

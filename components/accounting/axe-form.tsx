@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
     Select,
     SelectContent,
@@ -12,8 +13,10 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Layers, User, Save, X, Plus, Trash2, Tag } from 'lucide-react';
+import { Layers, User, Save, Plus, Trash2, Tag, ToggleLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
+import { hasPermission } from '@/src/lib/auth/roles';
 
 export interface AnalyticalAccount {
     id: string;
@@ -29,14 +32,48 @@ export interface AxeFormProps {
 }
 
 export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
+    const { accountingRole } = useAuth();
+    const canToggleActif = hasPermission(accountingRole, 'analytics', 'update');
+
     const [libelle, setLibelle] = useState(initialData?.libelle || '');
-    const [code, setCode] = useState(initialData?.code || '');
     const [type, setType] = useState(initialData?.type || 'PROJET');
     const [responsable, setResponsable] = useState(initialData?.responsable || '');
+    const [actif, setActif] = useState<boolean>(initialData?.actif ?? true);
+    const [comptes, setComptes] = useState<AnalyticalAccount[]>(initialData?.comptes || []);
 
-    const [comptes, setComptes] = useState<AnalyticalAccount[]>(
-        initialData?.comptes || []
-    );
+    // Autocomplétion responsable
+    const [suggestions, setSuggestions] = useState<string[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const suggestionsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
+                setShowSuggestions(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleResponsableChange = (value: string) => {
+        setResponsable(value);
+        if (value.length >= 1) {
+            try {
+                const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+                const fullNames: string[] = users.map((u: any) => `${u.firstName} ${u.lastName}`.trim()).filter(Boolean);
+                const filtered = fullNames.filter(name =>
+                    name.toLowerCase().startsWith(value.toLowerCase())
+                ).slice(0, 5);
+                setSuggestions(filtered);
+                setShowSuggestions(filtered.length > 0);
+            } catch {
+                setShowSuggestions(false);
+            }
+        } else {
+            setShowSuggestions(false);
+        }
+    };
 
     const handleAddCompte = () => {
         setComptes([...comptes, { id: Date.now().toString(), libelle: '' }]);
@@ -52,25 +89,27 @@ export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!libelle || !code) {
+        if (!libelle) {
             toast.error('Veuillez remplir les champs obligatoires');
             return;
         }
-        // Verify all comptes have a libelle
         if (comptes.some(c => !c.libelle.trim())) {
             toast.error('Veuillez donner un libellé à tous les comptes analytiques, ou supprimez les lignes vides.');
             return;
         }
 
-        const payload = {
+        const payload: any = {
             id: initialData?.id || Date.now().toString(),
             libelle,
-            code,
             type,
             responsable,
-            actif: initialData?.actif ?? true,
-            comptes
+            actif,
+            comptes,
         };
+
+        if (initialData?.code) {
+            payload.code = initialData.code;
+        }
 
         onSubmit(payload);
     };
@@ -78,31 +117,23 @@ export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
     return (
         <form onSubmit={handleSubmit} className="flex flex-col min-h-full">
             <div className="flex-1 p-8 space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-3">
-                        <Label className="text-slate-700 font-semibold flex items-center gap-2 text-sm uppercase tracking-wider">
-                            <Layers className="h-4 w-4 text-blue-600" /> Libellé de l'axe <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                            placeholder="Ex: Projet ERP Sud"
-                            value={libelle}
-                            onChange={(e) => setLibelle(e.target.value)}
-                            className="h-11 border-slate-300 focus:ring-blue-600 focus:border-blue-600 text-base"
-                        />
-                    </div>
 
-                    <div className="space-y-3">
-                        <Label className="text-slate-700 font-semibold text-sm uppercase tracking-wider">Code <span className="text-red-500">*</span></Label>
-                        <Input
-                            placeholder="Ex: PROJ-SUD"
-                            value={code}
-                            onChange={(e) => setCode(e.target.value)}
-                            className="h-11 border-slate-300 focus:ring-blue-600 focus:border-blue-600 font-mono text-base"
-                        />
-                    </div>
+                {/* Libellé */}
+                <div className="space-y-3">
+                    <Label className="text-slate-700 font-semibold flex items-center gap-2 text-sm uppercase tracking-wider">
+                        <Layers className="h-4 w-4 text-blue-600" /> Libellé de l'axe <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                        placeholder="Ex: Projet ERP Sud"
+                        value={libelle}
+                        onChange={(e) => setLibelle(e.target.value)}
+                        className="h-11 border-slate-300 focus:ring-blue-600 focus:border-blue-600 text-base"
+                    />
+                    <p className="text-xs text-slate-400">Le code sera généré automatiquement par le système.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Type */}
                     <div className="space-y-3">
                         <Label className="text-slate-700 font-semibold text-sm uppercase tracking-wider">Type d'analyse</Label>
                         <Select value={type} onValueChange={setType}>
@@ -119,19 +150,68 @@ export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
                         </Select>
                     </div>
 
+                    {/* Responsable avec autocomplétion */}
                     <div className="space-y-3">
                         <Label className="text-slate-700 font-semibold flex items-center gap-2 text-sm uppercase tracking-wider">
                             <User className="h-4 w-4 text-slate-400" /> Responsable
                         </Label>
-                        <Input
-                            placeholder="Nom du responsable..."
-                            value={responsable}
-                            onChange={(e) => setResponsable(e.target.value)}
-                            className="h-11 border-slate-300 text-base"
-                        />
+                        <div className="relative" ref={suggestionsRef}>
+                            <Input
+                                placeholder="Nom du responsable..."
+                                value={responsable}
+                                onChange={(e) => handleResponsableChange(e.target.value)}
+                                onFocus={() => responsable.length >= 1 && suggestions.length > 0 && setShowSuggestions(true)}
+                                className="h-11 border-slate-300 text-base"
+                                autoComplete="off"
+                            />
+                            {showSuggestions && (
+                                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                                    {suggestions.map((name, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors border-b border-slate-50 last:border-0"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                setResponsable(name);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            {name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
+                {/* Toggle actif/inactif — visible pour Comptable et Responsable */}
+                {canToggleActif && (
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="space-y-0.5">
+                            <Label className="text-slate-700 font-semibold flex items-center gap-2 text-sm">
+                                <ToggleLeft className="h-4 w-4 text-slate-500" /> Statut de l'axe
+                            </Label>
+                            <p className="text-xs text-slate-500">
+                                {actif
+                                    ? 'Cet axe est actif et peut être rattaché à un budget.'
+                                    : 'Cet axe est inactif et ne sera pas proposé lors de la création d\'un budget.'}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className={`text-xs font-semibold ${actif ? 'text-green-600' : 'text-slate-400'}`}>
+                                {actif ? 'Actif' : 'Inactif'}
+                            </span>
+                            <Switch
+                                checked={actif}
+                                onCheckedChange={setActif}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Comptes analytiques */}
                 <div className="space-y-4 pt-6 border-t border-slate-200">
                     <div className="flex justify-between items-center">
                         <Label className="text-slate-800 font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
@@ -181,7 +261,6 @@ export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
                         </div>
                     )}
                 </div>
-
             </div>
 
             <div className="sticky bottom-0 bg-slate-50/90 backdrop-blur-sm p-6 border-t border-slate-200 flex justify-end gap-4 mt-auto">
@@ -195,4 +274,3 @@ export function AxeForm({ initialData, onCancel, onSubmit }: AxeFormProps) {
         </form>
     );
 }
-
