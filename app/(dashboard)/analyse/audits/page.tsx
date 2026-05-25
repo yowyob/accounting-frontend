@@ -21,7 +21,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { getPeriodeComptables, getAudits } from '@/lib/api';
+import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { AccountingAuditService } from '@/src/lib2/services/AccountingAuditService';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 
 interface SystemAudit {
@@ -48,7 +49,8 @@ export default function AuditJournalPage() {
   const fetchPeriodesData = useCallback(async () => {
     setIsLoadingPeriods(true);
     try {
-      const data = await getPeriodeComptables();
+      const response = await AccountingPeriodsService.getAllPeriodeComptables();
+      const data = response.data || [];
       setPeriodes(data);
       if (data.length > 0 && !selectedPeriodeId) {
         setSelectedPeriodeId(data[0].id || null);
@@ -69,23 +71,40 @@ export default function AuditJournalPage() {
     if (!selectedPeriodeId) return;
     setIsFetchingAudits(true);
     try {
-      const response = await getAudits();
-      // Adjust response to match our display needs, adding missing fields if necessary
-      const formattedAudits = response.audits.map(a => ({
-        ...a,
-        user: 'Admin',
-        action: 'UPDATE',
-        adresseIp: '127.0.0.1',
-        details: a.description
+      const tenantId = localStorage.getItem('organization_id') || '';
+      const selectedPeriod = periodes.find((p) => p.id === selectedPeriodeId);
+      
+      let response;
+      if (selectedPeriod && selectedPeriod.dateDebut && selectedPeriod.dateFin) {
+        response = await AccountingAuditService.getByPeriode(
+          tenantId,
+          selectedPeriod.dateDebut,
+          selectedPeriod.dateFin
+        );
+      } else {
+        response = await AccountingAuditService.getAllByOrganization(tenantId, 100);
+      }
+
+      const audits = response.data || [];
+      const formattedAudits = audits.map((a) => ({
+        id: a.id || '',
+        user: a.utilisateur || 'Système',
+        action: a.action || 'INCONNU',
+        date: a.dateAction || a.createdAt || '',
+        description: a.details || 'Aucune description',
+        details: a.details || '',
+        adresseIp: a.adresseIp || 'N/A',
+        donneesAvant: a.donneesAvant,
+        donneesApres: a.donneesApres
       }));
-      setAuditLogs(formattedAudits as SystemAudit[]);
+      setAuditLogs(formattedAudits);
     } catch (error) {
       console.error('Error fetching audits:', error);
       toast.error("Échec de la récupération des journaux d'audit");
     } finally {
       setIsFetchingAudits(false);
     }
-  }, [selectedPeriodeId]);
+  }, [selectedPeriodeId, periodes]);
 
   useEffect(() => {
     if (selectedPeriodeId) {

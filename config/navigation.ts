@@ -112,7 +112,7 @@ export const modules: Record<ModuleKey, Module> = {
             { title: "Écritures Comptables", icon: FileClock, href: "/accounting/entries", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE', 'AIDE_COMPTABLE'] },
             { title: "Saisie semi-automatique", icon: ListChecks, href: "/accounting/semi-auto-entries", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE', 'AIDE_COMPTABLE'] },
             { title: "Validation Écritures", icon: ShieldCheck, href: "/accounting/validation", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE'] },
-            { title: "Paramètre général", icon: Settings, href: "/accounting/settings", allowedRoles: ['RESPONSABLE_COMPTABLE'] },
+            { title: "Paramètre général", icon: Settings, href: "/settings/accounting", allowedRoles: ['RESPONSABLE_COMPTABLE'] },
             { title: "Budgets", icon: BarChart3, href: "/accounting/budgets", allowedRoles: ['COMPTABLE', 'RESPONSABLE_COMPTABLE'] },
             { title: "Validation Budgets", icon: ClipboardCheck, href: "/accounting/budget-validation", allowedRoles: ['RESPONSABLE_COMPTABLE'] },
         ],
