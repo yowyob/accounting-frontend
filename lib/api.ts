@@ -229,40 +229,44 @@ export const getGeneralSettings = (): Promise<GeneralSettings> =>
 export const updateGeneralSettings = (data: Partial<GeneralSettings>): Promise<GeneralSettings> =>
   apiAccountingRequest<GeneralSettings>('/api/accounting/general-settings', 'PUT', data);
 
-// ECRITURES COMPTABLES 
+// ECRITURES COMPTABLES
 
 export const getEcrituresComptables = (): Promise<EcritureComptable[]> =>
-  apiAccountingRequest<EcritureComptable[]>('/api/accounting/entries');
+  apiAccountingRequest<EcritureComptable[]>('/api/accounting/ecritures');
 
 export const createEcritureComptable = (data: Omit<EcritureComptable, 'id'>): Promise<EcritureComptable> =>
-  apiAccountingRequest<EcritureComptable>('/api/accounting/entries', 'POST', data);
+  apiAccountingRequest<EcritureComptable>('/api/accounting/ecritures', 'POST', data);
 
 export const validateEcritureComptable = (id: UUID, authentication?: string): Promise<EcritureComptable> =>
-  apiAccountingRequest<EcritureComptable>(`/api/accounting/entries/${id}/validate`, 'POST');
+  apiAccountingRequest<EcritureComptable>(`/api/accounting/ecritures/${id}/validate`, 'POST');
 
 export const getNonValidatedEcritures = (): Promise<EcritureComptable[]> =>
-  apiAccountingRequest<EcritureComptable[]>('/api/accounting/entries/non-validated');
-
-export const rejectEcritureComptable = (id: UUID): Promise<EcritureComptable> =>
-  apiAccountingRequest<EcritureComptable>(`/api/accounting/entries/${id}/reject`, 'POST');
+  apiAccountingRequest<EcritureComptable[]>('/api/accounting/ecritures/non-validated');
 
 export const getEcritureComptableById = (id: UUID): Promise<EcritureComptable> =>
-  apiAccountingRequest<EcritureComptable>(`/api/accounting/entries/${id}`);
+  apiAccountingRequest<EcritureComptable>(`/api/accounting/ecritures/${id}`);
+
+export const updateEcritureComptable = (id: UUID, data: Partial<EcritureComptable>): Promise<EcritureComptable> =>
+  apiAccountingRequest<EcritureComptable>(`/api/accounting/ecritures/${id}`, 'PUT', data);
+
 export const searchEcritures = (startDate?: Date, endDate?: Date, journalId?: UUID): Promise<EcritureComptable[]> => {
-  let url = '/api/accounting/entries/search';
-  const params = [];
-  if (startDate) params.push(`startDate=${startDate.toISOString()}`);
-  if (endDate) params.push(`endDate=${endDate.toISOString()}`);
+  let url = '/api/accounting/ecritures/search';
+  const params: string[] = [];
+  if (startDate) params.push(`start=${startDate.toISOString().split('T')[0]}`);
+  if (endDate) params.push(`end=${endDate.toISOString().split('T')[0]}`);
   if (journalId) params.push(`journalId=${journalId}`);
   if (params.length) url += `?${params.join('&')}`;
   return apiAccountingRequest<EcritureComptable[]>(url);
 };
 
 export const generateEcritureFromObject = (request: { tenantId: UUID; journalComptableId: UUID }): Promise<EcritureComptable> =>
-  apiAccountingRequest<EcritureComptable>('/api/accounting/entries/generate-from-object', 'POST', request);
+  apiAccountingRequest<EcritureComptable>('/api/accounting/ecritures/generate', 'POST', request);
 
 export const deleteEcritureComptable = (id: UUID): Promise<void> =>
-  apiAccountingRequest<void>(`/api/accounting/entries/${id}`, 'DELETE');
+  apiAccountingRequest<void>(`/api/accounting/ecritures/${id}`, 'DELETE');
+
+export const cancelEcritureComptable = (id: UUID): Promise<EcritureComptable> =>
+  apiAccountingRequest<EcritureComptable>(`/api/accounting/ecritures/${id}/cancel`, 'PATCH');
 
 //Journal comptables
 
@@ -290,40 +294,40 @@ export const deleteJournalComptable = (id: UUID): Promise<void> =>
 
 // PERIODE COMPTABLE
 export const getPeriodeComptables = (): Promise<PeriodeComptable[]> =>
-  apiAccountingRequest<PeriodeComptable[]>('/api/accounting/periode-comptable');
+  apiAccountingRequest<PeriodeComptable[]>('/api/accounting/periodes');
 
 export const createPeriodeComptable = (data: Omit<PeriodeComptable, 'id'>): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>('/api/accounting/periode-comptable', 'POST', data);
+  apiAccountingRequest<PeriodeComptable>('/api/accounting/periodes', 'POST', data);
 
 export const getPeriodeComptableById = (id: UUID): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periode-comptable/${id}`);
+  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periodes/${id}`);
 
 export const getPeriodeByCode = (code: string): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periode-comptable/code/${code}`);
+  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periodes/code/${code}`);
 
 export const getPeriodeByDate = (date: Date): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periode-comptable/date?date=${date.toISOString().split('T')[0]}`);
+  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periodes/by-date?date=${date.toISOString().split('T')[0]}`);
 
 export const getNonClosedPeriodes = (): Promise<PeriodeComptable[]> =>
-  apiAccountingRequest<PeriodeComptable[]>('/api/accounting/periode-comptable/non-closed');
+  apiAccountingRequest<PeriodeComptable[]>('/api/accounting/periodes/non-closed');
 
 export const getPeriodesByRange = (startDate: Date, endDate: Date): Promise<PeriodeComptable[]> => {
   if (startDate > endDate) {
     throw new Error("La date de début doit être antérieure ou égale à la date de fin");
   }
   return apiAccountingRequest<PeriodeComptable[]>(
-    `/api/accounting/periode-comptable/range?startDate=${startDate.toISOString().split('T')[0]}&endDate=${endDate.toISOString().split('T')[0]}`
+    `/api/accounting/periodes/range?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`
   );
 };
 
 export const updatePeriodeComptable = (id: UUID, data: Partial<PeriodeComptable>): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periode-comptable/${id}`, 'PUT', data);
+  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periodes/${id}`, 'PUT', data);
 
 export const closePeriodeComptable = (id: UUID): Promise<PeriodeComptable> =>
-  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periode-comptable/${id}/close`, 'PUT');
+  apiAccountingRequest<PeriodeComptable>(`/api/accounting/periodes/${id}/close`, 'PUT');
 
 export const deletePeriodeComptable = (id: UUID): Promise<void> =>
-  apiAccountingRequest<void>(`/api/accounting/periode-comptable/${id}`, 'DELETE');
+  apiAccountingRequest<void>(`/api/accounting/periodes/${id}`, 'DELETE');
 
 
 // Données statiques pour getEcrituresComptablesSummary

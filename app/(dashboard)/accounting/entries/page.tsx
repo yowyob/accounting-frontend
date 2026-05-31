@@ -12,8 +12,6 @@ import { EcritureComptableListView } from '@/components/accounting/ecriture-comp
 import { EcritureComptableDetailView } from '@/components/accounting/ecriture-comptable-detail-view';
 import { useCompose } from '@/hooks/use-compose-store';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
-import { OpenAPI } from '@/src/lib2/core/OpenAPI';
-import { request as __request } from '@/src/lib2/core/request';
 import { toast } from 'sonner';
 import { AccountingInvoiceUploadService } from '@/src/lib2/services/AccountingInvoiceUploadService';
 import { Loader2, Upload } from 'lucide-react';
@@ -75,13 +73,7 @@ export default function EcritureComptablePage() {
       if (isNew) {
         await AccountingEntriesService.createEcriture(data);
       } else {
-        // Manual PUT request since AccountingEntriesService is missing an update method
-        await __request(OpenAPI, {
-          method: 'PUT',
-          url: `/api/accounting/entries/${data.id}`,
-          body: data,
-          mediaType: 'application/json',
-        });
+        await AccountingEntriesService.updateEcriture(data.id!, data);
       }
       closeCompose();
       await fetchAndSetEcritures();

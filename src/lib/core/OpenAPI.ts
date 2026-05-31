@@ -20,13 +20,21 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: 'https://yowyob-backend.onrender.com',
-    VERSION: '1',
+    BASE: typeof window !== 'undefined'
+        ? (window as any).__NEXT_PUBLIC_API_URL__ ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081'
+        : process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8081',
+    VERSION: '1.0.0',
     WITH_CREDENTIALS: false,
     CREDENTIALS: 'include',
-    TOKEN: undefined,
+    TOKEN: () => Promise.resolve(typeof window !== 'undefined' ? localStorage.getItem('auth_token') ?? '' : ''),
     USERNAME: undefined,
     PASSWORD: undefined,
-    HEADERS: undefined,
+    HEADERS: () => Promise.resolve(
+        typeof window !== 'undefined'
+            ? {
+                'X-Tenant-ID': localStorage.getItem('organization_id') ?? '',
+              }
+            : {}
+    ),
     ENCODE_PATH: undefined,
 };

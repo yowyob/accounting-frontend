@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { BudgetListView, BudgetItem, BudgetStatut } from '@/components/accounting/budget-list-view';
+/* eslint-disable react/no-unescaped-entities */
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { BudgetListView, BudgetItem, BudgetStatut, BudgetType } from '@/components/accounting/budget-list-view';
 import { BudgetVsRealiseView } from '@/components/accounting/budget-vs-realise-view';
 import { useCompose } from '@/hooks/use-compose-store';
 import { toast } from 'sonner';
@@ -15,7 +16,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     List, BarChart3, X, Pencil, CheckCircle, ToggleLeft, ToggleRight,
     AlertTriangle, ChevronRight, ChevronDown,
@@ -29,41 +29,11 @@ import { ExerciceComptableDto } from '@/src/lib2/models/ExerciceComptableDto';
 import { PeriodeComptableDto } from '@/src/lib2/models/PeriodeComptableDto';
 import { AccountingFiscalYearsService } from '@/src/lib2/services/AccountingFiscalYearsService';
 import { AccountingPeriodsService } from '@/src/lib2/services/AccountingPeriodsService';
+import { AccountingAnalyticsService } from '@/src/lib2/services/AccountingAnalyticsService';
+import { AccountingBudgetsService } from '@/src/lib2/services/AccountingBudgetsService';
+import { BudgetDto } from '@/src/lib2/models/BudgetDto';
+import { AxeAnalytiqueDto } from '@/src/lib2/models/AxeAnalytiqueDto';
 
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_BUDGETS: BudgetItem[] = [
-    { id: 'ex1', code: 'EX-2026', nom: 'Budget Exercice 2026', type: 'EXERCICE', statut: 'ACTIF',
-      montantAlloue: 50000000, montantConsomme: 18500000, dateDebut: '2026-01-01', dateFin: '2026-12-31', seuilAlerte: 80 },
-    { id: 'p1', code: 'PER-2026-Q1', nom: 'Budget Q1 2026', type: 'PERIODE', statut: 'ACTIF',
-      montantAlloue: 12000000, montantConsomme: 8500000, parentId: 'ex1', parentNom: 'Budget Exercice 2026',
-      exerciceId: 'ex1', dateDebut: '2026-01-01', dateFin: '2026-03-31', seuilAlerte: 80 },
-    { id: 'p2', code: 'PER-2026-Q2', nom: 'Budget Q2 2026', type: 'PERIODE', statut: 'VALIDE',
-      montantAlloue: 13000000, montantConsomme: 10000000, parentId: 'ex1', parentNom: 'Budget Exercice 2026',
-      exerciceId: 'ex1', dateDebut: '2026-04-01', dateFin: '2026-06-30', seuilAlerte: 80 },
-    { id: 'p3', code: 'PER-2026-Q3', nom: 'Budget Q3 2026', type: 'PERIODE', statut: 'BROUILLON',
-      montantAlloue: 12500000, montantConsomme: 0, parentId: 'ex1', parentNom: 'Budget Exercice 2026',
-      exerciceId: 'ex1', dateDebut: '2026-07-01', dateFin: '2026-09-30', seuilAlerte: 80 },
-    { id: 'an1', code: 'ANA-MKT-Q1', nom: 'Marketing Digital Q1', type: 'ANALYTIQUE', statut: 'ACTIF',
-      montantAlloue: 4000000, montantConsomme: 3200000, parentId: 'p1', parentNom: 'Budget Q1 2026',
-      periodeId: 'p1', axeIds: ['a1'], axeLibelles: 'Marketing Digital',
-      dateDebut: '2026-01-01', dateFin: '2026-03-31', seuilAlerte: 80 },
-    { id: 'an2', code: 'ANA-IT-Q1', nom: 'Informatique Q1', type: 'ANALYTIQUE', statut: 'ACTIF',
-      montantAlloue: 5000000, montantConsomme: 4200000, parentId: 'p1', parentNom: 'Budget Q1 2026',
-      periodeId: 'p1', axeIds: ['a2'], axeLibelles: 'Service Informatique',
-      dateDebut: '2026-01-01', dateFin: '2026-03-31', seuilAlerte: 80 },
-    { id: 'an3', code: 'ANA-RH-Q1', nom: 'RH Formation Q1', type: 'ANALYTIQUE', statut: 'BROUILLON',
-      montantAlloue: 3000000, montantConsomme: 1100000, parentId: 'p1', parentNom: 'Budget Q1 2026',
-      periodeId: 'p1', axeIds: ['a3'], axeLibelles: 'Ressources Humaines',
-      dateDebut: '2026-01-01', dateFin: '2026-03-31', seuilAlerte: 80 },
-];
-
-const FALLBACK_AXES: AxeAnalytique[] = [
-    { id: 'a1', code: 'MKT', libelle: 'Marketing Digital', type: 'DEPARTEMENT', actif: true },
-    { id: 'a2', code: 'IT', libelle: 'Service Informatique', type: 'DEPARTEMENT', actif: true },
-    { id: 'a3', code: 'RH', libelle: 'Ressources Humaines', type: 'DEPARTEMENT', actif: true },
-];
 
 const statutColors: Record<BudgetStatut, string> = {
     BROUILLON: 'bg-yellow-100 text-yellow-800',
@@ -72,6 +42,113 @@ const statutColors: Record<BudgetStatut, string> = {
     INACTIF: 'bg-gray-100 text-gray-600',
     CLOTURE: 'bg-slate-100 text-slate-600',
 };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function buildBudgetCode(type: string) {
+    return `${type.substring(0, 3)}-${Date.now().toString().slice(-6)}`.toUpperCase();
+}
+
+function mapAxeDto(dto: AxeAnalytiqueDto): AxeAnalytique {
+    const compteIds = dto.compteIds ?? [];
+    const compteLibelles = dto.compteLibelles ?? [];
+
+    return {
+        id: dto.id ?? '',
+        code: dto.code ?? '',
+        libelle: dto.libelle ?? '',
+        type: (dto.type ?? 'PROJET') as AxeAnalytique['type'],
+        responsable: dto.responsable ?? '',
+        actif: dto.actif ?? true,
+        comptes: compteIds.map((id, index) => ({
+            id,
+            libelle: compteLibelles[index] ?? id,
+        })),
+    };
+}
+
+function mapBudgetDto(dto: BudgetDto): BudgetItem {
+    return {
+        id: dto.id ?? '',
+        code: dto.code ?? '',
+        nom: dto.nom ?? dto.libelle ?? 'Budget',
+        type: (dto.type ?? 'EXERCICE') as BudgetItem['type'],
+        statut: (dto.statut ?? 'BROUILLON') as BudgetItem['statut'],
+        montantAlloue: dto.montantAlloue ?? 0,
+        montantConsomme: dto.montantConsomme ?? 0,
+        parentId: dto.parentId,
+        parentNom: dto.parentNom,
+        exerciceId: dto.exerciceId,
+        periodeId: dto.periodeId,
+        axeIds: dto.axeIds,
+        axeLibelles: dto.axeLibelles,
+        dateDebut: dto.dateDebut ?? '',
+        dateFin: dto.dateFin ?? '',
+        seuilAlerte: dto.seuilAlerte ?? 80,
+        compteComptableLines: dto.compteLines?.map(line => ({
+            compteId: line.compteId ?? '',
+            compteLibelle: line.libelleCompte ?? line.noCompte ?? '',
+            montant: line.montantAlloue ?? 0,
+            description: line.description ?? '',
+        })),
+        responsable: dto.createdBy,
+    };
+}
+
+interface BudgetFormData {
+    type: BudgetType;
+    nom: string;
+    montant: number;
+    parentId: string;
+    dateDebut: string;
+    dateFin: string;
+    seuilAlerte: number;
+    axeIds: string[];
+    axes: AxeAnalytique[];
+    compteLines: BudgetCompteLine[];
+    exerciceComptableId?: string;
+    periodeComptableId?: string;
+}
+
+function toBudgetDto(data: BudgetFormData, parentBudget?: BudgetItem): BudgetDto | null {
+    const compteLines = data.type === 'ANALYTIQUE'
+        ? (data.compteLines ?? [])
+            .filter(line => UUID_PATTERN.test(line.compteComptableId) && line.montantAlloue > 0)
+            .map(line => ({
+                compteId: line.compteComptableId,
+                montantAlloue: line.montantAlloue,
+                description: line.description,
+            }))
+        : [];
+
+    if (data.type === 'ANALYTIQUE' && compteLines.length === 0) {
+        toast.error('Sélectionnez au moins un compte comptable lié à un axe analytique.');
+        return null;
+    }
+
+    return {
+        code: buildBudgetCode(data.type),
+        nom: data.nom,
+        type: data.type,
+        statut: 'BROUILLON',
+        montantAlloue: data.montant,
+        montantConsomme: 0,
+        parentId: data.parentId || undefined,
+        exerciceId: data.type === 'EXERCICE'
+            ? data.exerciceComptableId
+            : parentBudget?.exerciceId,
+        periodeId: data.type === 'PERIODE'
+            ? data.periodeComptableId
+            : data.type === 'ANALYTIQUE'
+                ? parentBudget?.periodeId
+                : undefined,
+        dateDebut: data.dateDebut,
+        dateFin: data.dateFin,
+        seuilAlerte: data.seuilAlerte,
+        axeIds: data.type === 'ANALYTIQUE' ? data.axeIds : [],
+        compteLines,
+    };
+}
 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -92,32 +169,6 @@ function ProgressBar({ ratio, seuilAlerte }: { ratio: number; seuilAlerte: numbe
     );
 }
 
-function ConsommationCard({ label, alloue, consomme, seuilAlerte }: { label: string; alloue: number; consomme: number; seuilAlerte: number }) {
-    const ratio = alloue > 0 ? Math.round((consomme / alloue) * 100) : 0;
-    const disponible = alloue - consomme;
-    return (
-        <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</p>
-            <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                    <p className="text-[10px] text-slate-400 uppercase">Alloué</p>
-                    <p className="text-sm font-black text-blue-700 font-mono">{(alloue / 1000000).toFixed(1)}M</p>
-                </div>
-                <div>
-                    <p className="text-[10px] text-slate-400 uppercase">Consommé</p>
-                    <p className={cn("text-sm font-black font-mono", ratio > 100 ? 'text-red-600' : 'text-slate-700')}>{(consomme / 1000000).toFixed(1)}M</p>
-                </div>
-                <div>
-                    <p className="text-[10px] text-slate-400 uppercase">Disponible</p>
-                    <p className={cn("text-sm font-black font-mono", disponible < 0 ? 'text-red-600' : 'text-green-600')}>{(disponible / 1000000).toFixed(1)}M</p>
-                </div>
-            </div>
-            <ProgressBar ratio={ratio} seuilAlerte={seuilAlerte} />
-        </div>
-    );
-}
-
-
 // ─── Vue Hiérarchique ─────────────────────────────────────────────────────────
 
 interface HierarchyViewProps {
@@ -132,7 +183,11 @@ function HierarchyView({ budgets, onSelect, selectedId }: HierarchyViewProps) {
     const toggle = (id: string) => {
         setExpandedIds(prev => {
             const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
             return next;
         });
     };
@@ -421,8 +476,9 @@ function DetailPanel({ budget, allBudgets, onClose, onValidate, onActivate, onDe
 interface SimpleBudgetFormProps {
     budgets: BudgetItem[];
     axes: AxeAnalytique[];
+    initialBudget?: BudgetItem;
     onCancel: () => void;
-    onSubmit: (data: any) => void;
+    onSubmit: (data: BudgetFormData) => void;
 }
 
 // Interface pour les lignes de comptes comptables (budget analytique)
@@ -433,25 +489,32 @@ interface BudgetCompteLine {
     description: string;
 }
 
-function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFormProps) {
-    const [type, setType] = useState<'EXERCICE' | 'PERIODE' | 'ANALYTIQUE'>('EXERCICE');
-    const [nom, setNom] = useState('');
-    const [montant, setMontant] = useState('');
-    const [parentId, setParentId] = useState('');
-    const [dateDebut, setDateDebut] = useState('');
-    const [dateFin, setDateFin] = useState('');
-    const [seuilAlerte, setSeuilAlerte] = useState('80');
-    const [selectedAxeIds, setSelectedAxeIds] = useState<string[]>([]);
+function SimpleBudgetForm({ budgets, axes, initialBudget, onCancel, onSubmit }: SimpleBudgetFormProps) {
+    const [type, setType] = useState<BudgetType>(initialBudget?.type ?? 'EXERCICE');
+    const [nom, setNom] = useState(initialBudget?.nom ?? '');
+    const [montant, setMontant] = useState(initialBudget?.montantAlloue ? String(initialBudget.montantAlloue) : '');
+    const [parentId, setParentId] = useState(initialBudget?.parentId ?? '');
+    const [dateDebut, setDateDebut] = useState(initialBudget?.dateDebut ?? '');
+    const [dateFin, setDateFin] = useState(initialBudget?.dateFin ?? '');
+    const [seuilAlerte, setSeuilAlerte] = useState(String(initialBudget?.seuilAlerte ?? 80));
+    const [selectedAxeIds, setSelectedAxeIds] = useState<string[]>(initialBudget?.axeIds ?? []);
     // Lignes de comptes comptables pour le type ANALYTIQUE
-    const [compteLines, setCompteLines] = useState<BudgetCompteLine[]>([
-        { id: '1', compteComptableId: '', montantAlloue: 0, description: '' }
-    ]);
+    const [compteLines, setCompteLines] = useState<BudgetCompteLine[]>(
+        initialBudget?.compteComptableLines?.length
+            ? initialBudget.compteComptableLines.map((line, index) => ({
+                id: `${index}`,
+                compteComptableId: line.compteId,
+                montantAlloue: line.montant,
+                description: line.description,
+            }))
+            : [{ id: '1', compteComptableId: '', montantAlloue: 0, description: '' }]
+    );
 
     // Exercices et périodes comptables depuis l'API
     const [exercicesComptables, setExercicesComptables] = useState<ExerciceComptableDto[]>([]);
     const [allPeriodesComptables, setAllPeriodesComptables] = useState<PeriodeComptableDto[]>([]);
-    const [selectedExerciceComptableId, setSelectedExerciceComptableId] = useState('');
-    const [selectedPeriodeComptableId, setSelectedPeriodeComptableId] = useState('');
+    const [selectedExerciceComptableId, setSelectedExerciceComptableId] = useState(initialBudget?.exerciceId ?? '');
+    const [selectedPeriodeComptableId, setSelectedPeriodeComptableId] = useState(initialBudget?.periodeId ?? '');
 
     // Charger exercices et périodes comptables au montage
     useEffect(() => {
@@ -461,7 +524,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
                     const ouverts = res.data.filter(e => !e.cloture && e.actif);
                     setExercicesComptables(ouverts);
                     // Auto-sélectionner le premier exercice ouvert et verrouiller les dates
-                    if (ouverts.length > 0) {
+                    if (!initialBudget && ouverts.length > 0) {
                         const ex = ouverts[0];
                         setSelectedExerciceComptableId(ex.id || '');
                         setDateDebut(ex.date_debut || '');
@@ -474,7 +537,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
         AccountingPeriodsService.getAllPeriodeComptables()
             .then(res => { if (res?.data) setAllPeriodesComptables(res.data); })
             .catch(() => {});
-    }, []);
+    }, [initialBudget]);
 
     // Périodes comptables pour le select (type PERIODE)
     // Stratégie : filtrer par exercice comptable lié si possible, sinon toutes les non clôturées
@@ -535,7 +598,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
     // Comptes disponibles depuis les axes sélectionnés
     const selectedAxes = activeAxes.filter(a => selectedAxeIds.includes(a.id));
     const allComptes = useMemo(() =>
-        selectedAxes.flatMap(a => (a as any).comptes || []),
+        selectedAxes.flatMap(a => a.comptes || []),
         [selectedAxes]
     );
 
@@ -550,7 +613,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
         if (compteLines.length > 1) setCompteLines(prev => prev.filter(l => l.id !== id));
     };
 
-    const updateCompteLine = (id: string, field: string, value: any) => {
+    const updateCompteLine = <K extends keyof BudgetCompteLine>(id: string, field: K, value: BudgetCompteLine[K]) => {
         setCompteLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
     };
 
@@ -605,7 +668,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
             <div className="space-y-2">
                 <Label className="text-sm font-semibold text-slate-700">Type de budget <span className="text-red-500">*</span></Label>
                 <Select value={type} onValueChange={(v) => {
-                    setType(v as any);
+                    setType(v as BudgetType);
                     setParentId('');
                     setSelectedPeriodeComptableId('');
                     setDateDebut('');
@@ -790,8 +853,8 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
                                     onChange={() => setSelectedAxeIds(prev => prev.includes(axe.id) ? prev.filter(x => x !== axe.id) : [...prev, axe.id])}
                                     className="rounded" />
                                 <span className="text-sm text-slate-700">{axe.libelle}</span>
-                                {(axe as any).comptes?.length > 0 && (
-                                    <span className="text-xs text-emerald-600 ml-auto">{(axe as any).comptes.length} compte(s)</span>
+                                {(axe.comptes?.length ?? 0) > 0 && (
+                                    <span className="text-xs text-emerald-600 ml-auto">{axe.comptes?.length} compte(s)</span>
                                 )}
                             </label>
                         ))}
@@ -842,7 +905,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
                                                         <SelectValue placeholder="Choisir..." />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {allComptes.map((c: any) => (
+                                                        {allComptes.map((c) => (
                                                             <SelectItem key={c.id} value={c.id}>{c.libelle}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -918,7 +981,7 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
             <div className="shrink-0 flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-white">
                 <Button type="button" variant="outline" onClick={onCancel}>Annuler</Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
-                    <Save className="h-4 w-4" /> Enregistrer en brouillon
+                    <Save className="h-4 w-4" /> {initialBudget ? 'Mettre à jour' : 'Enregistrer en brouillon'}
                 </Button>
             </div>
         </form>
@@ -929,65 +992,140 @@ function SimpleBudgetForm({ budgets, axes, onCancel, onSubmit }: SimpleBudgetFor
 // ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function BudgetsPage() {
-    const [budgets, setBudgets] = useState<BudgetItem[]>(MOCK_BUDGETS);
+    const [budgets, setBudgets] = useState<BudgetItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [budgetToDelete, setBudgetToDelete] = useState<BudgetItem | null>(null);
     const [selectedBudget, setSelectedBudget] = useState<BudgetItem | null>(null);
-    const [axes, setAxes] = useState<AxeAnalytique[]>(FALLBACK_AXES);
+    const [axes, setAxes] = useState<AxeAnalytique[]>([]);
     const { onOpen, onClose: closeCompose } = useCompose();
     const { accountingRole } = useAuth();
     const canManage = hasPermission(accountingRole, 'budgets', 'lock');
 
-    useEffect(() => {
-        const stored = localStorage.getItem('mock_axes');
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) setAxes(parsed);
-            } catch { /* keep fallback */ }
+    const loadBudgets = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await AccountingBudgetsService.getAllBudgets();
+            const nextBudgets = (response.data ?? []).map(mapBudgetDto);
+            setBudgets(nextBudgets);
+            setSelectedBudget(prev => prev ? nextBudgets.find(b => b.id === prev.id) ?? null : null);
+        } catch (error) {
+            console.error('Failed to load budgets:', error);
+            toast.error('Impossible de charger les budgets depuis le backend.');
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
+    const loadAxes = useCallback(async () => {
+        try {
+            const response = await AccountingAnalyticsService.getActiveAxes();
+            setAxes((response.data ?? []).map(mapAxeDto));
+        } catch (error) {
+            console.error('Failed to load analytical axes:', error);
+            toast.error('Impossible de charger les axes analytiques actifs.');
+        }
+    }, []);
+
+    useEffect(() => {
+        loadBudgets();
+        loadAxes();
+    }, [loadBudgets, loadAxes]);
+
     const handleRefresh = () => {
-        setIsLoading(true);
-        setTimeout(() => { setBudgets([...MOCK_BUDGETS]); setSelectedBudget(null); setIsLoading(false); }, 800);
+        loadBudgets();
+        loadAxes();
     };
 
     const handleSelect = (b: BudgetItem) => setSelectedBudget(b);
 
-    const handleValidate = (id: string) => {
-        setBudgets(prev => prev.map(b => b.id === id ? { ...b, statut: 'VALIDE' as BudgetStatut } : b));
-        if (selectedBudget?.id === id) setSelectedBudget(prev => prev ? { ...prev, statut: 'VALIDE' } : null);
-        toast.success('Budget validé');
+    const replaceBudget = (budget: BudgetItem) => {
+        setBudgets(prev => prev.map(b => b.id === budget.id ? budget : b));
+        if (selectedBudget?.id === budget.id) setSelectedBudget(budget);
     };
 
-    const handleActivate = (id: string) => {
-        setBudgets(prev => prev.map(b => b.id === id ? { ...b, statut: 'ACTIF' as BudgetStatut } : b));
-        if (selectedBudget?.id === id) setSelectedBudget(prev => prev ? { ...prev, statut: 'ACTIF' } : null);
-        toast.success('Budget activé');
+    const handleValidate = async (id: string) => {
+        try {
+            const response = await AccountingBudgetsService.validateBudget(id);
+            if (response.data) replaceBudget(mapBudgetDto(response.data));
+            toast.success('Budget validé');
+        } catch (error) {
+            console.error('Failed to validate budget:', error);
+            toast.error('Impossible de valider ce budget.');
+        }
     };
 
-    const handleDeactivate = (id: string) => {
-        setBudgets(prev => prev.map(b => b.id === id ? { ...b, statut: 'INACTIF' as BudgetStatut } : b));
-        if (selectedBudget?.id === id) setSelectedBudget(prev => prev ? { ...prev, statut: 'INACTIF' } : null);
-        toast.success('Budget désactivé');
+    const handleActivate = async (id: string) => {
+        try {
+            const response = await AccountingBudgetsService.activateBudget(id);
+            if (response.data) replaceBudget(mapBudgetDto(response.data));
+            toast.success('Budget activé');
+        } catch (error) {
+            console.error('Failed to activate budget:', error);
+            toast.error("Impossible d'activer ce budget.");
+        }
+    };
+
+    const handleDeactivate = async (id: string) => {
+        try {
+            const response = await AccountingBudgetsService.deactivateBudget(id);
+            if (response.data) replaceBudget(mapBudgetDto(response.data));
+            toast.success('Budget désactivé');
+        } catch (error) {
+            console.error('Failed to deactivate budget:', error);
+            toast.error('Impossible de désactiver ce budget.');
+        }
     };
 
     const handleEdit = (id: string) => {
-        toast.info('Modification', { description: `Budget ${id} — connexion backend à venir.` });
+        const budgetToEdit = budgets.find(b => b.id === id);
+        if (!budgetToEdit) return;
+
+        onOpen({
+            title: `Modifier le budget : ${budgetToEdit.nom}`,
+            content: (
+                <SimpleBudgetForm
+                    budgets={budgets}
+                    axes={axes}
+                    initialBudget={budgetToEdit}
+                    onCancel={closeCompose}
+                    onSubmit={async (data) => {
+                        const parentBudget = budgets.find(b => b.id === data.parentId);
+                        const dto = toBudgetDto(data, parentBudget);
+                        if (!dto) return;
+                        dto.code = budgetToEdit.code;
+                        dto.statut = budgetToEdit.statut;
+
+                        try {
+                            const response = await AccountingBudgetsService.updateBudget(id, dto);
+                            if (response.data) replaceBudget(mapBudgetDto(response.data));
+                            closeCompose();
+                            toast.success(`Budget "${data.nom}" mis à jour`);
+                        } catch (error) {
+                            console.error('Failed to update budget:', error);
+                            toast.error('Impossible de modifier ce budget.');
+                        }
+                    }}
+                />
+            )
+        });
     };
 
     const handleLock = (id: string) => {
-        setBudgets(prev => prev.map(b => b.id === id ? { ...b, statut: 'CLOTURE' as BudgetStatut } : b));
-        toast.success('Budget clôturé');
+        toast.info('Clôture indisponible', { description: `Le backend n'expose pas encore d'endpoint de clôture pour le budget ${id}.` });
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!budgetToDelete) return;
-        setBudgets(prev => prev.filter(b => b.id !== budgetToDelete.id));
-        if (selectedBudget?.id === budgetToDelete.id) setSelectedBudget(null);
-        toast.success('Budget supprimé');
-        setBudgetToDelete(null);
+        try {
+            await AccountingBudgetsService.deleteBudget(budgetToDelete.id);
+            setBudgets(prev => prev.filter(b => b.id !== budgetToDelete.id));
+            if (selectedBudget?.id === budgetToDelete.id) setSelectedBudget(null);
+            toast.success('Budget supprimé');
+            setBudgetToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete budget:', error);
+            toast.error('Impossible de supprimer ce budget.');
+        }
     };
 
     const handleAddNew = () => {
@@ -998,29 +1136,21 @@ export default function BudgetsPage() {
                     budgets={budgets}
                     axes={axes}
                     onCancel={closeCompose}
-                    onSubmit={(data) => {
+                    onSubmit={async (data) => {
                         const parentBudget = budgets.find(b => b.id === data.parentId);
-                        const newBudget: BudgetItem = {
-                            id: Math.random().toString(36).substring(2, 9),
-                            code: `${data.type.substring(0, 3)}-${Date.now().toString().slice(-4)}`,
-                            nom: data.nom,
-                            type: data.type,
-                            statut: 'BROUILLON',
-                            montantAlloue: data.montant,
-                            montantConsomme: 0,
-                            parentId: data.parentId || undefined,
-                            parentNom: parentBudget?.nom,
-                            exerciceId: data.type === 'PERIODE' ? data.parentId : data.type === 'ANALYTIQUE' ? parentBudget?.exerciceId : undefined,
-                            periodeId: data.type === 'ANALYTIQUE' ? data.parentId : undefined,
-                            axeIds: data.axeIds,
-                            axeLibelles: data.axeIds?.length > 0 ? data.axes.filter((a: AxeAnalytique) => data.axeIds.includes(a.id)).map((a: AxeAnalytique) => a.libelle).join(', ') : undefined,
-                            dateDebut: data.dateDebut,
-                            dateFin: data.dateFin,
-                            seuilAlerte: data.seuilAlerte,
-                        };
-                        setBudgets(prev => [newBudget, ...prev]);
-                        closeCompose();
-                        toast.success(`Budget "${data.nom}" créé en brouillon`);
+                        const dto = toBudgetDto(data, parentBudget);
+                        if (!dto) return;
+
+                        try {
+                            const response = await AccountingBudgetsService.createBudget(dto);
+                            const newBudget = response.data ? mapBudgetDto(response.data) : null;
+                            if (newBudget) setBudgets(prev => [newBudget, ...prev]);
+                            closeCompose();
+                            toast.success(`Budget "${data.nom}" créé en brouillon`);
+                        } catch (error) {
+                            console.error('Failed to create budget:', error);
+                            toast.error('Impossible de créer ce budget.');
+                        }
                     }}
                 />
             )

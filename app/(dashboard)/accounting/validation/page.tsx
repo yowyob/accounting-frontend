@@ -30,8 +30,6 @@ import {
 import { Check, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { OpenAPI } from '@/src/lib2/core/OpenAPI';
-import { request as __request } from '@/src/lib2/core/request';
 
 export default function AccountingValidationPage() {
   const [ecritures, setEcritures] = useState<EcritureComptableDto[]>([]);
@@ -127,12 +125,7 @@ export default function AccountingValidationPage() {
         notes: `${entry.notes || ''}\n[REJETÉ]: ${rejectionReason}`.trim(),
       };
 
-      await __request(OpenAPI, {
-        method: 'PUT',
-        url: `/api/accounting/ecritures/${entry.id}`,
-        body: updatedEntry,
-        mediaType: 'application/json',
-      });
+      await AccountingEntriesService.updateEcriture(entry.id!, updatedEntry);
 
       // Deactivate the entry
       await AccountingEntriesService.deactivate(entry.id!);

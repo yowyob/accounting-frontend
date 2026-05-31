@@ -18,7 +18,7 @@ import {
     XCircle,
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { OpenAPI } from '@/src/lib';
+import { OpenAPI } from '@/src/lib2/core/OpenAPI';
 import { LoginData } from '@/types/personnel';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -38,6 +38,18 @@ interface RegisterFormData {
     role: string;
 }
 
+type AuthLoginResponse = {
+    token: string;
+    user: {
+        id?: string;
+        email?: string;
+        firstName?: string;
+        lastName?: string;
+        organizationId?: string;
+        roles?: string[];
+    };
+};
+
 // ─── Composant de feedback inline ────────────────────────────────────────────
 function FeedbackBanner({ type, message }: { type: 'success' | 'error'; message: string }) {
     return (
@@ -54,6 +66,10 @@ function FeedbackBanner({ type, message }: { type: 'success' | 'error'; message:
             <span>{message}</span>
         </div>
     );
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+    return error instanceof Error ? error.message : fallback;
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
@@ -76,106 +92,52 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         setIsLoading(true);
         setLoginFeedback(null);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
+            const apiBase = OpenAPI.BASE.replace(/\/$/, '');
+            const res = await fetch(`${apiBase}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: data.email, password: data.password }),
+            });
 
-            const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
-            const foundUser = mockUsers.find((u: any) => u.email === data.email && u.password === data.password);
-
-            let userObj;
-            if (foundUser) {
-                userObj = {
-                    id: foundUser.id,
-                    email: foundUser.email,
-                    firstName: foundUser.firstName,
-                    lastName: foundUser.lastName,
-                    roles: [foundUser.role],
-                    organizationId: foundUser.organizationId || null,
-                    company: foundUser.company || null,
-                };
-            } else {
-                // Fallback pour test rapide sans inscription préalable
-                userObj = {
-                    id: 'default-admin-1',
-                    email: data.email,
-                    firstName: 'Utilisateur',
-                    lastName: 'Test',
-                    roles: ['RESPONSABLE_COMPTABLE'],
-                    organizationId: 'default-org',
-                    company: 'Organisation par défaut',
-                };
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                throw new Error(body?.message || 'Identifiants incorrects.');
             }
 
-            const response = {
-                token: 'mock-jwt-token-123456789',
-                user: userObj
-            };
+            const response = await res.json() as AuthLoginResponse;
 
             localStorage.setItem('auth_token', response.token);
             localStorage.setItem('user', JSON.stringify(response.user));
-            setUser(response.user);
+            localStorage.setItem('organization_id', response.user?.organizationId ?? '');
             OpenAPI.TOKEN = response.token;
+            setUser(response.user);
 
-            setLoginFeedback({ type: 'success', message: `Bienvenue, ${userObj.firstName} !` });
-
-            // Courte pause pour que l'utilisateur voie le message avant la redirection
+            setLoginFeedback({ type: 'success', message: `Bienvenue, ${response.user?.firstName ?? ''} !` });
             await new Promise(resolve => setTimeout(resolve, 600));
             router.push('/accounting/dashboard');
             onClose();
-        } catch (error: any) {
+        } catch (error: unknown) {
             setLoginFeedback({
                 type: 'error',
-                message: error.message || 'Identifiants incorrects. Veuillez réessayer.'
+                message: getErrorMessage(error, 'Identifiants incorrects. Veuillez réessayer.')
             });
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleRegister = async (data: RegisterFormData) => {
+    const handleRegister = async () => {
         setIsLoading(true);
         setRegisterFeedback(null);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800));
-
-            // Vérifier si l'email existe déjà
-            const mockUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
-            if (mockUsers.find((u: any) => u.email === data.email)) {
-                setRegisterFeedback({
-                    type: 'error',
-                    message: 'Un compte avec cet email existe déjà.'
-                });
-                return;
-            }
-
-            const newUser = {
-                id: Math.random().toString(36).substring(2, 9),
-                firstName: data.firstName,
-                lastName: data.lastName,
-                email: data.email,
-                password: data.password,
-                role: data.role || 'AIDE_COMPTABLE',
-                // L'entreprise sert d'identifiant d'organisation pour le filtrage multi-tenant
-                organizationId: data.company.trim().toLowerCase().replace(/\s+/g, '-'),
-                company: data.company,
-            };
-
-            mockUsers.push(newUser);
-            localStorage.setItem('mock_users', JSON.stringify(mockUsers));
-
-            setRegisterFeedback({
-                type: 'success',
-                message: `Compte créé avec succès ! Vous pouvez maintenant vous connecter.`
-            });
-
-            // Basculer vers l'onglet connexion après un délai
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            setActiveTab('login');
-            loginForm.reset({ email: newUser.email, password: newUser.password });
-            setRegisterFeedback(null);
-        } catch (error: any) {
             setRegisterFeedback({
                 type: 'error',
-                message: error.message || "Une erreur est survenue lors de l'inscription."
+                message: "L'inscription n'est pas encore exposée par le backend local. Utilisez un compte de test mock pour vous connecter.",
+            });
+        } catch (error: unknown) {
+            setRegisterFeedback({
+                type: 'error',
+                message: getErrorMessage(error, "Une erreur est survenue lors de l'inscription.")
             });
         } finally {
             setIsLoading(false);
@@ -423,19 +385,3 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         </Dialog>
     );
 }
-
-interface LoginModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-}
-
-interface RegisterFormData {
-    firstName: string;
-    lastName: string;
-    email: string;
-    company: string;
-    password: string;
-    confirmPassword: string;
-    role: string;
-}
-

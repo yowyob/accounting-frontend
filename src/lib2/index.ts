@@ -52,6 +52,14 @@ export type { ApiResponseWrapperTauxChangeDto } from './models/ApiResponseWrappe
 export type { ApiResponseWrapperTaxeDto } from './models/ApiResponseWrapperTaxeDto';
 export type { ApiResponseWrapperVoid } from './models/ApiResponseWrapperVoid';
 export type { BalanceDesComptesDto } from './models/BalanceDesComptesDto';
+export type { AxeAnalytiqueDto } from './models/AxeAnalytiqueDto';
+export type { BudgetDto, BudgetLigneCompteDto } from './models/BudgetDto';
+export type { BudgetVsRealiseDto } from './models/BudgetVsRealiseDto';
+export type { ApiResponseWrapperAxeAnalytiqueDto } from './models/ApiResponseWrapperAxeAnalytiqueDto';
+export type { ApiResponseWrapperListAxeAnalytiqueDto } from './models/ApiResponseWrapperListAxeAnalytiqueDto';
+export type { ApiResponseWrapperBudgetDto } from './models/ApiResponseWrapperBudgetDto';
+export type { ApiResponseWrapperListBudgetDto } from './models/ApiResponseWrapperListBudgetDto';
+export type { ApiResponseWrapperBudgetVsRealiseDto } from './models/ApiResponseWrapperBudgetVsRealiseDto';
 export { BrouillardComptableDto } from './models/BrouillardComptableDto';
 export type { BrouillardRejectionRequest } from './models/BrouillardRejectionRequest';
 export type { BrouillardValidationRequest } from './models/BrouillardValidationRequest';

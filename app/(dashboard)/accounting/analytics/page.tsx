@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+/* eslint-disable react/no-unescaped-entities */
+import React, { useCallback, useEffect, useState } from 'react';
 import { AnalyticsListView, AxeAnalytique } from '@/components/accounting/analytics-list-view';
 import { toast } from 'sonner';
 import {
@@ -14,21 +15,49 @@ import { Badge } from '@/components/ui/badge';
 import { Pencil, Tag, X, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { hasPermission } from '@/src/lib/auth/roles';
+import { AccountingAnalyticsService } from '@/src/lib2/services/AccountingAnalyticsService';
+import { AxeAnalytiqueDto } from '@/src/lib2/models/AxeAnalytiqueDto';
 
-const MOCK_AXES: AxeAnalytique[] = [
-    {
-        id: 'a1', code: 'MKT', libelle: 'Marketing Digital', type: 'DEPARTEMENT', responsable: 'M. Kouamé Paul', actif: true,
-        comptes: [{ id: 'c1', libelle: 'Publicité en ligne' }, { id: 'c2', libelle: 'Événements marketing' }]
-    },
-    {
-        id: 'a2', code: 'IT', libelle: 'Service Informatique', type: 'DEPARTEMENT', responsable: 'Mme. Biya Claire', actif: true,
-        comptes: [{ id: 'c3', libelle: 'Licences logicielles' }, { id: 'c4', libelle: 'Matériel informatique' }]
-    },
-    { id: 'a3', code: 'PROJ-ERP', libelle: 'Projet ERP Yowyob', type: 'PROJET', responsable: 'M. Ngono Henri', actif: true },
-    { id: 'a4', code: 'ADMIN', libelle: 'Administration Générale', type: 'DEPARTEMENT', responsable: 'Mme. Fouda Anne', actif: true },
-    { id: 'a5', code: 'FORM', libelle: 'Activité Formation', type: 'ACTIVITE', actif: true },
-    { id: 'a6', code: 'CC-SUD', libelle: 'Centre de coût Sud', type: 'CENTRE_COUT', actif: false },
-];
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function buildAxeCode(libelle: string) {
+    return libelle
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toUpperCase()
+        .slice(0, 20) || `AXE-${Date.now().toString().slice(-6)}`;
+}
+
+function mapAxeDto(dto: AxeAnalytiqueDto): AxeAnalytique {
+    const compteIds = dto.compteIds ?? [];
+    const compteLibelles = dto.compteLibelles ?? [];
+
+    return {
+        id: dto.id ?? '',
+        code: dto.code ?? '',
+        libelle: dto.libelle ?? '',
+        type: (dto.type ?? 'PROJET') as AxeAnalytique['type'],
+        responsable: dto.responsable ?? '',
+        actif: dto.actif ?? true,
+        comptes: compteIds.map((id, index) => ({
+            id,
+            libelle: compteLibelles[index] ?? id,
+        })),
+    };
+}
+
+function toAxeDto(data: AxeAnalytique): AxeAnalytiqueDto {
+    return {
+        code: data.code || buildAxeCode(data.libelle),
+        libelle: data.libelle,
+        type: data.type,
+        responsable: data.responsable,
+        actif: data.actif,
+        compteIds: data.comptes?.map(c => c.id).filter(id => UUID_PATTERN.test(id)),
+    };
+}
 
 // ─── Panneau détail d'un axe (inline, pas dans un modal) ─────────────────────
 interface AxeDetailPanelProps {
@@ -139,7 +168,7 @@ function AxeDetailPanel({ axe, onEdit, onClose, onToggleActif, canToggleActif }:
 
 // ─── Page principale ──────────────────────────────────────────────────────────
 export default function AnalyticsPage() {
-    const [axes, setAxes] = useState<AxeAnalytique[]>(MOCK_AXES);
+    const [axes, setAxes] = useState<AxeAnalytique[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [axeToDelete, setAxeToDelete] = useState<AxeAnalytique | null>(null);
     const [selectedAxe, setSelectedAxe] = useState<AxeAnalytique | null>(null);
@@ -147,13 +176,26 @@ export default function AnalyticsPage() {
     const { accountingRole } = useAuth();
     const canToggleActif = hasPermission(accountingRole, 'analytics', 'update');
 
-    const persistAxes = (updated: AxeAnalytique[]) => {
-        localStorage.setItem('mock_axes', JSON.stringify(updated));
-    };
+    const loadAxes = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await AccountingAnalyticsService.getAllAxes();
+            setAxes((response.data ?? []).map(mapAxeDto));
+            setSelectedAxe(null);
+        } catch (error) {
+            console.error('Failed to load analytical axes:', error);
+            toast.error("Impossible de charger les axes analytiques depuis le backend.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAxes();
+    }, [loadAxes]);
 
     const handleRefresh = () => {
-        setIsLoading(true);
-        setTimeout(() => { setAxes([...MOCK_AXES]); setSelectedAxe(null); setIsLoading(false); }, 800);
+        loadAxes();
     };
 
     const handleAddNew = () => {
@@ -162,15 +204,17 @@ export default function AnalyticsPage() {
             content: (
                 <AxeForm
                     onCancel={closeCompose}
-                    onSubmit={(data) => {
-                        const newAxe: AxeAnalytique = { ...data, id: Math.random().toString(36).substr(2, 9) };
-                        setAxes(prev => {
-                            const updated = [newAxe, ...prev];
-                            persistAxes(updated);
-                            return updated;
-                        });
-                        closeCompose();
-                        toast.success(`Axe "${data.libelle}" créé`);
+                    onSubmit={async (data) => {
+                        try {
+                            const response = await AccountingAnalyticsService.createAxe(toAxeDto(data));
+                            const newAxe = response.data ? mapAxeDto(response.data) : null;
+                            if (newAxe) setAxes(prev => [newAxe, ...prev]);
+                            closeCompose();
+                            toast.success(`Axe "${data.libelle}" créé`);
+                        } catch (error) {
+                            console.error('Failed to create analytical axis:', error);
+                            toast.error("Impossible de créer l'axe analytique.");
+                        }
                     }}
                 />
             )
@@ -187,16 +231,18 @@ export default function AnalyticsPage() {
                 <AxeForm
                     initialData={axeToEdit}
                     onCancel={closeCompose}
-                    onSubmit={(updatedData) => {
-                        setAxes(prev => {
-                            const updated = prev.map(a => a.id === updatedData.id ? updatedData : a);
-                            persistAxes(updated);
-                            // Synchroniser le panneau détail si c'est le même axe
-                            if (selectedAxe?.id === updatedData.id) setSelectedAxe(updatedData);
-                            return updated;
-                        });
-                        closeCompose();
-                        toast.success(`Axe "${updatedData.libelle}" mis à jour`);
+                    onSubmit={async (updatedData) => {
+                        try {
+                            const response = await AccountingAnalyticsService.updateAxe(id, toAxeDto(updatedData));
+                            const savedAxe = response.data ? mapAxeDto(response.data) : updatedData;
+                            setAxes(prev => prev.map(a => a.id === id ? savedAxe : a));
+                            if (selectedAxe?.id === id) setSelectedAxe(savedAxe);
+                            closeCompose();
+                            toast.success(`Axe "${updatedData.libelle}" mis à jour`);
+                        } catch (error) {
+                            console.error('Failed to update analytical axis:', error);
+                            toast.error("Impossible de mettre à jour l'axe analytique.");
+                        }
                     }}
                 />
             )
@@ -214,31 +260,33 @@ export default function AnalyticsPage() {
         openEditForm(id);
     };
 
-    const handleToggleActif = (id: string) => {
-        setAxes(prev => {
-            const updated = prev.map(a => a.id === id ? { ...a, actif: !a.actif } : a);
-            persistAxes(updated);
-            // Synchroniser le panneau détail
-            const updatedAxe = updated.find(a => a.id === id);
-            if (selectedAxe?.id === id && updatedAxe) setSelectedAxe(updatedAxe);
-            return updated;
-        });
+    const handleToggleActif = async (id: string) => {
         const axe = axes.find(a => a.id === id);
-        if (axe) {
+        if (!axe) return;
+        try {
+            const response = await AccountingAnalyticsService.updateAxe(id, toAxeDto({ ...axe, actif: !axe.actif }));
+            const updatedAxe = response.data ? mapAxeDto(response.data) : { ...axe, actif: !axe.actif };
+            setAxes(prev => prev.map(a => a.id === id ? updatedAxe : a));
+            if (selectedAxe?.id === id) setSelectedAxe(updatedAxe);
             toast.success(axe.actif ? `Axe "${axe.libelle}" désactivé` : `Axe "${axe.libelle}" activé`);
+        } catch (error) {
+            console.error('Failed to toggle analytical axis:', error);
+            toast.error("Impossible de modifier le statut de l'axe.");
         }
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (!axeToDelete) return;
-        setAxes(prev => {
-            const updated = prev.filter(a => a.id !== axeToDelete.id);
-            persistAxes(updated);
-            return updated;
-        });
-        if (selectedAxe?.id === axeToDelete.id) setSelectedAxe(null);
-        toast.success('Axe supprimé', { description: `"${axeToDelete.libelle}" a été supprimé.` });
-        setAxeToDelete(null);
+        try {
+            await AccountingAnalyticsService.deleteAxe(axeToDelete.id);
+            setAxes(prev => prev.filter(a => a.id !== axeToDelete.id));
+            if (selectedAxe?.id === axeToDelete.id) setSelectedAxe(null);
+            toast.success('Axe supprimé', { description: `"${axeToDelete.libelle}" a été supprimé.` });
+            setAxeToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete analytical axis:', error);
+            toast.error("Impossible de supprimer l'axe analytique.");
+        }
     };
 
     return (

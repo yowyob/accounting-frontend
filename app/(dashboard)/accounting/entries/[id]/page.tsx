@@ -13,8 +13,6 @@ import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { useCompose } from '@/hooks/use-compose-store';
 import { EcritureComptableDetailView } from '@/components/accounting/ecriture-comptable-detail-view';
-import { request as __request } from '@/src/lib2/core/request';
-import { OpenAPI } from '@/src/lib2/core/OpenAPI';
 import { PermissionGuard } from '@/components/auth/permission-guard';
 
 export default function EcritureComptableDetailsPage() {
@@ -76,12 +74,7 @@ export default function EcritureComptableDetailsPage() {
 
     const handleSave = async (data: EcritureComptableDto) => {
         try {
-            await __request(OpenAPI, {
-                method: 'PUT',
-                url: `/api/accounting/entries/${data.id}`,
-                body: data,
-                mediaType: 'application/json',
-            });
+            await AccountingEntriesService.updateEcriture(data.id!, data);
             onClose();
             fetchEcriture();
         } catch (error) {

@@ -15,7 +15,8 @@ import {
 import { LogOut, User, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { getRoleLabel } from "@/src/lib/auth/roles";
-import { OpenAPI } from "@/src/lib2/core/OpenAPI";
+import { OpenAPI as CoreOpenAPI } from "@/src/lib";
+import { OpenAPI as AccountingOpenAPI } from "@/src/lib2";
 
 export function UserNav() {
   const router = useRouter();
@@ -27,8 +28,10 @@ export function UserNav() {
     // Supprimer les données de session du localStorage
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
+    localStorage.removeItem("organization_id");
     // Réinitialiser le token OpenAPI
-    OpenAPI.TOKEN = undefined;
+    CoreOpenAPI.TOKEN = undefined;
+    AccountingOpenAPI.TOKEN = undefined;
     // Rediriger vers la page de connexion
     router.push("/");
   };
