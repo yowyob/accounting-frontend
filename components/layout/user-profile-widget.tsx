@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { User, Shield, ExternalLink } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { getRoleLabel } from '@/src/lib/auth/roles';
 
@@ -21,28 +21,24 @@ export function UserProfileWidget() {
     const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
 
     return (
-        <div className="border-t border-sidebar-border/60 mt-auto bg-slate-50/30">
+        <div className="border-t border-sidebar-border mt-auto">
             <Link
                 href="/accounting/profile"
                 className={cn(
-                    "px-4 py-4 flex items-center gap-3 group transition-all hover:bg-white hover:shadow-sm"
+                    "mx-2 mb-2 mt-2 px-3 py-2.5 flex items-center gap-3 rounded-full transition-colors hover:bg-secondary"
                 )}
             >
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
                     {initials || <User className="h-4 w-4" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                    <p className="text-sm font-normal text-foreground truncate">
                         {user.firstName} {user.lastName}
                     </p>
-                    <div className="flex items-center gap-1.5">
-                        <Shield className="h-3 w-3 text-slate-400 flex-shrink-0" />
-                        <p className="text-[11px] font-medium text-slate-500 truncate uppercase tracking-tight">
-                            {getRoleLabel(accountingRole)}
-                        </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                        {getRoleLabel(accountingRole)}
+                    </p>
                 </div>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
             </Link>
         </div>
     );

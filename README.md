@@ -1,8 +1,8 @@
 # KSM ERP — Frontend
 
-Interface web du système ERP YOWYOB, construite avec **Next.js 15** (App Router), **TypeScript** et **Tailwind CSS**. Déployée sur [Vercel](https://vercel.com).
+Interface web du système ERP YOWYOB, construite avec **Next.js 16** (App Router), **TypeScript** et **Tailwind CSS**. Déployée sur [Vercel](https://vercel.com).
 
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.x-38bdf8)](https://tailwindcss.com/)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black)](https://vercel.com)
@@ -40,7 +40,7 @@ Interface web du système ERP YOWYOB, construite avec **Next.js 15** (App Router
 
 | Composant | Technologie |
 |-----------|------------|
-| Framework | [Next.js 15](https://nextjs.org/) (App Router) |
+| Framework | [Next.js 16](https://nextjs.org/) (App Router, Turbopack) |
 | Langage | [TypeScript 5](https://www.typescriptlang.org/) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) |
 | Composants UI | [Shadcn/UI](https://ui.shadcn.com/) |
@@ -54,7 +54,7 @@ Interface web du système ERP YOWYOB, construite avec **Next.js 15** (App Router
 
 ## Prérequis
 
-- [Node.js](https://nodejs.org/) **20.x** ou supérieur
+- [Node.js](https://nodejs.org/) **20.9+** (requis par Next.js 16)
 - [npm](https://www.npmjs.com/) ou `pnpm`
 - Un backend YOWYOB ERP démarré (local ou sur Render)
 

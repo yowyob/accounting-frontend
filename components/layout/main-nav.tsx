@@ -17,7 +17,6 @@ export function MainNav({ links }: MainNavProps) {
   const { startLoading } = useLoadingStore();
   const { accountingRole } = useAuth();
 
-  // Filter links based on allowedRoles — if no allowedRoles defined, the link is visible to all
   const visibleLinks = links.filter((link) => {
     if (!link.allowedRoles || link.allowedRoles.length === 0) return true;
     if (!accountingRole) return false;
@@ -25,35 +24,33 @@ export function MainNav({ links }: MainNavProps) {
   });
 
   return (
-    <nav className="grid gap-1.5">
+    <nav className="grid gap-0.5">
       {visibleLinks.map((link, index) => {
-        const isActive = pathname === link.href;
+        const isActive =
+          pathname === link.href || pathname.startsWith(`${link.href}/`);
         return (
           <Link
             key={index}
             href={link.href}
-            onClick={(e) => {
+            onClick={() => {
               if (pathname !== link.href) {
                 startLoading();
               }
             }}
             className={cn(
-              "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              "group flex items-center gap-3 rounded-r-full rounded-l-full px-4 py-2 text-sm font-normal transition-colors duration-150",
               isActive
-                ? "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/20"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "bg-accent text-primary font-medium"
+                : "text-foreground hover:bg-secondary"
             )}
           >
             <link.icon
               className={cn(
-                "h-4 w-4 transition-colors duration-200",
+                "h-5 w-5 shrink-0",
                 isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
               )}
             />
-            {link.title}
-            {isActive && (
-              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-            )}
+            <span className="truncate">{link.title}</span>
           </Link>
         );
       })}

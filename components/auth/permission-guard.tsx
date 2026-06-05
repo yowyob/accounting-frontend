@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 
 interface PermissionGuardProps {
@@ -42,8 +42,14 @@ export function PermissionGuard({
     fallback = null,
 }: PermissionGuardProps) {
     const { checkPermission } = useAuth();
+    const [mounted, setMounted] = useState(false);
 
-    if (!checkPermission(feature, action)) {
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    // Permissions lues depuis localStorage : rendu identique SSR / 1er paint client
+    if (!mounted || !checkPermission(feature, action)) {
         return <>{fallback}</>;
     }
 

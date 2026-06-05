@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -65,7 +65,6 @@ export function UserNav() {
           className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-indigo-200 transition-all"
         >
           <Avatar className="h-9 w-9">
-            <AvatarImage src="/avatars/01.png" alt={displayName} />
             <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-sm">
               {initials}
             </AvatarFallback>
@@ -78,7 +77,6 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal p-3">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarImage src="/avatars/01.png" alt={displayName} />
               <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
                 {initials}
               </AvatarFallback>

@@ -5,9 +5,6 @@ import { Toaster } from "sonner";
 import { AuthInitializer } from "@/components/auth-initializer";
 import "./globals.css";
 
-// Removed next/font/google due to build-time fetch issues in restricted environments.
-// We fallback to a high-quality system font stack.
-
 export const metadata: Metadata = {
   title: "KSM Pro",
   description: "Solution de gestion commerciale",
@@ -20,7 +17,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className="antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="font-sans antialiased">
         <AuthInitializer />
         <Suspense fallback={null}>
           <NavigationLoader />

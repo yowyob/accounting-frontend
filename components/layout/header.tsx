@@ -98,12 +98,17 @@ export function Header() {
     : null;
 
   return (
-    <header className="flex-shrink-0 h-16 flex items-center px-4 md:px-6 bg-transparent">
-      <Button variant="ghost" size="icon" className="mr-2" onClick={toggle}>
-        <Menu className="h-5 w-5 text-gray-600" />
+    <header className="flex-shrink-0 h-16 flex items-center px-4 md:px-6 bg-card border-b border-border">
+      <Button variant="ghost" size="icon" className="mr-1 rounded-full hover:bg-secondary" onClick={toggle}>
+        <Menu className="h-5 w-5 text-muted-foreground" />
       </Button>
-      <div className="font-semibold text-lg tracking-tight text-gray-700 mr-6">
-        KSM
+      <div className="flex items-center gap-2 mr-6">
+        <div className="w-8 h-8 rounded-sm bg-gradient-to-br from-[#4285f4] via-[#34a853] to-[#ea4335] flex items-center justify-center text-white text-sm font-medium">
+          K
+        </div>
+        <span className="text-[22px] font-normal text-muted-foreground tracking-normal">
+          KSM <span className="text-foreground font-normal">Pro</span>
+        </span>
       </div>
 
       <div className="flex-1" />
@@ -112,33 +117,33 @@ export function Header() {
         {/* Centre d'aide spécifique au rôle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" title="Centre d'aide">
-              <HelpCircle className="h-5 w-5 text-gray-600" />
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary" title="Centre d'aide">
+              <HelpCircle className="h-5 w-5 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
+          <DropdownMenuContent align="end" className="w-72 rounded-lg border-border shadow-md">
             {helpContent ? (
               <>
-                <DropdownMenuLabel className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                <DropdownMenuLabel className="text-xs font-medium text-primary uppercase tracking-wide">
                   {helpContent.label}
                 </DropdownMenuLabel>
                 {helpContent.sections.map((section, si) => (
                   <div key={si}>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-2 py-1">
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-2 py-1">
                       {section.title}
                     </DropdownMenuLabel>
                     {section.items.map((item, ii) => (
                       item.href ? (
-                        <DropdownMenuItem key={ii} asChild className="cursor-pointer gap-2">
+                        <DropdownMenuItem key={ii} asChild className="cursor-pointer gap-2 rounded-sm">
                           <Link href={item.href} className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4 text-gray-400 shrink-0" />
+                            <item.icon className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm">{item.label}</span>
                           </Link>
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem key={ii} disabled className="gap-2 opacity-60">
-                          <item.icon className="h-4 w-4 text-gray-400 shrink-0" />
+                        <DropdownMenuItem key={ii} disabled className="gap-2 opacity-60 rounded-sm">
+                          <item.icon className="h-4 w-4 text-muted-foreground shrink-0" />
                           <span className="text-sm">{item.label}</span>
                         </DropdownMenuItem>
                       )

@@ -27,8 +27,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "Roboto Mono", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -62,83 +62,59 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* --- Light Theme --- */
+/* --- Light Theme (Google / Gmail) --- */
 :root {
-  --radius: 0.75rem;
-  /* Unchanged, soft radius */
+  --radius: 0.5rem;
 
-  /* Base */
-  --background: oklch(0.98 0.005 240);
-  /* Slightly brighter, cleaner white-grey */
-  --foreground: oklch(0.20 0.03 245);
-  /* Darker blue-grey for better contrast */
+  /* Base — Gmail app shell */
+  --background: #f6f8fc;
+  --foreground: #202124;
 
   /* Cards & Popovers */
-  --card: oklch(1 0 0);
-  /* Pure white, unchanged */
-  --card-foreground: var(--foreground);
-  --popover: var(--card);
-  --popover-foreground: var(--card-foreground);
+  --card: #ffffff;
+  --card-foreground: #202124;
+  --popover: #ffffff;
+  --popover-foreground: #202124;
 
-  /* Primary */
-  --primary: oklch(0.55 0.18 255);
-  /* Slightly deeper blue for prominence */
-  --primary-foreground: oklch(0.98 0.01 255);
-  /* Near-white, unchanged */
+  /* Primary — Google Blue */
+  --primary: #1a73e8;
+  --primary-foreground: #ffffff;
 
   /* Secondary */
-  --secondary: oklch(0.95 0.015 250);
-  /* Lighter cool grey for subtle contrast */
-  --secondary-foreground: oklch(0.30 0.04 250);
-  /* Darker for readability */
+  --secondary: #f1f3f4;
+  --secondary-foreground: #202124;
 
   /* Muted */
-  --muted: oklch(0.96 0.01 240);
-  /* Lighter muted tone */
-  --muted-foreground: oklch(0.50 0.03 245);
-  /* Darker muted text for clarity */
+  --muted: #f8f9fa;
+  --muted-foreground: #5f6368;
 
-  /* Accent */
-  --accent: oklch(0.92 0.02 255);
-  /* Softer blue for hover/active states */
-  --accent-foreground: oklch(0.25 0.04 255);
-  /* Darker accent text */
+  /* Accent — Gmail selected state */
+  --accent: #e8f0fe;
+  --accent-foreground: #1a73e8;
 
-  /* Destructive */
-  --destructive: oklch(0.62 0.21 25);
-  /* Slightly brighter red */
-  --destructive-foreground: oklch(0.98 0.01 25);
-  /* Unchanged */
+  /* Destructive — Google Red */
+  --destructive: #d93025;
+  --destructive-foreground: #ffffff;
 
   /* Borders & Inputs */
-  --border: oklch(0.88 0.02 245);
-  /* Darker, more visible border */
-  --input: oklch(0.99 0.005 240);
-  /* Near-white input bg for contrast */
-  --ring: oklch(0.65 0.12 255 / 80%);
-  /* Brighter focus ring, slightly opaque */
+  --border: #dadce0;
+  --input: #ffffff;
+  --ring: #1a73e8;
 
-  /* Charts */
-  --chart-1: oklch(0.72 0.18 150);
-  /* Teal, slightly brighter */
-  --chart-2: oklch(0.68 0.2 280);
-  /* Purple, more vibrant */
-  --chart-3: oklch(0.77 0.16 50);
-  /* Orange, slightly brighter */
-  --chart-4: oklch(0.62 0.16 220);
-  /* Sky Blue, more distinct */
-  --chart-5: oklch(0.82 0.11 100);
-  /* Lime Green, slightly brighter */
+  /* Charts — Google palette */
+  --chart-1: #1a73e8;
+  --chart-2: #188038;
+  --chart-3: #f9ab00;
+  --chart-4: #d93025;
+  --chart-5: #9334e6;
 
-  /* Sidebar */
-  --sidebar: oklch(0.97 0.008 245);
-  /* Slightly lighter than bg */
-  --sidebar-foreground: var(--foreground);
-  --sidebar-border: var(--border);
-  --sidebar-accent: oklch(0.55 0.18 255 / 20%);
-  /* Slightly more opaque */
-  --sidebar-accent-foreground: var(--primary);
-  --sidebar-ring: var(--ring);
+  /* Sidebar — Gmail nav panel */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #202124;
+  --sidebar-border: #e8eaed;
+  --sidebar-accent: #e8f0fe;
+  --sidebar-accent-foreground: #1a73e8;
+  --sidebar-ring: #1a73e8;
 }
 
 /* --- Dark Theme --- */
@@ -227,18 +203,31 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
+    font-size: 14px;
+    line-height: 20px;
+    letter-spacing: 0.2px;
     @apply transition-colors duration-200 ease-in-out;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 400;
+    color: #202124;
+    letter-spacing: 0;
+  }
+
+  h1 { font-size: 24px; line-height: 32px; }
+  h2 { font-size: 18px; line-height: 24px; font-weight: 500; }
+  h3 { font-size: 16px; line-height: 24px; font-weight: 500; }
 
   /* Enhanced input styles for better readability */
   input,
   textarea,
   select {
     @apply bg-input text-foreground border-border;
-    @apply focus:ring-2 focus:ring-ring focus:outline-none;
+    @apply focus:ring-2 focus:ring-ring/30 focus:border-primary focus:outline-none;
     @apply placeholder:text-muted-foreground;
-    @apply rounded-md px-3 py-2;
+    @apply rounded-[4px] px-3 py-2 text-sm;
   }
 
   .bg-grid-pattern {

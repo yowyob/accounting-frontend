@@ -30,22 +30,12 @@ export function Sidebar() {
 
   const currentModuleData = modules[activeModule];
 
-  /**
-   * Filtre les liens de navigation selon le rôle de l'utilisateur.
-   * - Si allowedRoles est undefined → le lien est visible par tous.
-   * - Si allowedRoles est défini → le lien n'est visible que si le rôle de l'utilisateur y figure.
-   */
   const filteredLinks: SidebarLink[] = currentModuleData.sidebarLinks.filter((link) => {
     if (!link.allowedRoles) return true;
     if (!accountingRole) return false;
     return link.allowedRoles.includes(accountingRole);
   });
 
-  /**
-   * Filtre les modules selon le rôle pour masquer l'icône de navigation (toggle).
-   * - Si allowedRoles est undefined → le module est visible par tous.
-   * - Si allowedRoles est défini → visible uniquement si le rôle y figure.
-   */
   const visibleModules = Object.entries(modules).filter(([, module]) => {
     if (!module.allowedRoles) return true;
     if (!accountingRole) return false;
@@ -55,13 +45,14 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar flex transition-all duration-300 border-r border-sidebar-border shadow-sm",
-        isCollapsed ? "w-20" : "w-72"
+        "h-screen bg-sidebar flex transition-all duration-200 border-r border-sidebar-border",
+        isCollapsed ? "w-[72px]" : "w-[280px]"
       )}
     >
-      <div className="w-16 flex-shrink-0 flex flex-col items-center py-6 border-r border-sidebar-border bg-card/50 backdrop-blur-sm">
+      {/* Rail d'icônes — style Gmail */}
+      <div className="w-[72px] flex-shrink-0 flex flex-col items-center py-3 border-r border-sidebar-border">
         <TooltipProvider delayDuration={0}>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
             {visibleModules.map(([key, module]) => {
               const Icon = module.icon;
               const isActive = activeModule === key;
@@ -72,43 +63,36 @@ export function Sidebar() {
                       variant="ghost"
                       size="icon"
                       className={cn(
-                        "h-10 w-10 rounded-xl transition-all duration-200",
+                        "h-12 w-12 rounded-full transition-colors duration-150",
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-md scale-105"
+                          ? "bg-accent text-primary"
                           : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                       )}
-                      onClick={() => setActiveModule(key as any)}
+                      onClick={() => setActiveModule(key as ModuleKey)}
                     >
                       <Icon className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="font-medium">
+                  <TooltipContent side="right" className="font-normal text-sm">
                     <p>{module.name}</p>
                   </TooltipContent>
                 </Tooltip>
-              )
+              );
             })}
           </div>
         </TooltipProvider>
       </div>
 
       {!isCollapsed && (
-        <div className="flex-1 flex flex-col pt-6 bg-gradient-to-b from-sidebar to-background overflow-hidden">
-          <div className="px-6 mb-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <currentModuleData.icon className="h-5 w-5 text-blue-600" />
-              </div>
-              <h2 className="text-lg font-bold text-foreground tracking-tight">
-                {currentModuleData.name}
-              </h2>
-            </div>
-            <div className="h-1 w-12 bg-gradient-to-r from-blue-500 to-transparent rounded-full opacity-50" />
+        <div className="flex-1 flex flex-col bg-sidebar overflow-hidden">
+          <div className="px-4 pt-5 pb-3">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-3 mb-1">
+              {currentModuleData.name}
+            </h2>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="flex-1 overflow-y-auto px-2 pb-2">
             <MainNav links={filteredLinks} />
           </div>
-          {/* User profile widget — visible to all roles */}
           <UserProfileWidget />
         </div>
       )}

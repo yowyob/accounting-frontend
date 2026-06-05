@@ -24,11 +24,11 @@ export default function DashboardLayout({
   }, [pathname, stopLoading]);
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex bg-[#f6f8fc]">
+    <div className="h-screen w-screen overflow-hidden flex bg-background">
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
         <Header />
-        <main className="flex-1 overflow-y-auto p-4 pt-2">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {children}
         </main>
       </div>

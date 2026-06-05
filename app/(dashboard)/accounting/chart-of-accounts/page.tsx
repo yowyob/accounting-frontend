@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PlanComptableDto } from '@/src/lib2/models/PlanComptableDto';
 import { AccountingPlanComptableService } from '@/src/lib2/services/AccountingPlanComptableService';
-import { AccountingOrganizationsService } from '@/src/lib2/services/AccountingOrganizationsService';
 import { AccountListView } from '@/components/accounting/account-list-view';
 import { AccountDetailView } from '@/components/accounting/account-detail-view';
 import { toast } from 'sonner';
@@ -37,7 +36,10 @@ export default function ChartOfAccountsPage() {
     setError(null);
     try {
       const response = await AccountingPlanComptableService.getAllPlanComptables();
-      if (response && response.data) {
+      if (response?.success === false) {
+        throw new Error(response.message || "Impossible de charger le plan comptable.");
+      }
+      if (response?.data) {
         setAccounts(response.data);
       } else {
         setAccounts([]);
@@ -117,16 +119,20 @@ export default function ChartOfAccountsPage() {
   const handleInitPlan = async () => {
     setIsLoading(true);
     try {
-      // Try to get organizations to find a tenantId
-      const orgsRes = await AccountingOrganizationsService.getAllOrganizations();
-      const tenantId = orgsRes.data?.[0]?.id;
+      const tenantId =
+        typeof window !== 'undefined'
+          ? localStorage.getItem('organization_id') ?? undefined
+          : undefined;
 
       if (!tenantId) {
-        toast.error("Impossible d'identifier l'organisation (Tenant ID manquant)");
+        toast.error("Impossible d'identifier l'organisation (Tenant ID manquant). Connectez-vous d'abord.");
         return;
       }
 
-      await AccountingPlanComptableService.initPlanComptable(tenantId);
+      const initResponse = await AccountingPlanComptableService.initPlanComptable(tenantId);
+      if (initResponse?.success === false) {
+        throw new Error(initResponse.message || "Erreur lors de l'initialisation du plan comptable.");
+      }
       toast.success('Le plan comptable OHADA 2025 a été initialisé avec succès');
       await fetchAccounts();
     } catch (err: any) {
