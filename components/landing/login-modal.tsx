@@ -69,7 +69,15 @@ function FeedbackBanner({ type, message }: { type: 'success' | 'error'; message:
 }
 
 function getErrorMessage(error: unknown, fallback: string) {
-    return error instanceof Error ? error.message : fallback;
+    if (!(error instanceof Error)) {
+        return fallback;
+    }
+
+    if (error.message === 'Failed to fetch') {
+        return "Vérifier votre connexion ,puis réessayez.";
+    }
+
+    return error.message || fallback;
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
