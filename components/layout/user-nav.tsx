@@ -12,11 +12,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User, Shield } from "lucide-react";
+import { LogOut, User, Settings, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { getRoleLabel } from "@/src/lib/auth/roles";
 import { OpenAPI as CoreOpenAPI } from "@/src/lib";
 import { OpenAPI as AccountingOpenAPI } from "@/src/lib2";
+import Link from "next/link";
 
 export function UserNav() {
   const router = useRouter();
@@ -49,69 +50,52 @@ export function UserNav() {
 
   const roleLabel = getRoleLabel(accountingRole);
 
-  // Couleur du badge de rôle
-  const roleBadgeClass =
-    accountingRole === "RESPONSABLE_COMPTABLE"
-      ? "bg-violet-100 text-violet-700"
-      : accountingRole === "COMPTABLE"
-      ? "bg-blue-100 text-blue-700"
-      : "bg-slate-100 text-slate-600";
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="relative h-9 w-9 rounded-full ring-2 ring-transparent hover:ring-indigo-200 transition-all"
-        >
+        <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold text-sm">
+            <AvatarFallback className="bg-blue-600 text-white font-semibold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-64" align="end" forceMount>
-        {/* Infos utilisateur */}
-        <DropdownMenuLabel className="font-normal p-3">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
-              {accountingRole && (
-                <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full w-fit ${roleBadgeClass}`}>
-                  <Shield className="h-2.5 w-2.5" />
-                  {roleLabel}
-                </span>
-              )}
-            </div>
+      <DropdownMenuContent className="w-60" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal pb-2">
+          <div className="flex flex-col space-y-0.5">
+            <p className="text-sm font-semibold leading-none text-gray-900">{displayName}</p>
+            <p className="text-xs leading-none text-muted-foreground mt-1">{displayEmail}</p>
+            {accountingRole && (
+              <span className="text-[10px] font-mono text-gray-400 mt-0.5">{roleLabel}</span>
+            )}
           </div>
         </DropdownMenuLabel>
-
         <DropdownMenuSeparator />
-
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer gap-2">
-            <User className="h-4 w-4 text-gray-500" />
-            Profil
+          <DropdownMenuItem asChild>
+            <Link href="/settings/users" className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" /> Mon profil
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings" className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" /> Paramètres
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/forgot-password" className="cursor-pointer">
+              <KeyRound className="mr-2 h-4 w-4" /> Changer le mot de passe
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
-
         <DropdownMenuSeparator />
-
-        {/* Bouton de déconnexion */}
         <DropdownMenuItem
           onClick={handleLogout}
-          className="cursor-pointer gap-2 text-red-600 focus:text-red-600 focus:bg-red-50"
+          className="text-red-600 cursor-pointer focus:text-red-600 focus:bg-red-50"
         >
-          <LogOut className="h-4 w-4" />
-          Se déconnecter
+          <LogOut className="mr-2 h-4 w-4" /> Se déconnecter
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

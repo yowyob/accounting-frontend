@@ -24,7 +24,7 @@ export function MainNav({ links }: MainNavProps) {
   });
 
   return (
-    <nav className="grid gap-0.5">
+    <nav className="grid gap-1 p-2">
       {visibleLinks.map((link, index) => {
         const isActive =
           pathname === link.href || pathname.startsWith(`${link.href}/`);
@@ -38,16 +38,16 @@ export function MainNav({ links }: MainNavProps) {
               }
             }}
             className={cn(
-              "group flex items-center gap-3 rounded-r-full rounded-l-full px-4 py-2 text-sm font-normal transition-colors duration-150",
+              "flex items-center gap-3 rounded-r-full rounded-l-none px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200/50",
               isActive
-                ? "bg-accent text-primary font-medium"
-                : "text-foreground hover:bg-secondary"
+                ? "bg-blue-100 text-blue-800 font-semibold hover:bg-blue-100"
+                : "hover:bg-gray-200"
             )}
           >
             <link.icon
               className={cn(
                 "h-5 w-5 shrink-0",
-                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                isActive ? "text-blue-700" : "text-gray-600"
               )}
             />
             <span className="truncate">{link.title}</span>

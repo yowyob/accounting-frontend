@@ -2,7 +2,8 @@
 
 import { UserNav } from "./user-nav";
 import { Button } from "../ui/button";
-import { Menu, HelpCircle, BookOpen, FileText, ShieldCheck, BarChart3, FileClock, Layers } from "lucide-react";
+import { Menu, Search, Settings, HelpCircle, BookOpen, FileText, ShieldCheck, BarChart3, FileClock, Layers } from "lucide-react";
+import { Input } from "../ui/input";
 import { useSidebar } from "@/hooks/useSidebar";
 import {
   DropdownMenu,
@@ -98,17 +99,22 @@ export function Header() {
     : null;
 
   return (
-    <header className="flex-shrink-0 h-16 flex items-center px-4 md:px-6 bg-card border-b border-border">
-      <Button variant="ghost" size="icon" className="mr-1 rounded-full hover:bg-secondary" onClick={toggle}>
-        <Menu className="h-5 w-5 text-muted-foreground" />
+    <header className="flex-shrink-0 h-16 flex items-center px-4 md:px-6 bg-transparent">
+      <Button variant="ghost" size="icon" className="mr-2" onClick={toggle}>
+        <Menu className="h-5 w-5 text-gray-600" />
       </Button>
-      <div className="flex items-center gap-2 mr-6">
-        <div className="w-8 h-8 rounded-sm bg-gradient-to-br from-[#4285f4] via-[#34a853] to-[#ea4335] flex items-center justify-center text-white text-sm font-medium">
-          K
+      <div className="font-semibold text-lg tracking-tight text-gray-700 mr-6">
+        KSM
+      </div>
+
+      <div className="flex-1 max-w-2xl">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            placeholder="Rechercher..."
+            className="w-full bg-[#eaf1fb] rounded-full pl-10 pr-4 py-2 h-12 border-transparent focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-200"
+          />
         </div>
-        <span className="text-[22px] font-normal text-muted-foreground tracking-normal">
-          KSM <span className="text-foreground font-normal">Pro</span>
-        </span>
       </div>
 
       <div className="flex-1" />
@@ -117,33 +123,33 @@ export function Header() {
         {/* Centre d'aide spécifique au rôle */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary" title="Centre d'aide">
-              <HelpCircle className="h-5 w-5 text-muted-foreground" />
+            <Button variant="ghost" size="icon" title="Centre d'aide">
+              <HelpCircle className="h-5 w-5 text-gray-600" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 rounded-lg border-border shadow-md">
+          <DropdownMenuContent align="end" className="w-72">
             {helpContent ? (
               <>
-                <DropdownMenuLabel className="text-xs font-medium text-primary uppercase tracking-wide">
+                <DropdownMenuLabel>
                   {helpContent.label}
                 </DropdownMenuLabel>
                 {helpContent.sections.map((section, si) => (
                   <div key={si}>
-                    <DropdownMenuSeparator className="bg-border" />
-                    <DropdownMenuLabel className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide px-2 py-1">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[11px] text-gray-500 uppercase tracking-wide px-2 py-1">
                       {section.title}
                     </DropdownMenuLabel>
                     {section.items.map((item, ii) => (
                       item.href ? (
-                        <DropdownMenuItem key={ii} asChild className="cursor-pointer gap-2 rounded-sm">
+                        <DropdownMenuItem key={ii} asChild className="cursor-pointer gap-2">
                           <Link href={item.href} className="flex items-center gap-2">
-                            <item.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <item.icon className="h-4 w-4 text-gray-600 shrink-0" />
                             <span className="text-sm">{item.label}</span>
                           </Link>
                         </DropdownMenuItem>
                       ) : (
-                        <DropdownMenuItem key={ii} disabled className="gap-2 opacity-60 rounded-sm">
-                          <item.icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <DropdownMenuItem key={ii} disabled className="gap-2 opacity-60">
+                          <item.icon className="h-4 w-4 text-gray-600 shrink-0" />
                           <span className="text-sm">{item.label}</span>
                         </DropdownMenuItem>
                       )
@@ -158,6 +164,36 @@ export function Header() {
                 <DropdownMenuItem>Connectez-vous pour accéder à l&apos;aide personnalisée</DropdownMenuItem>
               </>
             )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Settings className="h-5 w-5 text-gray-600" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel>Paramètres</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/company">Organisation</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/agencies">Agences &amp; Sites</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/business-actor">Mon Profil Pro</Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link href="/settings/users">Employés</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/roles">Rôles &amp; Droits</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings/audits">Journal d&apos;audit</Link>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 

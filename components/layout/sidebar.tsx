@@ -10,7 +10,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { UserProfileWidget } from "./user-profile-widget";
 
 export function Sidebar() {
   const { isCollapsed } = useSidebar();
@@ -45,55 +44,45 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "h-screen bg-sidebar flex transition-all duration-200 border-r border-sidebar-border",
-        isCollapsed ? "w-[72px]" : "w-[280px]"
+        "h-screen bg-[#f6f8fc] flex transition-all duration-300",
+        isCollapsed ? "w-20" : "w-72"
       )}
     >
-      {/* Rail d'icônes — style Gmail */}
-      <div className="w-[72px] flex-shrink-0 flex flex-col items-center py-3 border-r border-sidebar-border">
+      <div className="w-15 flex-shrink-0 flex flex-col items-center py-4 border-r bg-white">
         <TooltipProvider delayDuration={0}>
-          <div className="flex flex-col gap-1">
-            {visibleModules.map(([key, module]) => {
-              const Icon = module.icon;
-              const isActive = activeModule === key;
-              return (
-                <Tooltip key={key}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={cn(
-                        "h-12 w-12 rounded-full transition-colors duration-150",
-                        isActive
-                          ? "bg-accent text-primary"
-                          : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-                      )}
-                      onClick={() => setActiveModule(key as ModuleKey)}
-                    >
-                      <Icon className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="font-normal text-sm">
-                    <p>{module.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </div>
+          {visibleModules.map(([key, module]) => {
+            const Icon = module.icon;
+            return (
+              <Tooltip key={key}>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant={activeModule === key ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-12 w-12 flex-col gap-3 text-xs"
+                    onClick={() => setActiveModule(key as ModuleKey)}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{module.name}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
         </TooltipProvider>
       </div>
 
       {!isCollapsed && (
-        <div className="flex-1 flex flex-col bg-sidebar overflow-hidden">
-          <div className="px-4 pt-5 pb-3">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide px-3 mb-1">
+        <div className="flex-1 flex flex-col pt-5">
+          <div className="px-4 mb-4">
+            <h2 className="text-sm font-medium text-gray-600 uppercase tracking-wide px-3 mb-1">
               {currentModuleData.name}
             </h2>
           </div>
-          <div className="flex-1 overflow-y-auto px-2 pb-2">
+          <div className="flex-1 overflow-y-auto">
             <MainNav links={filteredLinks} />
           </div>
-          <UserProfileWidget />
         </div>
       )}
     </aside>
