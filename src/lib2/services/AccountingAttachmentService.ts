@@ -44,4 +44,28 @@ export class AccountingAttachmentService {
     public static getDownloadUrl(fileName: string): string {
         return `${OpenAPI.BASE || ''}/api/accounting/attachments/download/${fileName}`;
     }
+
+    public static async downloadAttachmentBlob(fileName: string): Promise<Blob> {
+        const token =
+            typeof window !== 'undefined'
+                ? localStorage.getItem('auth_token')
+                : null;
+        const organizationId =
+            typeof window !== 'undefined'
+                ? localStorage.getItem('organization_id')
+                : null;
+
+        const response = await fetch(this.getDownloadUrl(fileName), {
+            headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(organizationId ? { 'X-Tenant-ID': organizationId } : {}),
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error("Impossible de charger la pièce jointe.");
+        }
+
+        return response.blob();
+    }
 }
