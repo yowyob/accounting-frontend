@@ -16,10 +16,42 @@ export class EmployeesRolesService {
      * @returns OrganizationMember OK
      * @throws ApiError
      */
-    public static getEmployees(): CancelablePromise<Array<OrganizationMember>> {
+    public static getEmployees(
+        organizationId?: string,
+    ): CancelablePromise<Array<OrganizationMember>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/employees',
+            query: {
+                'organizationId': organizationId,
+            },
+        });
+    }
+    /**
+     * Inviter un employé
+     * Associe un utilisateur existant à l'organisation avec un rôle spécifique.
+     * @param organizationId
+     * @param requestBody
+     * @returns OrganizationMember Employé invité avec succès
+     * @throws ApiError
+     */
+    public static inviteEmployee(
+        organizationId: string,
+        requestBody: {
+            email: string;
+            roleId: string;
+            agencyId?: string;
+            permissions?: Array<string>;
+        },
+    ): CancelablePromise<OrganizationMember> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/employees/invite',
+            query: {
+                'organizationId': organizationId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
