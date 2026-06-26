@@ -1,0 +1,22 @@
+# Front Yowyob-ERP-Accounting (Next.js) — PRODUCTION. Image GHCR (build GitHub Actions).
+services:
+  accounting-front:
+    image: "${ACCOUNTING_FRONTEND_IMAGE:?ACCOUNTING_FRONTEND_IMAGE requis}"
+    container_name: accounting-frontend
+    pull_policy: never
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.accounting-front.rule=Host(`accounting.yowyob.com`)"
+      - "traefik.http.routers.accounting-front.entrypoints=websecure"
+      - "traefik.http.routers.accounting-front.tls=true"
+      - "traefik.http.routers.accounting-front.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.accounting-front.priority=10"
+      - "traefik.http.services.accounting-front.loadbalancer.server.port=3000"
+      - "traefik.docker.network=yowyob"
+    networks:
+      - yowyob
+networks:
+  yowyob:
+    external: true
+    name: yowyob
