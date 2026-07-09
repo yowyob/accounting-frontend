@@ -3,23 +3,20 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-    CheckCircle, XCircle, Search, ShieldCheck, Eye, Loader2, FileClock, ArrowLeft,
+    CheckCircle, XCircle, Search, ShieldCheck, Eye, Loader2, FileClock, ArrowLeft, AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { useAutoRefresh, type AutoRefreshOptions } from "@/hooks/use-auto-refresh";
-import {
-    listEcrituresByStatut,
-    rejectEcritureAnalytique,
-    validateEcritureAnalytique,
-} from "@/lib/analytique/ecritures-analytiques-store";
+import { useEcrituresAnalytiquesApi } from "@/hooks/use-ecritures-analytiques-api";
 import {
     getJournalAnalytiqueById,
     NATURES_CHARGE,
     type EcritureAnalytique,
 } from "@/lib/analytique/ecriture-analytique";
 import { formatMontantSigne } from "@/lib/analytique/ecriture-lignes";
-import { mockCentres, mockExercicesCG } from "@/lib/analytique/mock-data";
+import { useCentresAnalyseApi } from "@/hooks/use-centres-analyse-api";
+import { usePeriodesAnalytiquesAlignees } from "@/hooks/use-periodes-analytiques-alignees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -33,9 +30,17 @@ import { cn } from "@/lib/utils";
 import { CustomPageLoader } from "@/components/ui/custom-page-loader";
 
 export default function ValidationEcrituresAnalytiquesPage() {
-    const [brouillons, setBrouillons] = useState<EcritureAnalytique[]>([]);
+    const {
+        loading,
+        error,
+        listByStatut,
+        validateEcriture,
+        rejectEcriture,
+        reload,
+    } = useEcrituresAnalytiquesApi();
+    const { centres } = useCentresAnalyseApi();
+    const { periodes } = usePeriodesAnalytiquesAlignees();
     const [search, setSearch] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
     const [preview, setPreview] = useState<EcritureAnalytique | null>(null);
     const [validatingId, setValidatingId] = useState<string | null>(null);
     const [rejectDialog, setRejectDialog] = useState<{ open: boolean; entry: EcritureAnalytique | null }>({
@@ -44,14 +49,11 @@ export default function ValidationEcrituresAnalytiquesPage() {
     });
     const [rejectReason, setRejectReason] = useState("");
 
+    const brouillons = listByStatut("BROUILLON");
+
     const loadBrouillons = useCallback(async (options?: AutoRefreshOptions) => {
-        if (!options?.silent) setIsLoading(true);
-        try {
-            setBrouillons(listEcrituresByStatut("BROUILLON"));
-        } finally {
-            if (!options?.silent) setIsLoading(false);
-        }
-    }, []);
+        await reload();
+    }, [reload]);
 
     useEffect(() => {
         void loadBrouillons();
@@ -68,34 +70,42 @@ export default function ValidationEcrituresAnalytiquesPage() {
     const handleValidate = async (id: string) => {
         setValidatingId(id);
         try {
-            validateEcritureAnalytique(id);
-            await loadBrouillons({ silent: true });
-            toast.success("Écriture analytique validée");
+            await validateEcriture(id);
             setPreview(null);
+        } catch {
+            toast.error("Impossible de valider l'écriture");
         } finally {
             setValidatingId(null);
         }
     };
 
-    const handleReject = () => {
+    const handleReject = async () => {
         if (!rejectDialog.entry || !rejectReason.trim()) {
             toast.error("Indiquez un motif de rejet.");
             return;
         }
-        rejectEcritureAnalytique(rejectDialog.entry.id, rejectReason.trim());
-        void loadBrouillons({ silent: true });
-        toast.success("Écriture rejetée");
-        setRejectDialog({ open: false, entry: null });
-        setRejectReason("");
-        setPreview(null);
+        try {
+            await rejectEcriture(rejectDialog.entry.id, rejectReason.trim());
+            setRejectDialog({ open: false, entry: null });
+            setRejectReason("");
+            setPreview(null);
+        } catch {
+            toast.error("Impossible de rejeter l'écriture");
+        }
     };
 
-    if (isLoading && brouillons.length === 0) {
+    if (loading && brouillons.length === 0) {
         return <CustomPageLoader message="Chargement des écritures en brouillon..." />;
     }
 
     return (
         <div className="space-y-6 animate-fade-in-up">
+            {error && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <Link
@@ -202,9 +212,9 @@ export default function ValidationEcrituresAnalytiquesPage() {
                     {preview && (
                         <div className="space-y-2 text-sm">
                             <p><span className="text-muted-foreground">Journal :</span> {getJournalAnalytiqueById(preview.journalId)?.libelle}</p>
-                            <p><span className="text-muted-foreground">Centre dest. :</span> {mockCentres.find((c) => c.id === preview.centreDestinationId)?.libelle}</p>
+                            <p><span className="text-muted-foreground">Centre dest. :</span> {centres.find((c) => c.id === preview.centreDestinationId)?.libelle}</p>
                             <p><span className="text-muted-foreground">Nature :</span> {NATURES_CHARGE.find((n) => n.id === preview.natureChargeId)?.libelle}</p>
-                            <p><span className="text-muted-foreground">Exercice :</span> {mockExercicesCG.find((x) => x.id === preview.exerciceAnalytiqueId)?.libelle}</p>
+                            <p><span className="text-muted-foreground">Période :</span> {periodes.find((p) => p.id === preview.exerciceAnalytiqueId)?.libelle}</p>
                             <p><span className="text-muted-foreground">Montant :</span> {formatCurrency(preview.montant)}</p>
                             {preview.ligneCGRef && (
                                 <p><span className="text-muted-foreground">Réf. comptabilité générale :</span> {preview.ligneCGRef}</p>
@@ -214,7 +224,7 @@ export default function ValidationEcrituresAnalytiquesPage() {
                                     <p className="text-xs font-semibold mb-1">Lignes d&apos;imputation</p>
                                     {preview.lignes.map((l, i) => (
                                         <p key={i} className="text-xs font-mono">
-                                            {mockCentres.find((c) => c.id === l.centreId)?.libelle} : {formatMontantSigne(l.montant)}
+                                            {centres.find((c) => c.id === l.centreId)?.libelle} : {formatMontantSigne(l.montant)}
                                         </p>
                                     ))}
                                 </div>
@@ -247,7 +257,7 @@ export default function ValidationEcrituresAnalytiquesPage() {
                         <Button variant="outline" onClick={() => setRejectDialog({ open: false, entry: null })}>
                             Annuler
                         </Button>
-                        <Button variant="destructive" onClick={handleReject}>Rejeter</Button>
+                        <Button variant="destructive" onClick={() => void handleReject()}>Rejeter</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

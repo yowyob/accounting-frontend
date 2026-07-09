@@ -1,28 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { mockPrixCessions, PrixCessionInterne } from "@/lib/analytique/mock-data";
+import { PrixCessionInterne } from "@/lib/analytique/mock-data";
 import {
   PrixCessionForm,
   METHODE_CESSION_CONFIG,
 } from "@/components/analytique/prix-cession-form";
 import { useAnalytiqueCompose } from "@/hooks/use-analytique-compose";
+import { useCentresAnalyseApi } from "@/hooks/use-centres-analyse-api";
+import { useUnitesOeuvreApi } from "@/hooks/use-unites-oeuvre-api";
+import { usePrixCessionsApi } from "@/hooks/use-prix-cessions-api";
 import { formatCurrency, formatDateDisplay } from "@/lib/utils";
-import { Plus, Pencil, Trash2, Clock } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, AlertCircle } from "lucide-react";
 import { ConfirmDialog } from "@/components/analytique/confirm-dialog";
+import { CustomPageLoader } from "@/components/ui/custom-page-loader";
 
 export default function PrixCessionsPage() {
-  const [cessions, setCessions] = useState<PrixCessionInterne[]>(mockPrixCessions);
+  const {
+    cessions,
+    loading: cessionsLoading,
+    error: cessionsError,
+    usingMockFallback: cessionsMock,
+    saveCession,
+    removeCession,
+  } = usePrixCessionsApi();
   const { openForm, closeForm } = useAnalytiqueCompose();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState<string | null>(null);
 
-  function handleSave(data: PrixCessionInterne) {
-    setCessions((p) =>
-      p.find((c) => c.id === data.id)
-        ? p.map((c) => (c.id === data.id ? data : c))
-        : [...p, data],
-    );
+  const {
+    centres,
+    loading: centresLoading,
+    error: centresError,
+    usingMockFallback: centresMock,
+  } = useCentresAnalyseApi();
+  const {
+    unites,
+    loading: unitesLoading,
+    error: unitesError,
+    usingMockFallback: unitesMock,
+  } = useUnitesOeuvreApi();
+
+  const loading = centresLoading || unitesLoading || cessionsLoading;
+  const error = centresError ?? unitesError ?? cessionsError;
+  const usingMockFallback = centresMock || unitesMock || cessionsMock;
+
+  async function handleSave(data: PrixCessionInterne) {
+    await saveCession(data);
+    closeForm();
   }
 
   function openPrixCessionForm(initial?: Partial<PrixCessionInterne>) {
@@ -30,13 +55,18 @@ export default function PrixCessionsPage() {
       initial?.id ? "Modifier le prix de cession" : "Nouveau prix de cession interne",
       <PrixCessionForm
         initial={initial}
+        centres={centres}
+        unites={unites}
         onCancel={closeForm}
         onSubmit={(data) => {
-          handleSave(data);
-          closeForm();
+          void handleSave(data);
         }}
       />,
     );
+  }
+
+  if (loading && centres.length === 0 && unites.length === 0 && cessions.length === 0) {
+    return <CustomPageLoader message="Chargement des prix de cession..." />;
   }
 
   return (
@@ -47,7 +77,9 @@ export default function PrixCessionsPage() {
           onClose={() => setDeleteId(null)}
           cancelLabel="Fermer"
           showConfirm={!cessions.find((c) => c.id === deleteId)?.hasImputations}
-          onConfirm={() => setCessions((p) => p.filter((c) => c.id !== deleteId))}
+          onConfirm={() => {
+            void removeCession(deleteId).then(() => setDeleteId(null));
+          }}
         >
           {cessions.find((c) => c.id === deleteId)?.hasImputations ? (
             <p className="text-sm text-rose-600">
@@ -57,6 +89,18 @@ export default function PrixCessionsPage() {
             <p className="text-sm text-muted-foreground">Cette action est irréversible.</p>
           )}
         </ConfirmDialog>
+      )}
+
+      {(error || usingMockFallback) && (
+        <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>
+            {error ??
+              (cessionsMock
+                ? "Les tarifs sont persistés localement en attendant l'API backend."
+                : "Certaines données proviennent du mode démonstration.")}
+          </span>
+        </div>
       )}
 
       <div className="flex items-center justify-between">

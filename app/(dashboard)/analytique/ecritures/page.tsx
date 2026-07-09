@@ -3,30 +3,27 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileClock, Plus, Download, ShieldCheck, Search } from "lucide-react";
+import { FileClock, Plus, Download, ShieldCheck, Search, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 import { useAnalytiqueCompose } from "@/hooks/use-analytique-compose";
 import { useAutoRefresh, type AutoRefreshOptions } from "@/hooks/use-auto-refresh";
-import {
-    getAnalytiqueConfig,
-} from "@/lib/analytique/analytique-config-store";
-import {
-    createEcritureAnalytique,
-    listEcrituresAnalytiques,
-} from "@/lib/analytique/ecritures-analytiques-store";
-import { importFluxDepuisCG } from "@/lib/analytique/import-flux-cg";
+import { useEcrituresAnalytiquesApi } from "@/hooks/use-ecritures-analytiques-api";
+import { useAnalytiqueConfigApi } from "@/hooks/use-analytique-config-api";
+import { useControleBudgetaireData } from "@/hooks/use-controle-budgetaire-data";
 import {
     getJournalAnalytiqueById,
     NATURES_CHARGE,
     type EcritureAnalytique,
 } from "@/lib/analytique/ecriture-analytique";
 import { formatMontantSigne } from "@/lib/analytique/ecriture-lignes";
-import { mockCentres, mockExercicesCG } from "@/lib/analytique/mock-data";
+import { useCentresAnalyseApi } from "@/hooks/use-centres-analyse-api";
+import { usePeriodesAnalytiquesAlignees } from "@/hooks/use-periodes-analytiques-alignees";
 import {
     EcritureAnalytiqueForm,
     type EcritureAnalytiqueFormData,
 } from "@/components/analytique/ecriture-analytique-form";
+import { CustomPageLoader } from "@/components/ui/custom-page-loader";
 import { cn } from "@/lib/utils";
 
 const STATUT_STYLE: Record<EcritureAnalytique["statut"], string> = {
@@ -42,38 +39,59 @@ function isVisibleOnEcrituresPage(e: EcritureAnalytique): boolean {
 
 export default function EcrituresAnalytiquesPage() {
     const router = useRouter();
-    const [ecritures, setEcritures] = useState<EcritureAnalytique[]>([]);
+    const {
+        ecritures,
+        loading,
+        error,
+        usingMockFallback,
+        reload,
+        createEcriture,
+        importCg,
+    } = useEcrituresAnalytiquesApi();
+    const { config: analytiqueConfig } = useAnalytiqueConfigApi();
+    const { centres } = useCentresAnalyseApi();
+    const { periodes } = usePeriodesAnalytiquesAlignees();
+    useControleBudgetaireData();
     const [search, setSearch] = useState("");
     const [importActive, setImportActive] = useState(false);
     const [importing, setImporting] = useState(false);
     const { openForm, closeForm } = useAnalytiqueCompose();
 
-    const reload = useCallback((options?: AutoRefreshOptions) => {
-        if (!options?.silent) {
-            setImportActive(getAnalytiqueConfig().importComptabiliteGeneraleActive);
-        }
-        setEcritures(listEcrituresAnalytiques().filter(isVisibleOnEcrituresPage));
-    }, []);
+    const refresh = useCallback(
+        (options?: AutoRefreshOptions) => {
+            if (!options?.silent) {
+                setImportActive(analytiqueConfig.importComptabiliteGeneraleActive);
+            }
+            void reload();
+        },
+        [reload, analytiqueConfig.importComptabiliteGeneraleActive],
+    );
 
     useEffect(() => {
-        reload();
-    }, [reload]);
+        refresh();
+    }, [refresh]);
 
-    useAutoRefresh(reload, [reload]);
+    useAutoRefresh(refresh, [refresh]);
 
-    const filtered = ecritures.filter(
+    const visibleEcritures = ecritures.filter(isVisibleOnEcrituresPage);
+    const filtered = visibleEcritures.filter(
         (e) =>
             e.numeroPiece.toLowerCase().includes(search.toLowerCase()) ||
             e.libelleOperation.toLowerCase().includes(search.toLowerCase()),
     );
 
-    const handleSaveManual = (data: EcritureAnalytiqueFormData) => {
-        createEcritureAnalytique({ ...data, origine: "MANUELLE" });
-        closeForm();
-        reload();
-        toast.success("Écriture enregistrée en brouillon", {
-            description: "Validez-la depuis la section Validation des écritures analytiques.",
-        });
+    const handleSaveManual = async (data: EcritureAnalytiqueFormData) => {
+        try {
+            await createEcriture({ ...data, origine: "MANUELLE" });
+            closeForm();
+            if (usingMockFallback) {
+                toast.success("Écriture enregistrée en brouillon", {
+                    description: "Validez-la depuis la section Validation des écritures analytiques.",
+                });
+            }
+        } catch {
+            toast.error("Impossible d'enregistrer l'écriture analytique");
+        }
     };
 
     const openManualForm = () => {
@@ -86,8 +104,13 @@ export default function EcrituresAnalytiquesPage() {
     const handleImportCG = async () => {
         setImporting(true);
         try {
-            const { created, ignored } = importFluxDepuisCG();
-            reload();
+            const { created, ignored, errors } = await importCg();
+            refresh();
+            if (errors.length > 0) {
+                toast.warning("Import partiel", {
+                    description: errors.slice(0, 2).join(" — "),
+                });
+            }
             if (created.length === 0) {
                 toast.info("Aucune nouvelle ligne incorporable à importer.", {
                     description:
@@ -101,13 +124,25 @@ export default function EcrituresAnalytiquesPage() {
                 });
                 router.push("/analytique/ecritures/validation");
             }
+        } catch {
+            toast.error("Impossible d'importer depuis la comptabilité générale");
         } finally {
             setImporting(false);
         }
     };
 
+    if (loading && ecritures.length === 0) {
+        return <CustomPageLoader message="Chargement des écritures analytiques..." />;
+    }
+
     return (
         <div className="space-y-6 animate-fade-in-up">
+            {error && (
+                <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -183,8 +218,8 @@ export default function EcrituresAnalytiquesPage() {
                             filtered.map((e) => {
                                 const journal = getJournalAnalytiqueById(e.journalId);
                                 const nature = NATURES_CHARGE.find((n) => n.id === e.natureChargeId);
-                                const centre = mockCentres.find((c) => c.id === e.centreDestinationId);
-                                const exercice = mockExercicesCG.find((x) => x.id === e.exerciceAnalytiqueId);
+                                const centre = centres.find((c) => c.id === e.centreDestinationId);
+                                const periode = periodes.find((p) => p.id === e.exerciceAnalytiqueId);
                                 return (
                                     <tr key={e.id} className="border-b border-border/60 last:border-0 hover:bg-muted/20">
                                         <td className="px-4 py-3 font-mono text-xs font-semibold">{e.numeroPiece}</td>
@@ -193,7 +228,7 @@ export default function EcrituresAnalytiquesPage() {
                                             <p className="font-medium">{e.libelleOperation}</p>
                                             <p className="text-[10px] text-muted-foreground">
                                                 {nature?.code} → {centre?.libelle}
-                                                {exercice ? ` · ${exercice.libelle}` : ""}
+                                                {periode ? ` · ${periode.libelle}` : ""}
                                             </p>
                                         </td>
                                         <td className="px-4 py-3 text-xs">{journal?.code ?? e.journalId}</td>
