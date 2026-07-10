@@ -1,5 +1,8 @@
 import { idbGet, idbPut } from "@/lib/offline/idb";
 import type { MetaEntry } from "@/lib/offline/types";
+import { isOfflineClientId, newOfflineEcritureId } from "@/lib/offline/ids";
+
+export { isOfflineClientId, newOfflineEcritureId };
 
 const ID_MAP_PREFIX = "id-map.";
 
@@ -17,16 +20,4 @@ export async function resolveServerId(id: string): Promise<string> {
     const mapped = await getIdMapping(id);
     if (mapped) return mapped;
     return id;
-}
-
-export function isOfflineClientId(id?: string | null): boolean {
-    return Boolean(
-        id?.startsWith("ea-") ||
-            id?.startsWith("ec-offline-") ||
-            id?.startsWith("local-"),
-    );
-}
-
-export function newOfflineEcritureId(): string {
-    return `ec-offline-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }

@@ -11,8 +11,16 @@ import {
     pushCgPlanComptable,
     pushCgTaxe,
 } from "@/lib/offline/handlers/cg-list-sync";
+import {
+    pushCaCentre,
+    pushCaCharge,
+    pushCaCompte,
+    pushCaJournal,
+    pushCaPlanComptes,
+} from "@/lib/offline/handlers/ca-list-sync";
 import { networkStatus } from "@/lib/offline/network-status";
 import { listPendingOutbox, updateOutboxStatus } from "@/lib/offline/outbox";
+import { flushCgBatch } from "@/lib/offline/batch-push";
 import { idempotencyHeaders } from "@/lib/offline/sync-request";
 import type { OutboxOperation } from "@/lib/offline/types";
 import {
@@ -21,7 +29,6 @@ import {
     ENTITY_NOTIFICATIONS,
 } from "@/lib/offline/types";
 import { pushEcritureAnalytique } from "@/lib/offline/handlers/ecriture-analytique-sync";
-import { pushCaMockList } from "@/lib/offline/handlers/ca-mock-sync";
 
 type SyncHandler = (op: OutboxOperation) => Promise<void>;
 
@@ -66,11 +73,11 @@ const handlers: Record<string, SyncHandler> = {
     "cg.exercices": pushCgExercice,
     "cg.budgets": pushCgBudget,
     "cg.periodes": pushCgPeriode,
-    "ca.centres": pushCaMockList,
-    "ca.charges": pushCaMockList,
-    "ca.comptes": pushCaMockList,
-    "ca.plan_comptes": pushCaMockList,
-    "ca.journaux": pushCaMockList,
+    "ca.centres": pushCaCentre,
+    "ca.charges": pushCaCharge,
+    "ca.comptes": pushCaCompte,
+    "ca.plan_comptes": pushCaPlanComptes,
+    "ca.journaux": pushCaJournal,
 };
 
 let flushing = false;
@@ -87,7 +94,15 @@ export async function flushOutbox(): Promise<{ synced: number; failed: number; p
 
     try {
         const queue = await listPendingOutbox();
-        for (const op of queue) {
+
+        // 1) Batch CG CREATE/UPDATE/DELETE quand possible
+        const batch = await flushCgBatch(queue);
+        synced += batch.synced;
+        failed += batch.failed;
+        if (batch.synced > 0) networkStatus.reportApiSuccess();
+
+        // 2) Flush unitaire pour le reste (écritures, CA, notifications, rates…)
+        for (const op of batch.remaining) {
             if (!networkStatus.isOnline()) break;
 
             const handler = handlers[op.entity];
@@ -107,12 +122,29 @@ export async function flushOutbox(): Promise<{ synced: number; failed: number; p
                 synced += 1;
             } catch (err) {
                 const message = err instanceof Error ? err.message : "Erreur de synchronisation";
+                const { isSyncConflictMessage } = await import("@/lib/offline/conflict");
+                const isConflict = isSyncConflictMessage(message);
                 const isApiUnavailable = message.includes("non disponible");
                 const isNetwork =
                     message.includes("connexion") ||
                     message.includes("Failed to fetch") ||
                     message.includes("serveur");
 
+                if (isConflict) {
+                    await updateOutboxStatus(op.id, "failed", {
+                        retries: op.retries + 1,
+                        lastError: message,
+                    });
+                    failed += 1;
+                    if (typeof window !== "undefined") {
+                        window.dispatchEvent(
+                            new CustomEvent("sync:conflict", {
+                                detail: { entity: op.entity, entityId: op.entityId, message },
+                            }),
+                        );
+                    }
+                    continue;
+                }
                 if (isApiUnavailable) {
                     await updateOutboxStatus(op.id, "pending", { lastError: message });
                     break;
